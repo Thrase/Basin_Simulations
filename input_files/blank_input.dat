@@ -1,0 +1,14 @@
+# Parameter input file for Basin Simulations
+#
+#
+Total_time=
+Number_nodes=
+Domain_length=
+Transformation_flag=
+r_hat=
+l=
+dynamic_flag=
+d_to_s=
+dt=
+initial_con=
+inital_t=
