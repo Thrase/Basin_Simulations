@@ -10,7 +10,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     R = p.R
     L = p.L
     Ã = p.Ã
-    JHP = p.JHP
+    JIHP = p.JIHP
     P̃I = p.P̃I
     sJ = p.sJ
     Γ = p.Γ
@@ -76,7 +76,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     sJ1 = sJ[1]
     f1x = fcs[1][1]
     f1y = fcs[2][1]
-
+    
     # solve for velocity flux point by point
     for n in 1:nn
 
@@ -92,8 +92,8 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
 
         v̂_root(v̂) = rateandstateD(v̂, z̃n, vn, sJn, ψn, RS.a, τ̃n, RS.σn, RS.V0)
         
-        left = vn - τ̃n/z̃n
-        right = -left
+        left = -1e5#vn - τ̃n/z̃n
+        right = 1e5#-left
         
         
         if left > right  
@@ -128,8 +128,8 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     
     
     dû[1] .= fault_v
-    dψ .= State_Source(f1x, f1y, t, B_p, RS, MMS)
-    #RS_Source(fcs[1][1], fcs[2][1], b, t, 1, B_p, RS, MMS)
+    dψ .= State_Source(f1x, f1y, t, B_p, RS, MMS) #(b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(2 .* fault_v) ./ RS.V0) .+ 
+        #RS_Source(f1x, f1y, b, t, 1, B_p, RS, MMS)
     τ̂[1] = τf
     
     
@@ -143,9 +143,10 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
             B[i][2]' * n[i] * H[i] * (û[i] - L[i] * u)
     end
 
-    dv .= JHP * dv
+    dv .= JIHP * dv
     dv .+= P̃I * Forcing(coord[1][:], coord[2][:], t, B_p, MMS)
 
+    
     contour(coord[1][:,1], coord[2][1,:],
             (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
             xlabel="off fault", ylabel="depth", fill=true, yflip=true)

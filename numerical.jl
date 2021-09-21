@@ -21,7 +21,7 @@ end
 # Dynamic roofinding problem on the fault
 function rateandstateD(v̂, z̃, v, sJ, ψ, a, τ̃, σn, V0)
     Y = (1 / (2 * V0)) * exp(ψ / a)
-    f = a * asinh.(2v̂ * Y)
+    f = a * asinh(2v̂ * Y)
     dfdv̂  = a * (1 / sqrt(1 + (2v̂ * Y)^2)) * 2Y
     g = sJ * σn * f + τ̃ + z̃*(v̂ - v)
     dgdv̂ = z̃ + sJ * σn * dfdv̂
@@ -236,7 +236,6 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     H̃inv = spdiagm(0 => 1 ./ diag(H̃))
     
     # diagonal rho
-    #TODO
     rho = ρ(metrics.coord[1], metrics.coord[2], B_p)
     rho = reshape(rho, Nrp*Nsp)
     P̃ = spdiagm(0 => rho)
@@ -479,6 +478,13 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
      Γ = (Γ1, Γ2, Γ3, Γ4),
      n = (-1, 1, -1, 1),
      bctype=bctype)
+end
+
+
+function dynamicblock(block_ops)
+
+
+
 end
 
 

@@ -8,12 +8,12 @@ f(a, MMS) = MMS.amp * sin.(π.*(a)/MMS.wl)
 fp(a, MMS) = MMS.amp * π/MMS.wl*cos.(π.*(a)/MMS.wl)
 fpp(a, MMS) = MMS.amp * (-(π/MMS.wl)^2) .* sin.(π.*(a)/MMS.wl)
 
-ue(x, y, t, MMS) = f(x .+ y .- t, MMS) .+ (MMS.amp * π/MMS.wl + MMS.ϵ)*t .- (MMS.amp * π/MMS.wl + MMS.ϵ)*x
+ue(x, y, t, MMS) = f(x .+ y .- t, MMS) .+ (MMS.amp * π/MMS.wl + MMS.ϵ)*t .+ (MMS.amp * π/MMS.wl + MMS.ϵ)*x
 
 ue_t(x, y, t, MMS) = -fp(x .+ y .- t, MMS) .+ (MMS.amp * π/MMS.wl + MMS.ϵ)
 ue_tt(x, y, t, MMS) = fpp(x .+ y .- t, MMS)
 
-ue_x(x, y, t, MMS) = fp(x .+ y .- t, MMS) .- (MMS.amp * π/MMS.wl + MMS.ϵ)
+ue_x(x, y, t, MMS) = fp(x .+ y .- t, MMS) .+ (MMS.amp * π/MMS.wl + MMS.ϵ)
 ue_y(x, y, t, MMS) = fp(x .+ y .- t, MMS)
 ue_xy(x,y, t, MMS) = fpp(x .+ y .- t, MMS)
 ue_xx(x, y, t, MMS) = fpp(x .+ y .- t, MMS)
@@ -32,7 +32,6 @@ function τe(fx, fy, t, fnum, B_p, MMS)
     elseif fnum == 4 
         τ = μ(fx, fy, B_p) .* ue_y(fx, fy, t, MMS)
     end
-
     return τ
 
 end
@@ -58,8 +57,8 @@ function ψe(fx, fy, t, B_p, RS, MMS)
 
     Ve = 2*ue_t(fx, fy, t, MMS)
     τf = τe(fx, fy, t, 1, B_p, MMS)
-
-    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(τf ./ (RS.a .* RS.σn)))
+   # display(τf)
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τf ./ (RS.a .* RS.σn)))
     
 end
 
@@ -70,7 +69,7 @@ function ψe_t(fx, fy, t, B_p, RS, MMS)
     τf = τe(fx, fy, t, 1, B_p, MMS)
     τf_t = τe_t(fx, fy, t, 1, B_p, MMS)
     
-    return τf_t ./ RS.σn .* coth.(τf ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve
+    return τf_t ./ RS.σn .* coth.(τf ./ (RS.σn .* RS.a)) - (RS.a .* Ve_t ./ Ve)
 
 end
 

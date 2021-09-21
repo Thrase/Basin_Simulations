@@ -9,11 +9,12 @@ include("../solvers.jl")
 
 function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
     
-    # expand to (0,Lw) × (0, Lw)
-    (x1, x2, x3, x4) = (0, Lw, 0, Lw)
-    (y1, y2, y3, y4) = (0, 0, Lw, Lw)
 
-    xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
+    xt, yt = transforms_e(Lw, .1, .05)
+    # expand to (0,Lw) × (0, Lw)
+    #(x1, x2, x3, x4) = (0, 1, .5, 1.5)
+    #(y1, y2, y3, y4) = (0, .5, 1, 1.5)
+    #xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
     
     for p in ps
         err = Vector{Float64}(undef, length(ns))
@@ -41,7 +42,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
                                      R = (-1, 0, 1, 0),
                                      L = lop.L,
                                      Ã = lop.Ã,
-                                     JHP = lop.JI * lop.H̃I * lop.P̃I,
+                                     JIHP = lop.JI * lop.H̃I * lop.P̃I,
                                      P̃I = lop.P̃I,
                                      sJ = metrics.sJ,
                                      Γ = lop.Γ,

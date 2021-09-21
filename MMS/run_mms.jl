@@ -2,14 +2,14 @@ include("mms.jl")
 
 let
     # Domain length
-    Lw = 24
+    Lw = 1.0
     # Basin Depth
-    D = 4
+    D = .25
     # simulation timespan
     t_span = (0, .01)
     
     # mesh refinement
-    ns = 8 * 2 .^ (3:3)
+    ns = 8 * 2 .^ (1:4)
     
     # order of operators
     p = [2]

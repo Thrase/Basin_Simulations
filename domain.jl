@@ -4,7 +4,7 @@
 function transforms_e(Lw, r̂, l)
     
 
-    A = (24 - Lw*r̂ - Lw)/(2*tanh((r̂-1)/l) + tanh(-2/l)*(r̂ - 1))
+    A = (Lw - Lw*r̂ - Lw)/(2*tanh((r̂-1)/l) + tanh(-2/l)*(r̂ - 1))
     b = (A*tanh(-2/l) + Lw)/2
     c = Lw - b
     xt = (r,s) -> (A .* tanh.((r .- 1) ./ l) .+ b .* r .+ c,
@@ -14,8 +14,11 @@ function transforms_e(Lw, r̂, l)
                    zeros(size(r)),
                    ((A .* sech.((s .- 1) ./ l).^2) ./ l) .+ b)
 
-
-    
+    r = -1:.01:1
+    s = -1:.01:1
+    plot(r, xt(r,s))
+    gui()
+        
     return xt, yt
     
 end
