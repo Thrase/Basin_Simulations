@@ -64,7 +64,8 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
                                      b = b,
                                      Forcing = Forcing,
                                      Char_Source = S_c,
-                                     RS_Source = S_rs)
+                                     RS_Source = S_rs,
+                                     State_Source = ψe_t)
             end
 
             @printf "Got Operators: %s s\n" ot

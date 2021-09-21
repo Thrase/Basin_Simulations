@@ -75,6 +75,9 @@ function create_metrics(Nr, Ns, B_p, μ,
     ry = -xs ./ J
     sy =  xr ./ J
 
+    #display(x)
+    #display(y)
+    #quit()
     μx = μy = μ(x, y, B_p)
     
 

@@ -34,6 +34,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     Forcing = p.Forcing
     Char_Source = p.Char_Source
     RS_Source = p.RS_Source
+    State_Source = p.State_Source
 
     u = q[1:Nn]
     v = q[Nn + 1:2Nn]
@@ -73,6 +74,8 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     vf1 = L[1] * v
     τ̃f1 = τ̃[1]
     sJ1 = sJ[1]
+    f1x = fcs[1][1]
+    f1y = fcs[2][1]
 
     # solve for velocity flux point by point
     for n in 1:nn
@@ -81,7 +84,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
         vn = vf1[n]
         sJn = sJ1[n]
         τ̃n = τ̃f1[n]
-        ψn = ψ[n]
+        ψn =ψ[n]
         bn = b[n]
         
         #@show n, z̃n, vn ,sJn, τ̃n, ψn, bn
@@ -110,6 +113,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
         end
         
         fault_v[n] = v̂n
+        #=
         # update state evolution
         if bn != 0
             #@show ψn, bn, exp((RS.f0 - ψn)/bn)
@@ -117,14 +121,15 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
         else
             dψ[n] = 0
         end
-        
+        =#
         # update traction flux on fault
         τf[n] = z̃n * (v̂n .- vn) + τ̃n
     end
-    #@show isinfin(dψ)
-    #display(dψ)
+    
+    
     dû[1] .= fault_v
-    dψ .+= RS_Source(fcs[1][1], fcs[2][1], b, t, 1, B_p, RS, MMS)
+    dψ .= State_Source(f1x, f1y, t, B_p, RS, MMS)
+    #RS_Source(fcs[1][1], fcs[2][1], b, t, 1, B_p, RS, MMS)
     τ̂[1] = τf
     
     
@@ -140,8 +145,10 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
 
     dv .= JHP * dv
     dv .+= P̃I * Forcing(coord[1][:], coord[2][:], t, B_p, MMS)
-    
-    plot(coord[1][:], coord[2][:], u - ue(coord[1][:],coord[2][:],t, MMS), st=:surface, xlabel="off fault", ylabel="depth")
+
+    contour(coord[1][:,1], coord[2][1,:],
+            (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
+            xlabel="off fault", ylabel="depth", fill=true, yflip=true)
     gui()
     
 end

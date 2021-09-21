@@ -1,25 +1,51 @@
 function μ(x, y, B_p)
 
-    return (B_p.μ_out - B_p.μ_in)/2 *
-        (tanh.((x.^2 .+ B_p.c .^ 2 .* y .^ 2 .- B_p.r̄) ./ B_p.r_w) .+ 1) .+
-        B_p.μ_in
+    c = B_p.c
+    μ_in = B_p.μ_in
+    μ_out = B_p.μ_out
+    r̄ = B_p.r̄
+    r_w = B_p.r_w
+
+    return (μ_out - μ_in)/2 *
+        (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
 end
 
 function ρ(x, y, B_p)
-    return (B_p.ρ_out - B_p.ρ_in)/2 *
-        (tanh.((x.^2 .+ B_p.c .^ 2 .* y .^ 2 .- B_p.r̄) ./ B_p.r_w) .+ 1) .+
-        B_p.ρ_in
+
+    c = B_p.c
+    ρ_in = B_p.ρ_in
+    ρ_out = B_p.ρ_out
+    r̄ = B_p.r̄
+    r_w = B_p.r_w
+
+    return (ρ_out - ρ_in)/2 *
+        (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
 end
 
 function μ_x(x, y, B_p)
-    return (B_p.μ_out - B_p.μ_in)/B_p.r_w .*
-        (x .* (sech.((x .^ 2 + B_p.c .^ 2 .* y .^ 2 .- B_p.r̄) ./ B_p.r_w)) .^ 2)
+    
+    c = B_p.c
+    μ_in = B_p.μ_in
+    μ_out = B_p.μ_out
+    r̄ = B_p.r̄
+    r_w = B_p.r_w
+    
+    return ((μ_out - μ_in) .* x .*
+        sech.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
 end
 
 function μ_y(x, y, B_p)
-    return (B_p.μ_out - B_p.μ_in)/B_p.r_w .*
-        (B_p.c .^ 2 .* y .* (sech.((x .^ 2 + B_p.c .^ 2 .* y .^ 2 .- B_p.r̄) ./ B_p.r_w)) .^ 2)
+
+    c = B_p.c
+    μ_in = B_p.μ_in
+    μ_out = B_p.μ_out
+    r̄ = B_p.r̄
+    r_w = B_p.r_w
+    
+    return ((μ_out - μ_in) .* (c^2 * y) .*
+        sech.((x .^ 2 + c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
 end
+
 
 function η(y, B_p)
     μf = μ(0, y, B_p)

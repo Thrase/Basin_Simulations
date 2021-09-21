@@ -6,7 +6,7 @@ let
     # Basin Depth
     D = 4
     # simulation timespan
-    t_span = (0, .1)
+    t_span = (0, .01)
     
     # mesh refinement
     ns = 8 * 2 .^ (3:3)
