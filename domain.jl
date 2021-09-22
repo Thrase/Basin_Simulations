@@ -14,10 +14,6 @@ function transforms_e(Lw, r̂, l)
                    zeros(size(r)),
                    ((A .* sech.((s .- 1) ./ l).^2) ./ l) .+ b)
 
-    r = -1:.01:1
-    s = -1:.01:1
-    plot(r, xt(r,s))
-    gui()
         
     return xt, yt
     

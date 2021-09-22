@@ -483,7 +483,93 @@ end
 
 function dynamicblock(block_ops)
 
+    Nn = block_ops.Nn
+    nn = block_ops.nn
+    Ã = block_ops.Ã
+    @show Nn, nn
+    # velocity blocks
+    du_u = spzeros(Nn, Nn)
+    du_v = sparse(I, Nn, Nn)
+    du_û = spzeros(Nn, 4nn)
+    du_ψ = spzeros(Nn, nn)
 
+    # accleration blocks
+    dv_u = -Ã
+    dv_v = spzeros(Nn, Nn)
+    dv_û = spzeros(Nn, 4nn)
+    dv_ψ = spzeros(Nn, nn)
+
+    # flux blocks
+
+    dû1_u = spzeros(nn, Nn)
+    dû2_u = spzeros(nn, Nn)
+    dû3_u = spzeros(nn, Nn)
+    dû4_u = spzeros(nn, Nn)
+    
+    dû_u = [ dû1_u
+             dû2_u
+             dû3_u
+             dû4_u ]
+    
+    dû1_v = spzeros(nn, Nn)
+    dû2_v = spzeros(nn, Nn)
+    dû3_v = spzeros(nn, Nn)   
+    dû4_v = spzeros(nn, Nn)
+
+    dû_v = [ dû1_v
+             dû2_v
+             dû3_v
+             dû4_v ]
+    
+    dû1_û1 = spzeros(nn, nn)
+    dû1_û2 = spzeros(nn, nn)
+    dû1_û3 = spzeros(nn, nn)
+    dû1_û4 = spzeros(nn, nn)
+
+    dû2_û1 = spzeros(nn, nn)
+    dû2_û2 = spzeros(nn, nn)
+    dû2_û3 = spzeros(nn, nn)
+    dû2_û4 = spzeros(nn, nn)
+
+    dû3_û1 = spzeros(nn, nn)
+    dû3_û2 = spzeros(nn, nn)
+    dû3_û3 = spzeros(nn, nn)
+    dû3_û4 = spzeros(nn, nn)
+
+    dû4_û1 = spzeros(nn, nn)
+    dû4_û2 = spzeros(nn, nn)
+    dû4_û3 = spzeros(nn, nn)
+    dû4_û4 = spzeros(nn, nn)
+
+    dû_û = [ dû1_û1 dû1_û2 dû1_û3 dû1_û4
+             dû2_û1 dû2_û2 dû2_û3 dû2_û4
+             dû3_û1 dû3_û2 dû3_û3 dû3_û4
+             dû4_û1 dû4_û2 dû4_û3 dû4_û4 ]
+    
+    dû1_ψ = spzeros(nn, nn)
+    dû2_ψ = spzeros(nn, nn)
+    dû3_ψ = spzeros(nn, nn)
+    dû4_ψ = spzeros(nn, nn)
+
+    dû_ψ = [ dû1_ψ
+             dû2_ψ
+             dû3_ψ
+             dû4_ψ ]
+    
+    # state blocks
+    dψ_u = spzeros(nn, Nn)
+    dψ_v = spzeros(nn, Nn)
+    dψ_û = spzeros(nn, 4nn)
+    dψ_ψ = spzeros(nn, nn)
+    
+    Λ = [ du_u du_v du_û du_ψ
+          dv_u dv_v dv_û dv_ψ
+          dû_u dû_v dû_û dû_ψ
+          dψ_u dψ_v dψ_û dψ_ψ ]
+
+    display(Λ)
+
+    return Λ
 
 end
 

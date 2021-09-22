@@ -36,7 +36,8 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
 
                 lop = locoperator(p, N, N, B_p, μ, ρ, metrics, LFtoB)
                 b = b_fun(metrics.facecoord[2][1], RS)
-                
+
+                                                
                 dynamic_operators = (nn = nn,
                                      Nn = Nn,
                                      R = (-1, 0, 1, 0),
@@ -101,7 +102,9 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
             @printf "error: %e\n" err[iter]
             if iter > 1
             @printf "rate: %f\n\n" log(2, err[iter - 1]/err[iter])
+            =#
             end
         end
     end
+
 end

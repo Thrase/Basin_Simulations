@@ -9,7 +9,7 @@ let
     t_span = (0, .01)
     
     # mesh refinement
-    ns = 8 * 2 .^ (1:4)
+    ns = 8 * 2 .^ (1:1)
     
     # order of operators
     p = [2]
