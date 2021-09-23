@@ -57,7 +57,7 @@ function ψe(fx, fy, t, B_p, RS, MMS)
 
     Ve = 2*ue_t(fx, fy, t, MMS)
     τf = τe(fx, fy, t, 1, B_p, MMS)
-   # display(τf)
+    #display(τf)
     return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τf ./ (RS.a .* RS.σn)))
     
 end

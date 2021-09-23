@@ -480,6 +480,143 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
      bctype=bctype)
 end
 
+function sbpA(p, Nr, Ns, metrics, 
+                     τscale = 2,
+                     crr = metrics.crr,
+                     css = metrics.css,
+                     crs = metrics.crs)
+
+    csr = crs
+
+    hr = 2/Nr
+    hs = 2/Ns
+
+    hmin = min(hr, hs)
+    
+    r = -1:hr:1
+    s = -1:hs:1
+    
+    Nrp = Nr + 1
+    Nsp = Ns + 1
+    Np = Nrp * Nsp
+
+    # Derivative operators for the rest of the computation
+    (Dr, HrI, Hr, r) = D1(p, Nr; xc = (-1,1))
+    Qr = Hr * Dr
+    QrT = sparse(transpose(Qr))
+
+    (Ds, HsI, Hs, s) = D1(p, Ns; xc = (-1,1))
+    Qs = Hs * Ds
+    QsT = sparse(transpose(Qs))
+
+    # Identity matrices for the comuptation
+    Ir = sparse(I, Nrp, Nrp)
+    Is = sparse(I, Nsp, Nsp)
+
+    #{{{ Set up the rr derivative matrix
+    ISr0 = Array{Int64,1}(undef,0)
+    JSr0 = Array{Int64,1}(undef,0)
+    VSr0 = Array{Float64,1}(undef,0)
+    ISrN = Array{Int64,1}(undef,0)
+    JSrN = Array{Int64,1}(undef,0)
+    VSrN = Array{Float64,1}(undef,0)
+
+    (_, S0e, SNe, _, _, Ae, _) = variable_D2(p, Nr, rand(Nrp))
+    IArr = Array{Int64,1}(undef,Nsp * length(Ae.nzval))
+    JArr = Array{Int64,1}(undef,Nsp * length(Ae.nzval))
+    VArr = Array{Float64,1}(undef,Nsp * length(Ae.nzval))
+    stArr = 0
+
+    ISr0 = Array{Int64,1}(undef,Nsp * length(S0e.nzval))
+    JSr0 = Array{Int64,1}(undef,Nsp * length(S0e.nzval))
+    VSr0 = Array{Float64,1}(undef,Nsp * length(S0e.nzval))
+    stSr0 = 0
+
+    ISrN = Array{Int64,1}(undef,Nsp * length(SNe.nzval))
+    JSrN = Array{Int64,1}(undef,Nsp * length(SNe.nzval))
+    VSrN = Array{Float64,1}(undef,Nsp * length(SNe.nzval))
+    stSrN = 0
+    for j = 1:Nsp
+        rng = (j-1) * Nrp .+ (1:Nrp)
+        (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Nr, crr[rng])
+        (Ie, Je, Ve) = findnz(Ae)
+        IArr[stArr .+ (1:length(Ve))] = Ie .+ (j-1) * Nrp
+        JArr[stArr .+ (1:length(Ve))] = Je .+ (j-1) * Nrp
+        VArr[stArr .+ (1:length(Ve))] = Hs[j,j] * Ve
+        stArr += length(Ve)
+
+        (Ie, Je, Ve) = findnz(S0e)
+        ISr0[stSr0 .+ (1:length(Ve))] = Ie .+ (j-1) * Nrp
+        JSr0[stSr0 .+ (1:length(Ve))] = Je .+ (j-1) * Nrp
+        VSr0[stSr0 .+ (1:length(Ve))] =  Hs[j,j] * Ve
+        stSr0 += length(Ve)
+
+        (Ie, Je, Ve) = findnz(SNe)
+        ISrN[stSrN .+ (1:length(Ve))] = Ie .+ (j-1) * Nrp
+        JSrN[stSrN .+ (1:length(Ve))] = Je .+ (j-1) * Nrp
+        VSrN[stSrN .+ (1:length(Ve))] =  Hs[j,j] * Ve
+        stSrN += length(Ve)
+    end
+    Ãrr = sparse(IArr[1:stArr], JArr[1:stArr], VArr[1:stArr], Np, Np)
+    Sr0 = sparse(ISr0[1:stSr0], JSr0[1:stSr0], VSr0[1:stSr0], Np, Np)
+    SrN = sparse(ISrN[1:stSrN], JSrN[1:stSrN], VSrN[1:stSrN], Np, Np)
+    Sr0T = sparse(JSr0[1:stSr0], ISr0[1:stSr0], VSr0[1:stSr0], Np, Np)
+    SrNT = sparse(JSrN[1:stSrN], ISrN[1:stSrN], VSrN[1:stSrN], Np, Np)
+
+    (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Ns, rand(Nsp))
+    IAss = Array{Int64,1}(undef,Nrp * length(Ae.nzval))
+    JAss = Array{Int64,1}(undef,Nrp * length(Ae.nzval))
+    VAss = Array{Float64,1}(undef,Nrp * length(Ae.nzval))
+    stAss = 0
+
+    ISs0 = Array{Int64,1}(undef,Nrp * length(S0e.nzval))
+    JSs0 = Array{Int64,1}(undef,Nrp * length(S0e.nzval))
+    VSs0 = Array{Float64,1}(undef,Nrp * length(S0e.nzval))
+    stSs0 = 0
+
+    ISsN = Array{Int64,1}(undef,Nrp * length(SNe.nzval))
+    JSsN = Array{Int64,1}(undef,Nrp * length(SNe.nzval))
+    VSsN = Array{Float64,1}(undef,Nrp * length(SNe.nzval))
+    stSsN = 0
+    for i = 1:Nrp
+        rng = i .+ Nrp * (0:Ns)
+        (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Ns, css[rng])
+        R = Ae - Dr' * Hr * Diagonal(css[rng]) * Dr
+
+        (Ie, Je, Ve) = findnz(Ae)
+        IAss[stAss .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
+        JAss[stAss .+ (1:length(Ve))] = i .+ Nrp * (Je .- 1)
+        VAss[stAss .+ (1:length(Ve))] = Hr[i,i] * Ve
+        stAss += length(Ve)
+
+        (Ie, Je, Ve) = findnz(S0e)
+        ISs0[stSs0 .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
+        JSs0[stSs0 .+ (1:length(Ve))] = i .+ Nrp * (Je .- 1)
+        VSs0[stSs0 .+ (1:length(Ve))] = Hr[i,i] * Ve
+        stSs0 += length(Ve)
+
+        (Ie, Je, Ve) = findnz(SNe)
+        ISsN[stSsN .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
+        JSsN[stSsN .+ (1:length(Ve))] = i .+ Nrp * (Je .- 1)
+        VSsN[stSsN .+ (1:length(Ve))] = Hr[i,i] * Ve
+        stSsN += length(Ve)
+    end
+    Ãss = sparse(IAss[1:stAss], JAss[1:stAss], VAss[1:stAss], Np, Np)
+    Ss0 = sparse(ISs0[1:stSs0], JSs0[1:stSs0], VSs0[1:stSs0], Np, Np)
+    SsN = sparse(ISsN[1:stSsN], JSsN[1:stSsN], VSsN[1:stSsN], Np, Np)
+    Ss0T = sparse(JSs0[1:stSs0], ISs0[1:stSs0], VSs0[1:stSs0], Np, Np)
+    SsNT = sparse(JSsN[1:stSsN], ISsN[1:stSsN], VSsN[1:stSsN], Np, Np)
+
+    Ãsr = (QsT ⊗ Ir) * sparse(1:length(crs), 1:length(crs), view(crs, :)) * (Is ⊗ Qr)
+    Ãrs = (Is ⊗ QrT) * sparse(1:length(csr), 1:length(csr), view(csr, :)) * (Qs ⊗ Ir)
+
+    Ã = Ãrr + Ãss + Ãrs + Ãsr
+
+    return Ã
+    
+end
+
+
 
 function dynamicblock(block_ops)
 
@@ -566,8 +703,6 @@ function dynamicblock(block_ops)
           dv_u dv_v dv_û dv_ψ
           dû_u dû_v dû_û dû_ψ
           dψ_u dψ_v dψ_û dψ_ψ ]
-
-    display(Λ)
 
     return Λ
 

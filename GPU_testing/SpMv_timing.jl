@@ -1,16 +1,18 @@
-include("../numerical")
+include("../numerical.jl")
 include("../physical_params.jl")
+include("../domain.jl")
 
 using CUDA
 using Printf
+using LinearAlgebra
 
 let 
+
+    p = 2 
     
     Lw = 1
     D = .25
 
-
-    # Basin Params
     B_p = (μ_out = 36.0,
            ρ_out = 2.8,
            μ_in = 8.0,
@@ -23,15 +25,29 @@ let
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
-    nes = 2 * 8 .^ (1:10)
+    nes = 8 * 2 .^ (1:5)
 
-    for ne in nns
+    for ne in nes
         
         nn = ne + 1
-        metrics = create_metrics(ne,ne, B_p, μ, xt, yt)
         
-        @printf "nn: %d" nn
+        @printf "nn: %d\n" nn
+        
+        metrics = create_metrics(ne,ne, B_p, μ, xt, yt)
+        Ã = sbpA(p, ne, ne, metrics)
+        
+        block_ops = (Nn = nn^2,
+                     nn = nn,
+                     Ã = Ã)
 
+        Λ = dynamicblock(block_ops)
+        u = rand(size(Λ)[2])
+
+        @time for _ in 1:10000
+            mul!(u, Λ, u, 1, 0)
+        end
+        
+        
     end
 
 
