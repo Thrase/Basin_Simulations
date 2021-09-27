@@ -7,14 +7,14 @@ include("../domain.jl")
 include("../numerical.jl")
 include("../solvers.jl")
 
-function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
+function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
     
 
-    xt, yt = transforms_e(Lw, .1, .05)
+    #xt, yt = transforms_e(Lw, .1, .05)
     # expand to (0,Lw) × (0, Lw)
-    #(x1, x2, x3, x4) = (0, 1, .5, 1.5)
-    #(y1, y2, y3, y4) = (0, .5, 1, 1.5)
-    #xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
+    (x1, x2, x3, x4) = (0, 1, 0, 1)
+    (y1, y2, y3, y4) = (0, 0, 1, 1)
+    xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
     
     for p in ps
         err = Vector{Float64}(undef, length(ns))
@@ -34,13 +34,13 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
             LFtoB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
             ot = @elapsed begin
 
-                lop = locoperator(p, N, N, B_p, μ, ρ, metrics, LFtoB)
+                lop = locoperator(p, N, N, B_p, μ, ρ, R, metrics, LFtoB)
                 b = b_fun(metrics.facecoord[2][1], RS)
 
                                                 
                 dynamic_operators = (nn = nn,
                                      Nn = Nn,
-                                     R = (-1, 0, 1, 0),
+                                     R = R,
                                      L = lop.L,
                                      Ã = lop.Ã,
                                      JIHP = lop.JI * lop.H̃I * lop.P̃I,
@@ -51,6 +51,10 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
                                      H = lop.H,
                                      Cf = lop.Cf,
                                      B = lop.B,
+                                     BCTH = lop.BCTH,
+                                     nBBCΓL = lop.nBBCΓL,
+                                     nCnΓ = lop.nCnΓ,
+                                     #RZ̃L = lop.RZ̃L,
                                      n = lop.n,
                                      fcs = metrics.facecoord,
                                      coord = metrics.coord,
@@ -102,7 +106,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, MMS)
             @printf "error: %e\n" err[iter]
             if iter > 1
             @printf "rate: %f\n\n" log(2, err[iter - 1]/err[iter])
-            =#
+            
             end
         end
     end

@@ -18,6 +18,10 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     Z̃f = p.Z̃f
     Cf = p.Cf
     B = p.B
+    BCTH = p.BCTH
+    nCnΓ = p.nCnΓ
+    nBBCΓL = p.nBBCΓL
+    #RZ̃L = p.RZ̃L
     n = p.n
     fcs = p.fcs
     coord = p.coord
@@ -52,20 +56,24 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     dψ = @view dq[2Nn + 4*nn + 1 : 2Nn + 5*nn]
     
     ### numerical traction on face ###
-    for i in 1:4
-        τ̃[i] = n[i] * B[i][1] * u + n[i] * B[i][2] * u +
-            n[i] * Cf[i][1] * n[i] * Γ[i] * (û[i] - L[i]*u)
-    end
+    τ̃[1] =  nBBCΓL[1] * u + nCnΓ[1] * û[1]
+
+    
+    #for i in 1:4
+    #    τ̃[i] =  nBBCΓL[i] * u + nCnΓ[i] * û[i]
+    #end
 
 
     ### charcterstic boundary conditions ###
     for i in 2:4
+        
         vf = L[i]*v
         fx = fcs[1][i]
         fy = fcs[2][i]
         S̃_c = sJ[i] .* Char_Source(fx, fy, t, i, R[i], B_p, MMS)
-        dû[i] .= (1 + R[i])/2 * (vf - τ̃[i]./Z̃f[i]) + S̃_c ./ (2*Z̃f[i])
-        τ̂[i] = -(1 - R[i])/2 * (Z̃f[i] .* vf - τ̃[i]) + S̃_c ./ 2
+        dû[i] .= (1 + R[i])/2 * (vf - (nBBCΓL[i] * u + nCnΓ[i] * û[i])./Z̃f[i]) + S̃_c ./ (2*Z̃f[i])
+        τ̂[i] = -(1 - R[i])/2 * (Z̃f[i] .* vf - nBBCΓL[i] * u - nCnΓ[i] * û[i]) + S̃_c ./ 2
+        
     end
 
     ### rate-state boundary condition ###
@@ -139,17 +147,17 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     
     for i in 1:4
         dv .+= L[i]' * H[i] * τ̂[i] -
-            B[i][1]' * n[i] * H[i] * (û[i] - L[i] * u) -
-            B[i][2]' * n[i] * H[i] * (û[i] - L[i] * u)
+            BCTH[i][1] * (û[i] - L[i] * u) -
+            BCTH[i][2] * (û[i] - L[i] * u)
     end
 
     dv .= JIHP * dv
     dv .+= P̃I * Forcing(coord[1][:], coord[2][:], t, B_p, MMS)
 
-    
+    #=
     contour(coord[1][:,1], coord[2][1,:],
             (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
             xlabel="off fault", ylabel="depth", fill=true, yflip=true)
     gui()
-    
+    =# 
 end

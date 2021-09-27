@@ -9,7 +9,7 @@ let
     t_span = (0, .01)
     
     # mesh refinement
-    ns = 8 * 2 .^ (1:1)
+    ns = 8 * 2 .^ (1:5)
     
     # order of operators
     p = [2]
@@ -39,6 +39,6 @@ let
            amp = .5,
            ϵ = .01)
 
-    refine(p, ns, t_span, Lw, D, B_p, RS, MMS)
+    refine(p, ns, t_span, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS)
 
 end

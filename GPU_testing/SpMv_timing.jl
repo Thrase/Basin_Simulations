@@ -25,7 +25,7 @@ let
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
-    nes = 8 * 2 .^ (1:5)
+    nes = 8 * 2 .^ (1:1)
 
     for ne in nes
         
@@ -34,11 +34,14 @@ let
         @printf "nn: %d\n" nn
         
         metrics = create_metrics(ne,ne, B_p, μ, xt, yt)
-        Ã = sbpA(p, ne, ne, metrics)
+        
+        LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
+
+        ops = locoperator(p, ne, ne, B_p, μ, ρ, metrics, LFToB)
         
         block_ops = (Nn = nn^2,
                      nn = nn,
-                     Ã = Ã)
+                     Ã = ops.Ã)
 
         Λ = dynamicblock(block_ops)
         u = rand(size(Λ)[2])
