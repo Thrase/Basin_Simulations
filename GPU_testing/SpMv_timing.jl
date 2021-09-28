@@ -26,6 +26,7 @@ let
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
+    R = (-1, 0, 0, 1)
     nes = 8 * 2 .^ (4:8)
 
     for ne in nes
@@ -42,9 +43,18 @@ let
         
         block_ops = (Nn = nn^2,
                      nn = nn,
-                     Ã = ops.Ã)
+                     Ã = ops.Ã,
+                     L = ops.L,
+                     H = ops.H,
+                     R = R,
+                     Z̃ = ops.Z̃f,
+                     nBBCΓL = ops.nBBCΓL,
+                     BCTHL = ops.BCTHL,
+                     nCnΓ = ops.nCnΓ,
+                     BCTH = ops.BCTH)
 
         Λ = dynamicblock(block_ops)
+        quit()
         u = rand(size(Λ)[2])
 
         @time for _ in 1:100

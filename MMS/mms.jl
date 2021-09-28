@@ -52,6 +52,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                      Cf = lop.Cf,
                                      B = lop.B,
                                      BCTH = lop.BCTH,
+                                     BCTHL = lop. BCTHL,
                                      nBBCΓL = lop.nBBCΓL,
                                      nCnΓ = lop.nCnΓ,
                                      #RZ̃L = lop.RZ̃L,

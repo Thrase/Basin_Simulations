@@ -98,7 +98,7 @@ function computetraction_mod(lop, lf, u, δ)
     return (HfI_FT * u + τf * (δ .- δ / 2)) ./ sJ
 end
 
-function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB, 
+function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB, 
                      τscale = 2,
                      crr = metrics.crr,
                      css = metrics.css,
@@ -322,15 +322,7 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     B4s = Css4 * kron(SN, Ir)
     B4r = Csr4 * L4 * kron(Is, Dr)
 
-    BCTH1r = -B1r' * H1
-    BCTH1s =  -B1s' * H1
-    BCTH2r =  B2r' * H2
-    BCTH2s =  B2s' * H2
-    BCTH3r =  -B3r' * H3
-    BCTH3s =  -B3s' * H3
-    BCTH4r =  B4r' * H4
-    BCTH4s =  B4s' * H4
-    
+
     
     (xf1, xf2, xf3, xf4) = metrics.facecoord[1]
     (yf1, yf2, yf3, yf4) = metrics.facecoord[2]
@@ -344,12 +336,6 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     Z̃2 = metrics.sJ[2] .* Z2
     Z̃3 = metrics.sJ[3] .* Z3
     Z̃4 = metrics.sJ[4] .* Z4
-
-    #RZ̃L1 = -(1 - R[1])/2 .* Z̃f1 .* L1
-    #RZ̃L2 = -(1 - R[2])/2 .* Z̃f2 .* L2
-    #RZ̃L3 = -(1 - R[3])/2 .* Z̃f3 .* L3
-    #RZ̃L4 = -(1 - R[4])/2 .* Z̃f4 .* L4
-    
 
     # Penalty terms
         if p == 2
@@ -427,13 +413,25 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     nCnΓ2 = Crr2 * Γ2
     nCnΓ3 = Css3 * Γ3
     nCnΓ4 = Css4 * Γ4
-
-
+    
     nBBCΓL1 = -(B1r + B1s) - nCnΓ1 * L1
     nBBCΓL2 = (B2r + B2s) - nCnΓ2 * L2
     nBBCΓL3 = -(B3r + B3s) - nCnΓ3 * L3
     nBBCΓL4 = (B4r + B4s) - nCnΓ4 * L4
 
+    BCTH1 = -(-(B1r' + B1s')) * H1
+    BCTH2 = -(B2r' + B2s') * H2
+    BCTH3 = -(-(B3r' + B3s')) * H3
+    BCTH4 = -(B4r'+ B4s') * H4
+
+    BCTHL1 = -(B1r' + B1s') * H1 * L1
+    BCTHL2 = (B2r' + B2s') * H2 * L2
+    BCTHL3 = -(B3r' + B3s') * H3 * L3
+    BCTHL4 = (B4r' + B4s') * H4 * L4
+
+    
+    
+    
     C̃1 =  (Sr0 + Sr0T) + ((csr0 * Qs + QsT * csr0) ⊗ Er0) + ((τ1 * H1) ⊗ Er0)
     C̃2 = -(SrN + SrNT) - ((csrN * Qs + QsT * csrN) ⊗ ErN) + ((τ2 * H2) ⊗ ErN)
     C̃3 =  (Ss0 + Ss0T) + (Es0 ⊗ (crs0 * Qr + QrT * crs0)) + (Es0 ⊗ (τ3 * H3))
@@ -503,8 +501,8 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
      Z̃f = (Z̃1, Z̃2, Z̃3, Z̃4),
      Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4)),
      B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r)),
-     BCTH = ((BCTH1r, BCTH1s), (BCTH2r, BCTH2s),
-             (BCTH3r, BCTH3s), (BCTH4r, BCTH4s)),
+     BCTH = (BCTH1, BCTH2, BCTH3, BCTH4),
+     BCTHL = (BCTHL1,  BCTHL2,  BCTHL3,  BCTHL4),
      nBBCΓL = (nBBCΓL1,  nBBCΓL2,  nBBCΓL3,  nBBCΓL4),
      nCnΓ = (nCnΓ1, nCnΓ2, nCnΓ3, nCnΓ4),
      #RZ̃L = (RZ̃L1, RZ̃L2, RZ̃L3, RZ̃L4),
@@ -651,11 +649,20 @@ end
 
 
 
-function dynamicblock(block_ops)
+function dynamicblock(ops)
 
-    Nn = block_ops.Nn
-    nn = block_ops.nn
-    Ã = block_ops.Ã
+    Nn = ops.Nn
+    nn = ops.nn
+    Ã = ops.Ã
+    L = ops.L
+    H = ops.H
+    R = ops.R
+    Z̃ = ops.Z̃
+    nBBCΓL = ops.nBBCΓL
+    BCTHL = ops.BCTHL
+    nCnΓ = ops.nCnΓ
+    BCTH = ops.BCTH
+    
     @show Nn, nn
     # velocity blocks
     du_u = spzeros(Nn, Nn)
@@ -665,8 +672,28 @@ function dynamicblock(block_ops)
 
     # accleration blocks
     dv_u = -Ã
+    for i in 1:4
+        dv_u .+= L[i]' * (H[i] * ((1-R[i])/2 .* nBBCΓL[i])) + BCTHL[i]
+    end
+
     dv_v = spzeros(Nn, Nn)
-    dv_û = spzeros(Nn, 4nn)
+    for i in 1:4
+        dv_v .+= -L[i]' * (Z̃[i] .* H[i]) * L[i]
+    end
+
+    dv_û = spzeros(Nn, 4*nn)
+
+    dv_û1 = L[1]' * (((1-R[1]/2) .* H[1]) * nCnΓ[1]) + BCTH[1]
+    dv_û2 = L[2]' * (((2-R[2]/2) .* H[2]) * nCnΓ[2]) + BCTH[2]
+    dv_û3 = L[3]' * (((3-R[3]/2) .* H[3]) * nCnΓ[3]) + BCTH[3]
+    dv_û4 = L[4]' * (((4-R[4]/2) .* H[4]) * nCnΓ[4]) + BCTH[4]
+
+    display(dv_û1)
+    display(dv_û2)
+    display(dv_û3)
+    display(dv_û4)
+    
+    
     dv_ψ = spzeros(Nn, nn)
 
     # flux blocks
@@ -731,12 +758,12 @@ function dynamicblock(block_ops)
     dψ_v = spzeros(nn, Nn)
     dψ_û = spzeros(nn, 4nn)
     dψ_ψ = spzeros(nn, nn)
-    
+    #=
     Λ = [ du_u du_v du_û du_ψ
           dv_u dv_v dv_û dv_ψ
           dû_u dû_v dû_û dû_ψ
           dψ_u dψ_v dψ_û dψ_ψ ]
-
+    =#
     return Λ
 
 end
