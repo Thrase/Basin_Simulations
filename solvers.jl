@@ -22,7 +22,6 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     BCTHL = p.BCTHL
     nCnΓ = p.nCnΓ
     nBBCΓL = p.nBBCΓL
-    #RZ̃L = p.RZ̃L
     n = p.n
     fcs = p.fcs
     coord = p.coord
@@ -57,16 +56,13 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     dψ = @view dq[2Nn + 4*nn + 1 : 2Nn + 5*nn]
     
     ### numerical traction on face ###
-    τ̃[1] =  nBBCΓL[1] * u + nCnΓ[1] * û[1]
-
-    
     for i in 1:4
         τ̃[i] =  nBBCΓL[i] * u + nCnΓ[i] * û[i]
     end
 
 
     ### charcterstic boundary conditions ###
-    for i in 2:4
+    for i in 1:4
         vf = L[i]*v
         fx = fcs[1][i]
         fy = fcs[2][i]
@@ -75,7 +71,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
         τ̂[i] = -(1 - R[i])/2 * (Z̃f[i] .* vf - τ̃[i]) + S̃_c ./ 2
         
     end
-
+    #=
     ### rate-state boundary condition ###
     # transformed quantities on face 1
     z̃f1 = Z̃f[1]
@@ -139,8 +135,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     dψ .= State_Source(f1x, f1y, t, B_p, RS, MMS) #(b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(2 .* fault_v) ./ RS.V0) .+ 
         #RS_Source(f1x, f1y, b, t, 1, B_p, RS, MMS)
     τ̂[1] = τf
-    
-    
+    =#
     ### set velocity and displacement evolution ###
     du .= v
     mul!(dv, Ã, u, -1, 0)
@@ -158,4 +153,143 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
             xlabel="off fault", ylabel="depth", fill=true, yflip=true)
     gui()
     =# 
+end
+
+
+function ODE_RHS_ACTION_CPU!(dq, q, p, t)
+
+    nn = p.nn
+    Nn = p.Nn
+    R = p.R
+    L = p.L
+    Ã = p.Ã
+    JIHP = p.JIHP
+    P̃I = p.P̃I
+    sJ = p.sJ
+    H = p.H
+    Z̃f = p.Z̃f
+    Cf = p.Cf
+    BCTH = p.BCTH
+    BCTHL = p.BCTHL
+    nCnΓ = p.nCnΓ
+    nBBCΓL = p.nBBCΓL
+    n = p.n
+    fcs = p.fcs
+    coord = p.coord
+    τ̃ =  p.τ̃
+    û =  p.û
+    dû = p.dû
+    τ̂ = p.τ̂
+    B_p = p.B_p
+    MMS = p.MMS
+    Forcing = p.Forcing
+    Char_Source = p.Char_Source
+    State_Source = p.State_Source
+
+
+    u = q[1:Nn]
+    v = q[Nn + 1:2Nn]
+    for i in 1:4
+        û[i] = q[2Nn + (i-1)*nn + 1 : 2Nn + i*nn]
+    end
+    ψ = q[2Nn + 4*nn + 1 : 2Nn + 5*nn]
+
+    du = @view dq[1:Nn]
+    dv = @view dq[Nn + 1:2Nn]
+    for i in 1:4
+        dû[i] = @view dq[2Nn + (i-1)*nn + 1 : 2Nn + i*nn]
+    end
+
+    dψ = @view dq[2Nn + 4*nn + 1 : 2Nn + 5*nn]
+    
+    ### numerical traction on face ###
+    #for i in 1:4
+    #    τ̃[i] =  nBBCΓL[i] * u + nCnΓ[i] * û[i]
+    #end
+
+
+    ### charcterstic boundary conditions ###
+    for i in 1:4
+        #vf = L[i]*v
+        fx = fcs[1][i]
+        fy = fcs[2][i]
+        S̃_c = sJ[i] .* Char_Source(fx, fy, t, i, R[i], B_p, MMS)
+
+        
+        dû[i] .=
+            (1 + R[i])/2 .* L[i]*v -
+            (1 + R[i])/2 .* nBBCΓL[i]./Z̃f[i] * u -
+            (1 + R[i])/2 .* nCnΓ[i]./Z̃f[i] * û[i] +
+            S̃_c ./ (2*Z̃f[i])
+    end
+
+    ### set velocity and displacement evolution ###
+    du .= v
+    mul!(dv, Ã, u, -1, 0)
+    
+    for i in 1:4
+        fx = fcs[1][i]
+        fy = fcs[2][i]
+        S̃_c = sJ[i] .* Char_Source(fx, fy, t, i, R[i], B_p, MMS)
+        dv .+=
+            L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i]) * v +
+            L[i]' * H[i] * S̃_c ./ 2 +
+            ((L[i]' * H[i] * ((1 - R[i])/2 .* nCnΓ[i])) + BCTH[i]) * û[i] +
+            ((L[i]' * H[i] * ((1 - R[i])/2 .* nBBCΓL[i])) + BCTHL[i]) * u
+    end
+
+    dv .= JIHP * dv
+    dv .+= P̃I * Forcing(coord[1][:], coord[2][:], t, B_p, MMS)
+
+end
+
+
+function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
+
+    nn = p.nn
+    fc = p.fc
+    coord = p.coord
+    R = p.R
+    B_p = p.B_p
+    MMS = p.MMS
+    Λ = p.Λ
+    sJ = p.sJ
+    Z̃ = p.Z̃
+    L = p.L
+    H = p.H
+    P̃I = p.P̃I
+    JIHP = p.JIHP
+    CHAR_SOURCE = p.CHAR_SOURCE
+    FORCE = p.FORCE
+
+    u = q[1:nn^2]
+
+    # compute all temporal derivatives
+    dq .= Λ * q
+
+
+    for i in 1:4
+        fx = fc[1][i]
+        fy = fc[2][i]
+        
+        S̃_c = sJ[i] .* CHAR_SOURCE(fx, fy, t, i, R[i], B_p, MMS)
+        
+        dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= S̃_c ./ (2*Z̃[i])
+        
+        dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * S̃_c ./ 2
+    end
+
+    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
+    
+    dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+
+
+    
+    #contour(coord[1][:,1], coord[2][1,:],
+    #        (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
+    #        xlabel="off fault", ylabel="depth", fill=true, yflip=true)
+
+
+    #gui()
+    
 end

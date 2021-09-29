@@ -51,7 +51,8 @@ let
                      nBBCΓL = ops.nBBCΓL,
                      BCTHL = ops.BCTHL,
                      nCnΓ = ops.nCnΓ,
-                     BCTH = ops.BCTH)
+                     BCTH = ops.BCTH,
+                     JIHP = ops.JI * ops.H̃I * ops.P̃I)
 
         Λ = dynamicblock(block_ops)
         quit()

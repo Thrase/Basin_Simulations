@@ -476,13 +476,16 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
         end
     end
     bctype=(LFToB[1], LFToB[2], LFToB[3], LFToB[4])
-
     JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
+
+    JIHP = JI * H̃inv * P̃inv
+    
     (M̃ = cholesky(Symmetric(M̃)),
      Ã = Ã,
      P̃I = P̃inv,
      H̃I = H̃inv,
      JI = JI,
+     JIHP = JIHP,
      F = (F1, F2, F3, F4),
      HfI_FT = (HfI_F1T, HfI_F2T, HfI_F3T, HfI_F4T),
      HfI_G = (HfI_G1, HfI_G2, HfI_G3, HfI_G4),
@@ -657,11 +660,12 @@ function dynamicblock(ops)
     L = ops.L
     H = ops.H
     R = ops.R
-    Z̃ = ops.Z̃
+    Z̃f = ops.Z̃f
     nBBCΓL = ops.nBBCΓL
     BCTHL = ops.BCTHL
     nCnΓ = ops.nCnΓ
     BCTH = ops.BCTH
+    JIHP = ops.JIHP
     
     @show Nn, nn
     # velocity blocks
@@ -670,73 +674,82 @@ function dynamicblock(ops)
     du_û = spzeros(Nn, 4nn)
     du_ψ = spzeros(Nn, nn)
 
+    
     # accleration blocks
     dv_u = -Ã
     for i in 1:4
-        dv_u .+= L[i]' * (H[i] * ((1-R[i])/2 .* nBBCΓL[i])) + BCTHL[i]
+        dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* nBBCΓL[i])) + BCTHL[i]
     end
-
+    
     dv_v = spzeros(Nn, Nn)
     for i in 1:4
-        dv_v .+= -L[i]' * (Z̃[i] .* H[i]) * L[i]
+        dv_v .+= L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
     end
 
-    dv_û = spzeros(Nn, 4*nn)
+    dv_û1 = (L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1]
+    dv_û2 = (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2]
+    dv_û3 = (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3]
+    dv_û4 = (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]
 
-    dv_û1 = L[1]' * (((1-R[1]/2) .* H[1]) * nCnΓ[1]) + BCTH[1]
-    dv_û2 = L[2]' * (((2-R[2]/2) .* H[2]) * nCnΓ[2]) + BCTH[2]
-    dv_û3 = L[3]' * (((3-R[3]/2) .* H[3]) * nCnΓ[3]) + BCTH[3]
-    dv_û4 = L[4]' * (((4-R[4]/2) .* H[4]) * nCnΓ[4]) + BCTH[4]
+    dv_û = [ dv_û1 dv_û2 dv_û3 dv_û4 ]
 
-    display(dv_û1)
-    display(dv_û2)
-    display(dv_û3)
-    display(dv_û4)
-    
-    
     dv_ψ = spzeros(Nn, nn)
 
     # flux blocks
-
-    dû1_u = spzeros(nn, Nn)
-    dû2_u = spzeros(nn, Nn)
-    dû3_u = spzeros(nn, Nn)
-    dû4_u = spzeros(nn, Nn)
     
+    dû1_u = -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
+    dû2_u = -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
+    dû3_u = -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
+    dû4_u = -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]
+
     dû_u = [ dû1_u
              dû2_u
              dû3_u
              dû4_u ]
+
+    #display(dû1_u)
+    #display(dû2_u)
+    #display(dû3_u)
+    #display(dû4_u)
+    #display(dû_u)
     
-    dû1_v = spzeros(nn, Nn)
-    dû2_v = spzeros(nn, Nn)
-    dû3_v = spzeros(nn, Nn)   
-    dû4_v = spzeros(nn, Nn)
+    dû1_v = (1 + R[1])/2 .* L[1]
+    dû2_v = (1 + R[2])/2 .* L[2]
+    dû3_v = (1 + R[3])/2 .* L[3]
+    dû4_v = (1 + R[4])/2 .* L[4]
 
     dû_v = [ dû1_v
              dû2_v
              dû3_v
              dû4_v ]
+
+    #display(dû1_v)
+    #display(dû2_v)
+    #display(dû3_v)
+    #display(dû4_v)
+    #display(dû_v)
     
-    dû1_û1 = spzeros(nn, nn)
+    dû1_û1 = -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1]
     dû1_û2 = spzeros(nn, nn)
     dû1_û3 = spzeros(nn, nn)
     dû1_û4 = spzeros(nn, nn)
 
+    
     dû2_û1 = spzeros(nn, nn)
-    dû2_û2 = spzeros(nn, nn)
+    dû2_û2 = -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2]
     dû2_û3 = spzeros(nn, nn)
     dû2_û4 = spzeros(nn, nn)
 
+    
     dû3_û1 = spzeros(nn, nn)
     dû3_û2 = spzeros(nn, nn)
-    dû3_û3 = spzeros(nn, nn)
+    dû3_û3 = -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3]
     dû3_û4 = spzeros(nn, nn)
 
     dû4_û1 = spzeros(nn, nn)
     dû4_û2 = spzeros(nn, nn)
     dû4_û3 = spzeros(nn, nn)
-    dû4_û4 = spzeros(nn, nn)
+    dû4_û4 = -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]
 
     dû_û = [ dû1_û1 dû1_û2 dû1_û3 dû1_û4
              dû2_û1 dû2_û2 dû2_û3 dû2_û4
@@ -758,12 +771,14 @@ function dynamicblock(ops)
     dψ_v = spzeros(nn, Nn)
     dψ_û = spzeros(nn, 4nn)
     dψ_ψ = spzeros(nn, nn)
-    #=
+    
     Λ = [ du_u du_v du_û du_ψ
-          dv_u dv_v dv_û dv_ψ
+          #=JIHP*=#dv_u #=JIHP*=#dv_v dv_û dv_ψ
           dû_u dû_v dû_û dû_ψ
           dψ_u dψ_v dψ_û dψ_ψ ]
-    =#
+
+    
+    #display(Λ)
     return Λ
 
 end
