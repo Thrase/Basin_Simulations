@@ -691,7 +691,7 @@ function dynamicblock(ops)
     dv_û3 = (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3]
     dv_û4 = (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]
 
-    dv_û = [ dv_û1 dv_û2 dv_û3 dv_û4 ]
+    dv_û = [dv_û1 dv_û2 dv_û3 dv_û4 ]
 
     dv_ψ = spzeros(Nn, nn)
 
@@ -773,7 +773,7 @@ function dynamicblock(ops)
     dψ_ψ = spzeros(nn, nn)
     
     Λ = [ du_u du_v du_û du_ψ
-          #=JIHP*=#dv_u #=JIHP*=#dv_v dv_û dv_ψ
+          dv_u dv_v dv_û dv_ψ
           dû_u dû_v dû_û dû_ψ
           dψ_u dψ_v dψ_û dψ_ψ ]
 

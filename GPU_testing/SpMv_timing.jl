@@ -2,10 +2,14 @@ include("../numerical.jl")
 include("../physical_params.jl")
 include("../domain.jl")
 
+using CUDA
 using CUDA.CUSPARSE
 using Printf
 using LinearAlgebra
 using SparseArrays
+
+CUDA.versioninfo()
+
 
 let 
     
@@ -27,7 +31,7 @@ let
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
     R = (-1, 0, 0, 1)
-    nes = 8 * 2 .^ (4:8)
+    nes = 8 * 2 .^ (4:5)
 
     for ne in nes
         
@@ -39,30 +43,30 @@ let
         
         LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
 
-        ops = locoperator(p, ne, ne, B_p, μ, ρ, metrics, LFToB)
+        loc = locoperator(p, ne, ne, B_p, μ, ρ, metrics, LFToB)
         
-        block_ops = (Nn = nn^2,
-                     nn = nn,
-                     Ã = ops.Ã,
-                     L = ops.L,
-                     H = ops.H,
-                     R = R,
-                     Z̃ = ops.Z̃f,
-                     nBBCΓL = ops.nBBCΓL,
-                     BCTHL = ops.BCTHL,
-                     nCnΓ = ops.nCnΓ,
-                     BCTH = ops.BCTH,
-                     JIHP = ops.JI * ops.H̃I * ops.P̃I)
+        ops = (Nn = nn^2,
+               nn = nn,
+               Ã = loc.Ã,
+               L = loc.L,
+               H = loc.H,
+               R = R,
+               Z̃f = loc.Z̃f,
+               nBBCΓL = loc.nBBCΓL,
+               BCTHL = loc.BCTHL,
+               nCnΓ = loc.nCnΓ,
+               BCTH = loc.BCTH,
+               JIHP = loc.JIHP)
 
-        Λ = dynamicblock(block_ops)
-        quit()
+        Λ = dynamicblock(ops)
         u = rand(size(Λ)[2])
-
+        @show typeof(Λ), (length(Λ.nzval) * 8) / (1024)^3
         @time for _ in 1:100
             mul!(u, Λ, u, 1, 0)
         end
         
         dΛ = CuSparseMatrixCSR(Λ)
+        @show typeof(dΛ)
         du = CuArray(u)
 
         @time for _ in 1:100
