@@ -118,7 +118,8 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     Nrp = Nr + 1
     Nsp = Ns + 1
     Np = Nrp * Nsp
-
+    Nn = Np
+    nn = Nrp
     # Derivative operators for the rest of the computation
     (Dr, HrI, Hr, r) = D1(p, Nr; xc = (-1,1))
     Qr = Hr * Dr
@@ -477,11 +478,25 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     end
     bctype=(LFToB[1], LFToB[2], LFToB[3], LFToB[4])
     JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
-
     JIHP = JI * H̃inv * P̃inv
+
+
+   
+    
+    # dynamic block matrix
+    Λ = [spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
+          -Ã + (L[1]' * H[1] * ((1 - R[1])/2 .* nBBCΓL[1])) + BCTHL[1] + (L[2]' * H[2] * ((1 - R[2])/2 .* nBBCΓL[2])) + BCTHL[2] + (L[3]' * H[3] * ((1 - R[3])/2 .* nBBCΓL[3])) + BCTHL[3]+ (L[4]' * H[4] * ((1 - R[4])/2 .* nBBCΓL[4])) + BCTHL[4] L[1]' * H[1] * (-(1 - R[1])/2 .* Z̃f[1] .* L[1]) + L[2]' * H[2] * (-(1 - R[2])/2 .* Z̃f[2] .* L[2]) + L[3]' * H[3] * (-(1 - R[3])/2 .* Z̃f[3] .* L[3]) + L[4]' * H[4] * (-(1 - R[4])/2 .* Z̃f[4] .* L[4]) (L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4] spzeros(Nn, nn)
+          dû_u dû_v dû_û spzeros(4nn, nn)
+          spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
+
+
+
+
+
     
     (M̃ = cholesky(Symmetric(M̃)),
      Ã = Ã,
+     Λ = Λ,
      P̃I = P̃inv,
      H̃I = H̃inv,
      JI = JI,
@@ -508,149 +523,10 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
      BCTHL = (BCTHL1,  BCTHL2,  BCTHL3,  BCTHL4),
      nBBCΓL = (nBBCΓL1,  nBBCΓL2,  nBBCΓL3,  nBBCΓL4),
      nCnΓ = (nCnΓ1, nCnΓ2, nCnΓ3, nCnΓ4),
-     #RZ̃L = (RZ̃L1, RZ̃L2, RZ̃L3, RZ̃L4),
      Γ = (Γ1, Γ2, Γ3, Γ4),
      n = (-1, 1, -1, 1),
      bctype=bctype)
 end
-
-function sbpA(p, Nr, Ns, metrics, 
-                     τscale = 2,
-                     crr = metrics.crr,
-                     css = metrics.css,
-                     crs = metrics.crs)
-
-    csr = crs
-
-    hr = 2/Nr
-    hs = 2/Ns
-
-    hmin = min(hr, hs)
-    
-    r = -1:hr:1
-    s = -1:hs:1
-    
-    Nrp = Nr + 1
-    Nsp = Ns + 1
-    Np = Nrp * Nsp
-
-    # Derivative operators for the rest of the computation
-    (Dr, HrI, Hr, r) = D1(p, Nr; xc = (-1,1))
-    Qr = Hr * Dr
-    QrT = sparse(transpose(Qr))
-
-    (Ds, HsI, Hs, s) = D1(p, Ns; xc = (-1,1))
-    Qs = Hs * Ds
-    QsT = sparse(transpose(Qs))
-
-    # Identity matrices for the comuptation
-    Ir = sparse(I, Nrp, Nrp)
-    Is = sparse(I, Nsp, Nsp)
-
-    #{{{ Set up the rr derivative matrix
-    ISr0 = Array{Int64,1}(undef,0)
-    JSr0 = Array{Int64,1}(undef,0)
-    VSr0 = Array{Float64,1}(undef,0)
-    ISrN = Array{Int64,1}(undef,0)
-    JSrN = Array{Int64,1}(undef,0)
-    VSrN = Array{Float64,1}(undef,0)
-
-    (_, S0e, SNe, _, _, Ae, _) = variable_D2(p, Nr, rand(Nrp))
-    IArr = Array{Int64,1}(undef,Nsp * length(Ae.nzval))
-    JArr = Array{Int64,1}(undef,Nsp * length(Ae.nzval))
-    VArr = Array{Float64,1}(undef,Nsp * length(Ae.nzval))
-    stArr = 0
-
-    ISr0 = Array{Int64,1}(undef,Nsp * length(S0e.nzval))
-    JSr0 = Array{Int64,1}(undef,Nsp * length(S0e.nzval))
-    VSr0 = Array{Float64,1}(undef,Nsp * length(S0e.nzval))
-    stSr0 = 0
-
-    ISrN = Array{Int64,1}(undef,Nsp * length(SNe.nzval))
-    JSrN = Array{Int64,1}(undef,Nsp * length(SNe.nzval))
-    VSrN = Array{Float64,1}(undef,Nsp * length(SNe.nzval))
-    stSrN = 0
-    for j = 1:Nsp
-        rng = (j-1) * Nrp .+ (1:Nrp)
-        (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Nr, crr[rng])
-        (Ie, Je, Ve) = findnz(Ae)
-        IArr[stArr .+ (1:length(Ve))] = Ie .+ (j-1) * Nrp
-        JArr[stArr .+ (1:length(Ve))] = Je .+ (j-1) * Nrp
-        VArr[stArr .+ (1:length(Ve))] = Hs[j,j] * Ve
-        stArr += length(Ve)
-
-        (Ie, Je, Ve) = findnz(S0e)
-        ISr0[stSr0 .+ (1:length(Ve))] = Ie .+ (j-1) * Nrp
-        JSr0[stSr0 .+ (1:length(Ve))] = Je .+ (j-1) * Nrp
-        VSr0[stSr0 .+ (1:length(Ve))] =  Hs[j,j] * Ve
-        stSr0 += length(Ve)
-
-        (Ie, Je, Ve) = findnz(SNe)
-        ISrN[stSrN .+ (1:length(Ve))] = Ie .+ (j-1) * Nrp
-        JSrN[stSrN .+ (1:length(Ve))] = Je .+ (j-1) * Nrp
-        VSrN[stSrN .+ (1:length(Ve))] =  Hs[j,j] * Ve
-        stSrN += length(Ve)
-    end
-    Ãrr = sparse(IArr[1:stArr], JArr[1:stArr], VArr[1:stArr], Np, Np)
-    Sr0 = sparse(ISr0[1:stSr0], JSr0[1:stSr0], VSr0[1:stSr0], Np, Np)
-    SrN = sparse(ISrN[1:stSrN], JSrN[1:stSrN], VSrN[1:stSrN], Np, Np)
-    Sr0T = sparse(JSr0[1:stSr0], ISr0[1:stSr0], VSr0[1:stSr0], Np, Np)
-    SrNT = sparse(JSrN[1:stSrN], ISrN[1:stSrN], VSrN[1:stSrN], Np, Np)
-
-    (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Ns, rand(Nsp))
-    IAss = Array{Int64,1}(undef,Nrp * length(Ae.nzval))
-    JAss = Array{Int64,1}(undef,Nrp * length(Ae.nzval))
-    VAss = Array{Float64,1}(undef,Nrp * length(Ae.nzval))
-    stAss = 0
-
-    ISs0 = Array{Int64,1}(undef,Nrp * length(S0e.nzval))
-    JSs0 = Array{Int64,1}(undef,Nrp * length(S0e.nzval))
-    VSs0 = Array{Float64,1}(undef,Nrp * length(S0e.nzval))
-    stSs0 = 0
-
-    ISsN = Array{Int64,1}(undef,Nrp * length(SNe.nzval))
-    JSsN = Array{Int64,1}(undef,Nrp * length(SNe.nzval))
-    VSsN = Array{Float64,1}(undef,Nrp * length(SNe.nzval))
-    stSsN = 0
-    for i = 1:Nrp
-        rng = i .+ Nrp * (0:Ns)
-        (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Ns, css[rng])
-        R = Ae - Dr' * Hr * Diagonal(css[rng]) * Dr
-
-        (Ie, Je, Ve) = findnz(Ae)
-        IAss[stAss .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
-        JAss[stAss .+ (1:length(Ve))] = i .+ Nrp * (Je .- 1)
-        VAss[stAss .+ (1:length(Ve))] = Hr[i,i] * Ve
-        stAss += length(Ve)
-
-        (Ie, Je, Ve) = findnz(S0e)
-        ISs0[stSs0 .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
-        JSs0[stSs0 .+ (1:length(Ve))] = i .+ Nrp * (Je .- 1)
-        VSs0[stSs0 .+ (1:length(Ve))] = Hr[i,i] * Ve
-        stSs0 += length(Ve)
-
-        (Ie, Je, Ve) = findnz(SNe)
-        ISsN[stSsN .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
-        JSsN[stSsN .+ (1:length(Ve))] = i .+ Nrp * (Je .- 1)
-        VSsN[stSsN .+ (1:length(Ve))] = Hr[i,i] * Ve
-        stSsN += length(Ve)
-    end
-    Ãss = sparse(IAss[1:stAss], JAss[1:stAss], VAss[1:stAss], Np, Np)
-    Ss0 = sparse(ISs0[1:stSs0], JSs0[1:stSs0], VSs0[1:stSs0], Np, Np)
-    SsN = sparse(ISsN[1:stSsN], JSsN[1:stSsN], VSsN[1:stSsN], Np, Np)
-    Ss0T = sparse(JSs0[1:stSs0], ISs0[1:stSs0], VSs0[1:stSs0], Np, Np)
-    SsNT = sparse(JSsN[1:stSsN], ISsN[1:stSsN], VSsN[1:stSsN], Np, Np)
-
-    Ãsr = (QsT ⊗ Ir) * sparse(1:length(crs), 1:length(crs), view(crs, :)) * (Is ⊗ Qr)
-    Ãrs = (Is ⊗ QrT) * sparse(1:length(csr), 1:length(csr), view(csr, :)) * (Qs ⊗ Ir)
-
-    Ã = Ãrr + Ãss + Ãrs + Ãsr
-
-    return Ã
-    
-end
-
-
 
 function dynamicblock(ops)
 
@@ -667,11 +543,10 @@ function dynamicblock(ops)
     BCTH = ops.BCTH
     JIHP = ops.JIHP
     
-    @show Nn, nn
     # velocity blocks
-    du_u = spzeros(Nn, Nn)
-    du_v = sparse(I, Nn, Nn)
-    du_û = spzeros(Nn, 4nn)
+    #du_u = spzeros(Nn, Nn)
+    #du_v = sparse(I, Nn, Nn)
+    #du_û = spzeros(Nn, 4nn)
     du_ψ = spzeros(Nn, nn)
 
     
@@ -690,22 +565,29 @@ function dynamicblock(ops)
     dv_û2 = (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2]
     dv_û3 = (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3]
     dv_û4 = (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]
+    
+    dv_û = [(L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[4] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]]
+    
+    #dv_û = [dv_û1 dv_û2 dv_û3 dv_û4]
+    
 
-    dv_û = [dv_û1 dv_û2 dv_û3 dv_û4 ]
 
+    #@show size(dv_û)
     dv_ψ = spzeros(Nn, nn)
 
     # flux blocks
     
-    dû1_u = -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
-    dû2_u = -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
-    dû3_u = -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
-    dû4_u = -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]
+    #dû1_u = -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
+    #dû2_u = -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
+    #dû3_u = -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
+    #dû4_u = -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]
 
-    dû_u = [ dû1_u
-             dû2_u
-             dû3_u
-             dû4_u ]
+    dû_u = [ -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
+             -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
+             -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
+             -(1 + R[4])/2 .* nBBCΓL[1]./Z̃f[4]]
+
+
 
     #display(dû1_u)
     #display(dû2_u)
@@ -713,15 +595,17 @@ function dynamicblock(ops)
     #display(dû4_u)
     #display(dû_u)
     
-    dû1_v = (1 + R[1])/2 .* L[1]
-    dû2_v = (1 + R[2])/2 .* L[2]
-    dû3_v = (1 + R[3])/2 .* L[3]
-    dû4_v = (1 + R[4])/2 .* L[4]
+    #dû1_v = (1 + R[1])/2 .* L[1]
+    #dû2_v = (1 + R[2])/2 .* L[2]
+    #dû3_v = (1 + R[3])/2 .* L[3]
+    #dû4_v = (1 + R[4])/2 .* L[4]
 
-    dû_v = [ dû1_v
-             dû2_v
-             dû3_v
-             dû4_v ]
+    dû_v = [ (1 + R[1])/2 .* L[1]
+             (1 + R[2])/2 .* L[2]
+             (1 + R[3])/2 .* L[3]
+             (1 + R[4])/2 .* L[4]]
+             
+             
 
     #display(dû1_v)
     #display(dû2_v)
@@ -729,56 +613,58 @@ function dynamicblock(ops)
     #display(dû4_v)
     #display(dû_v)
     
-    dû1_û1 = -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1]
-    dû1_û2 = spzeros(nn, nn)
-    dû1_û3 = spzeros(nn, nn)
-    dû1_û4 = spzeros(nn, nn)
+    #dû1_û1 = -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1]
+    #dû1_û2 = spzeros(nn, nn)
+    #dû1_û3 = spzeros(nn, nn)
+    #dû1_û4 = spzeros(nn, nn)
 
     
-    dû2_û1 = spzeros(nn, nn)
-    dû2_û2 = -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2]
-    dû2_û3 = spzeros(nn, nn)
-    dû2_û4 = spzeros(nn, nn)
+    #dû2_û1 = spzeros(nn, nn)
+    #dû2_û2 = -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2]
+    #dû2_û3 = spzeros(nn, nn)
+    #dû2_û4 = spzeros(nn, nn)
 
     
-    dû3_û1 = spzeros(nn, nn)
-    dû3_û2 = spzeros(nn, nn)
-    dû3_û3 = -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3]
-    dû3_û4 = spzeros(nn, nn)
+    #dû3_û1 = spzeros(nn, nn)
+    #dû3_û2 = spzeros(nn, nn)
+    #dû3_û3 = -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3]
+    #dû3_û4 = spzeros(nn, nn)
 
-    dû4_û1 = spzeros(nn, nn)
-    dû4_û2 = spzeros(nn, nn)
-    dû4_û3 = spzeros(nn, nn)
-    dû4_û4 = -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]
+    #dû4_û1 = spzeros(nn, nn)
+    #dû4_û2 = spzeros(nn, nn)
+    #dû4_û3 = spzeros(nn, nn)
+    #dû4_û4 = -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]
 
-    dû_û = [ dû1_û1 dû1_û2 dû1_û3 dû1_û4
-             dû2_û1 dû2_û2 dû2_û3 dû2_û4
-             dû3_û1 dû3_û2 dû3_û3 dû3_û4
-             dû4_û1 dû4_û2 dû4_û3 dû4_û4 ]
+    dû_û = [ -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1]]
+
+    #@show size(dû_û)
+    #dû1_ψ = spzeros(nn, nn)
+    #dû2_ψ = spzeros(nn, nn)
+    #dû3_ψ = spzeros(nn, nn)
+    #dû4_ψ = spzeros(nn, nn)
     
-    dû1_ψ = spzeros(nn, nn)
-    dû2_ψ = spzeros(nn, nn)
-    dû3_ψ = spzeros(nn, nn)
-    dû4_ψ = spzeros(nn, nn)
 
-    dû_ψ = [ dû1_ψ
-             dû2_ψ
-             dû3_ψ
-             dû4_ψ ]
-    
+    dû_ψ = [ spzeros(nn, nn)
+             spzeros(nn, nn)
+             spzeros(nn, nn)
+             spzeros(nn, nn)]
+
     # state blocks
-    dψ_u = spzeros(nn, Nn)
-    dψ_v = spzeros(nn, Nn)
-    dψ_û = spzeros(nn, 4nn)
-    dψ_ψ = spzeros(nn, nn)
+    #dψ_u = spzeros(nn, Nn)
+    #dψ_v = spzeros(nn, Nn)
+    #dψ_û = spzeros(nn, 4nn)
+    #dψ_ψ = spzeros(nn, nn)
     
-    Λ = [ du_u du_v du_û du_ψ
+    Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
           dv_u dv_v dv_û dv_ψ
           dû_u dû_v dû_û dû_ψ
-          dψ_u dψ_v dψ_û dψ_ψ ]
+          spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
+
 
     
-    #display(Λ)
     return Λ
 
 end

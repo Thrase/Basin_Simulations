@@ -2,18 +2,16 @@ include("../numerical.jl")
 include("../physical_params.jl")
 include("../domain.jl")
 
-using CUDA
-using CUDA.CUSPARSE
+#using CUDA
+#using CUDA.CUSPARSE
 using Printf
 using LinearAlgebra
 using SparseArrays
-
-CUDA.versioninfo()
-
+#CUDA.versioninfo()
 
 let 
     
-    p = 2 
+    p = 2
     
     Lw = 1
     D = .25
@@ -31,47 +29,68 @@ let
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
     R = (-1, 0, 0, 1)
-    nes = 8 * 2 .^ (4:5)
+    ne = 8 * 2 .^ (7:7)
+    ne = ne[1]
+    #for ne in nes
+        
+    nn = ne + 1
+        
+    @printf "nn: %d\n" nn
+        
+    metrics = create_metrics(ne, ne, B_p, μ, xt, yt)
+        
+    LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
+    
+    @time loc = locoperator(p, ne, ne, B_p, μ, ρ, metrics, LFToB)
+    
+    #=
+    ops = (Nn = nn^2,
+           nn = nn,
+           Ã = loc.Ã,
+           L = loc.L,
+           H = loc.H,
+           R = R,
+           Z̃f = loc.Z̃f,
+           nBBCΓL = loc.nBBCΓL,
+           BCTHL = loc.BCTHL,
+           nCnΓ = loc.nCnΓ,
+           BCTH = loc.BCTH,
+           JIHP = loc.JIHP)
+    
+    @time Λ = dynamicblock(ops)
+    =#
+    @show (length(loc.Λ.nzval) * 8) / (1024)^3
 
-    for ne in nes
-        
-        nn = ne + 1
-        
-        @printf "nn: %d\n" nn
-        
-        metrics = create_metrics(ne,ne, B_p, μ, xt, yt)
-        
-        LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
+        #=
+        u1 = rand((-1.0, 1.0), size(Λ)[2])
 
-        loc = locoperator(p, ne, ne, B_p, μ, ρ, metrics, LFToB)
+        @show maximum(u1), minimum(u1), length(u1)
         
-        ops = (Nn = nn^2,
-               nn = nn,
-               Ã = loc.Ã,
-               L = loc.L,
-               H = loc.H,
-               R = R,
-               Z̃f = loc.Z̃f,
-               nBBCΓL = loc.nBBCΓL,
-               BCTHL = loc.BCTHL,
-               nCnΓ = loc.nCnΓ,
-               BCTH = loc.BCTH,
-               JIHP = loc.JIHP)
+        u2 = zeros(size(Λ)[2])
 
-        Λ = dynamicblock(ops)
-        u = rand(size(Λ)[2])
-        @show typeof(Λ), (length(Λ.nzval) * 8) / (1024)^3
-        @time for _ in 1:100
-            mul!(u, Λ, u, 1, 0)
-        end
-        
         dΛ = CuSparseMatrixCSR(Λ)
-        @show typeof(dΛ)
-        du = CuArray(u)
-
-        @time for _ in 1:100
-            CUSPARSE.mv!('N', 1, dΛ, du, 0, du, 'a')
+        du1 = CuArray(u1)
+        du2 = CuArray(u2)
+        
+        @show (length(Λ.nzval) * 8) / (1024)^3
+        
+        mul!(u2, Λ, u1)
+        
+        @time begin
+            mul!(u1, Λ, u2)
         end
 
-    end
+        du2 .= dΛ * du1
+
+        @time begin
+            du1 .= dΛ * du2
+        end
+
+        du_res = Array(du2)
+        error = norm(u2 .- du_res)
+        @show norm(u2)
+        @show norm(du_res)
+        @show error
+       =# 
+    #end
 end
