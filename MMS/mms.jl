@@ -35,9 +35,10 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             LFtoB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
             ot = @elapsed begin
 
-                lop = locoperator(p, N, N, B_p, μ, ρ, metrics, LFtoB)
+                lop = locoperator(p, N, N, B_p, μ, ρ, R, metrics, LFtoB)
                 b = b_fun(metrics.facecoord[2][1], RS)
 
+                
                 dynamic_operators = (nn = nn,
                                      Nn = Nn,
                                      R = R,
@@ -72,7 +73,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                      Char_Source = S_c,
                                      RS_Source = S_rs,
                                      State_Source = ψe_t)
-
+                
 
                 Λ = dynamicblock(dynamic_operators)
                 
@@ -82,7 +83,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                          R = R,
                                          B_p = B_p,
                                          MMS = MMS,
-                                         Λ = Λ,
+                                         Λ = lop.Λ,
                                          sJ = metrics.sJ,
                                          Z̃ = lop.Z̃f,
                                          L = lop.L,
@@ -94,9 +95,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
 
             end
 
-
             @printf "Got Operators: %s s\n" ot
-
 
             it = @elapsed begin
                 u0 = ue(x[:], y[:], 0.0, MMS)

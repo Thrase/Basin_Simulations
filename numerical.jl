@@ -98,7 +98,7 @@ function computetraction_mod(lop, lf, u, δ)
     return (HfI_FT * u + τf * (δ .- δ / 2)) ./ sJ
 end
 
-function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB, 
+function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB, 
                      τscale = 2,
                      crr = metrics.crr,
                      css = metrics.css,
@@ -243,12 +243,6 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     P̃inv = spdiagm(0 => (1 ./ rho))
     JI = spdiagm(0 => reshape(metrics.JI, Nrp*Nsp))
     
-    # Boundary point matrices
-    Er0 = sparse([1], [1], [1], Nrp, Nrp)
-    ErN = sparse([Nrp], [Nrp], [1], Nrp, Nrp)
-    Es0 = sparse([1], [1], [1], Nsp, Nsp)
-    EsN = sparse([Nsp], [Nsp], [1], Nsp, Nsp)
-
     er0 = sparse([1  ], [1], [1], Nrp, 1)
     erN = sparse([Nrp], [1], [1], Nrp, 1)
     es0 = sparse([1  ], [1], [1], Nsp, 1)
@@ -268,23 +262,15 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     cmax = maximum([maximum(crr), maximum(crs), maximum(css)])
 
     # Surface quadtrature matrices
-    H1 = Hs
-    H1I = HsI
+    H1 = H2 = Hs 
+    H3 = H4 = Hr
 
-    H2 = Hs
-    H2I = HsI
-
-    H3 = Hr
-    H3I = HrI
-
-    H4 = Hr
-    H4I = HrI
-
+    H = (Hs, Hs, Hr, Hr)
     # Volume to Face Operators (transpose of these is face to volume)
-    L1= kron(Ir, es0)'
-    L2 = kron(Ir, esN)'
-    L3 = kron(er0, Is)'
-    L4 = kron(erN, Is)'
+    L = (kron(Ir, es0)',
+         kron(Ir, esN)',
+         kron(er0, Is)',
+         kron(erN, Is)')
 
     # coefficent matrices
     Crr1 = spdiagm(0 => crr[1, :])
@@ -307,36 +293,29 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     Csr4 = spdiagm(0 => crs[:, Nsp])
     Crr4 = spdiagm(0 => crr[:, Nsp])
 
-    (_, S0, SN, HI, H) = D2(p, Nr, xc=(-1,1))[1:5]
+    (_, S0, SN, _, _) = D2(p, Nr, xc=(-1,1))[1:5]
     S0 = sparse(Array(S0[1,:])')
     SN = sparse(Array(SN[end, :])')
     
     # Boundars Derivatives
     B1r =  Crr1 * kron(Is, S0)
     #display(sparse(B1r'))
-    B1s = Crs1 * L1 * kron(Ds, Ir)
+    B1s = Crs1 * L[1] * kron(Ds, Ir)
     B2r = Crr2 * kron(Is, SN)
     #display(sparse(B2r'))
-    B2s = Crs2 * L2 * kron(Ds, Ir)
+    B2s = Crs2 * L[2] * kron(Ds, Ir)
     B3s = Css3 * kron(S0, Ir)
-    B3r = Csr3 * L3 * kron(Is, Dr)
+    B3r = Csr3 * L[3] * kron(Is, Dr)
     B4s = Css4 * kron(SN, Ir)
-    B4r = Csr4 * L4 * kron(Is, Dr)
-
-
+    B4r = Csr4 * L[4] * kron(Is, Dr)
     
     (xf1, xf2, xf3, xf4) = metrics.facecoord[1]
     (yf1, yf2, yf3, yf4) = metrics.facecoord[2]
 
-    # Shear impedence on faces
-    Z1 = sqrt.(ρ(xf1, yf1, B_p) .* μ(xf1, yf1, B_p))
-    Z2 = sqrt.(ρ(xf2, yf2, B_p) .* μ(xf2, yf2, B_p))
-    Z3 = sqrt.(ρ(xf3, yf3, B_p) .* μ(xf3, yf3, B_p))
-    Z4 = sqrt.(ρ(xf4, yf4, B_p) .* μ(xf4, yf4, B_p))
-    Z̃1 = metrics.sJ[1] .* Z1
-    Z̃2 = metrics.sJ[2] .* Z2
-    Z̃3 = metrics.sJ[3] .* Z3
-    Z̃4 = metrics.sJ[4] .* Z4
+    Z̃f = (metrics.sJ[1] .* sqrt.(ρ(xf1, yf1, B_p) .* μ(xf1, yf1, B_p)),
+          metrics.sJ[2] .* sqrt.(ρ(xf2, yf2, B_p) .* μ(xf2, yf2, B_p)),
+          metrics.sJ[3] .* sqrt.(ρ(xf3, yf3, B_p) .* μ(xf3, yf3, B_p)),
+          metrics.sJ[4] .* sqrt.(ρ(xf4, yf4, B_p) .* μ(xf4, yf4, B_p)))
 
     # Penalty terms
         if p == 2
@@ -357,7 +336,7 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     else
         error("unknown order")
     end
-        
+
     ψmin_r = reshape(crr, Nrp, Nsp)
     ψmin_s = reshape(css, Nrp, Nsp)
     @assert minimum(ψmin_r) > 0
@@ -365,7 +344,7 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     
     hr = 2 / Nr
     hs = 2 / Ns
-    
+
     ψ1 = ψmin_r[  1, :]
     ψ2 = ψmin_r[Nrp, :]
     ψ3 = ψmin_s[:,   1]
@@ -377,18 +356,7 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
         ψ3 = min.(ψ3, ψmin_s[:, k])
         ψ4 = min.(ψ4, ψmin_s[:, Nsp+1-k])
     end
-
-    τ1 = (2τscale / hr) * (crr[  1, :].^2 / β + crs[  1, :].^2 / α) ./ ψ1
-    τ2 = (2τscale / hr) * (crr[Nrp, :].^2 / β + crs[Nrp, :].^2 / α) ./ ψ2
-    τ3 = (2τscale / hs) * (css[:,   1].^2 / β + crs[:,   1].^2 / α) ./ ψ3
-    τ4 = (2τscale / hs) * (css[:, Nsp].^2 / β + crs[:, Nsp].^2 / α) ./ ψ4
-
-    # static penalty matrices
-    τ1 = sparse(1:Nsp, 1:Nsp, τ1)
-    τ2 = sparse(1:Nsp, 1:Nsp, τ2)
-    τ3 = sparse(1:Nrp, 1:Nrp, τ3)
-    τ4 = sparse(1:Nrp, 1:Nrp, τ4)
-
+    
     τR1 = (1/(θ_R*hr))*Is
     τR2 = (1/(θ_R*hr))*Is
     τR3 = (1/(θ_R*hs))*Ir
@@ -398,7 +366,7 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     p2 = ((crr[Nrp, :]) ./ ψ2)
     p3 = ((css[:,   1]) ./ ψ3)
     p4 = ((css[:, Nsp]) ./ ψ4)
-    
+   
     P1 = sparse(1:Nsp, 1:Nsp, p1)
     P2 = sparse(1:Nsp, 1:Nsp, p2)
     P3 = sparse(1:Nrp, 1:Nrp, p3)
@@ -410,100 +378,83 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
     Γ3 = (2/(α*hs))*Ir + τR3 * P3
     Γ4 = (2/(α*hs))*Ir + τR4 * P4
 
-    nCnΓ1 = Crr1 * Γ1
-    nCnΓ2 = Crr2 * Γ2
-    nCnΓ3 = Css3 * Γ3
-    nCnΓ4 = Css4 * Γ4
-    
-    nBBCΓL1 = -(B1r + B1s) - nCnΓ1 * L1
-    nBBCΓL2 = (B2r + B2s) - nCnΓ2 * L2
-    nBBCΓL3 = -(B3r + B3s) - nCnΓ3 * L3
-    nBBCΓL4 = (B4r + B4s) - nCnΓ4 * L4
-
-    BCTH1 = -(-(B1r' + B1s')) * H1
-    BCTH2 = -(B2r' + B2s') * H2
-    BCTH3 = -(-(B3r' + B3s')) * H3
-    BCTH4 = -(B4r'+ B4s') * H4
-
-    BCTHL1 = -(B1r' + B1s') * H1 * L1
-    BCTHL2 = (B2r' + B2s') * H2 * L2
-    BCTHL3 = -(B3r' + B3s') * H3 * L3
-    BCTHL4 = (B4r' + B4s') * H4 * L4
-
-    
-    
-    
-    C̃1 =  (Sr0 + Sr0T) + ((csr0 * Qs + QsT * csr0) ⊗ Er0) + ((τ1 * H1) ⊗ Er0)
-    C̃2 = -(SrN + SrNT) - ((csrN * Qs + QsT * csrN) ⊗ ErN) + ((τ2 * H2) ⊗ ErN)
-    C̃3 =  (Ss0 + Ss0T) + (Es0 ⊗ (crs0 * Qr + QrT * crs0)) + (Es0 ⊗ (τ3 * H3))
-    C̃4 = -(SsN + SsNT) - (EsN ⊗ (crsN * Qr + QrT * crsN)) + (EsN ⊗ (τ4 * H4))
-
-    G1 = -(Is ⊗ er0T) * Sr0 - ((csr0 * Qs) ⊗ er0T)
-    G2 = +(Is ⊗ erNT) * SrN + ((csrN * Qs) ⊗ erNT)
-    G3 = -(es0T ⊗ Ir) * Ss0 - (es0T ⊗ (crs0 * Qr))
-    G4 = +(esNT ⊗ Ir) * SsN + (esNT ⊗ (crsN * Qr))
-
-    F1 = G1' - ((τ1 * H1) ⊗ er0)
-    F2 = G2' - ((τ2 * H2) ⊗ erN)
-    F3 = G3' - (es0 ⊗ (τ3 * H3))
-    F4 = G4' - (esN ⊗ (τ4 * H4))
-
-    HfI_F1T = H1I * G1 - (τ1 ⊗ er0')
-    HfI_F2T = H2I * G2 - (τ2 ⊗ erN')
-    HfI_F3T = H3I * G3 - (es0' ⊗ τ3)
-    HfI_F4T = H4I * G4 - (esN' ⊗ τ4)
-
-    HfI_G1 = H1I * G1
-    HfI_G2 = H2I * G2
-    HfI_G3 = H3I * G3
-    HfI_G4 = H4I * G4
-
-    M̃ = Ã + C̃1 + C̃2 + C̃3 + C̃4
-
-    # Modify the operator to handle the boundary conditions
-    bctype=(BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE, BC_LOCKED_INTERFACE)
-    F = (F1, F2, F3, F4)
-    τ = (τ1, τ2, τ3, τ4)
-    HfI = (H1I, H2I, H3I, H4I)
-
-    # Modify operators for the BC
-    for lf = 1:4
-        if LFToB[lf] == BC_NEUMANN
-            M̃ -= F[lf] * (Diagonal(1 ./ (diag(τ[lf]))) * HfI[lf]) * F[lf]'
-        elseif !(LFToB[lf] == BC_DIRICHLET ||
-                 LFToB[lf] == BC_LOCKED_INTERFACE ||
-                 LFToB[lf] >= BC_JUMP_INTERFACE)
-            error("invalid bc")
-        end
-    end
-    bctype=(LFToB[1], LFToB[2], LFToB[3], LFToB[4])
     JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
+    
     JIHP = JI * H̃inv * P̃inv
 
-
-   
+    nCnΓ = (Crr1 * Γ1,
+             Crr2 * Γ2,
+             Css3 * Γ3,
+             Css4 * Γ4)
     
-    # dynamic block matrix
-    Λ = [spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
-          -Ã + (L[1]' * H[1] * ((1 - R[1])/2 .* nBBCΓL[1])) + BCTHL[1] + (L[2]' * H[2] * ((1 - R[2])/2 .* nBBCΓL[2])) + BCTHL[2] + (L[3]' * H[3] * ((1 - R[3])/2 .* nBBCΓL[3])) + BCTHL[3]+ (L[4]' * H[4] * ((1 - R[4])/2 .* nBBCΓL[4])) + BCTHL[4] L[1]' * H[1] * (-(1 - R[1])/2 .* Z̃f[1] .* L[1]) + L[2]' * H[2] * (-(1 - R[2])/2 .* Z̃f[2] .* L[2]) + L[3]' * H[3] * (-(1 - R[3])/2 .* Z̃f[3] .* L[3]) + L[4]' * H[4] * (-(1 - R[4])/2 .* Z̃f[4] .* L[4]) (L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4] spzeros(Nn, nn)
-          dû_u dû_v dû_û spzeros(4nn, nn)
+    nBBCΓL = (-(B1r + B1s) - nCnΓ[1] * L[1],
+               (B2r + B2s) - nCnΓ[2] * L[2],
+               -(B3r + B3s) - nCnΓ[3] * L[3],
+               (B4r + B4s) - nCnΓ[4] * L[4])
+
+    BCTH = (-(-(B1r' + B1s')) * H[1],
+             -(B2r' + B2s') * H[2],
+             -(-(B3r' + B3s')) * H[3],
+             -(B4r'+ B4s') * H[4])
+
+    BCTHL = (-(B1r' + B1s') * H[1] * L[1],
+              (B2r' + B2s') * H[2] * L[2],
+              -(B3r' + B3s') * H[3] * L[3],
+              (B4r' + B4s') * H[4] * L[4])
+
+
+    
+    # accleration blocks
+    dv_u = -Ã
+    for i in 1:4
+        dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* nBBCΓL[i])) + BCTHL[i]
+    end
+    
+    dv_v = spzeros(Nn, Nn)
+    for i in 1:4
+        dv_v .+= L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
+    end
+
+    
+    dv_û = [(L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]]
+    
+
+    dû_u = [ -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
+             -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
+             -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
+             -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]]
+
+
+    dû_v = [ (1 + R[1])/2 .* L[1]
+             (1 + R[2])/2 .* L[2]
+             (1 + R[3])/2 .* L[3]
+             (1 + R[4])/2 .* L[4]]
+    
+    
+    dû_û = [ -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2] spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3] spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]]
+
+
+    dû_ψ = [ spzeros(nn, nn)
+             spzeros(nn, nn)
+             spzeros(nn, nn)
+             spzeros(nn, nn)]
+
+    Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
+          dv_u dv_v dv_û spzeros(Nn, nn)
+          dû_u dû_v dû_û dû_ψ
           spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
 
 
-
-
-
     
-    (M̃ = cholesky(Symmetric(M̃)),
+    (Λ = Λ,
      Ã = Ã,
-     Λ = Λ,
      P̃I = P̃inv,
      H̃I = H̃inv,
      JI = JI,
      JIHP = JIHP,
-     F = (F1, F2, F3, F4),
-     HfI_FT = (HfI_F1T, HfI_F2T, HfI_F3T, HfI_F4T),
-     HfI_G = (HfI_G1, HfI_G2, HfI_G3, HfI_G4),
      coord = metrics.coord,
      facecoord = metrics.facecoord,
      hmin = hmin,
@@ -512,20 +463,18 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, metrics, LFToB,
      sJ = metrics.sJ,
      nx = metrics.nx,
      ny = metrics.ny,
-     HfI = (H1I, H2I, H3I, H4I),
-     τ = (τ1, τ2, τ3, τ4),
-     L = (L1, L2, L3, L4),
-     H = (H1, H2, H3, H4),
-     Z̃f = (Z̃1, Z̃2, Z̃3, Z̃4),
+     L = L,
+     H = H,
+     Z̃f = Z̃f,
      Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4)),
      B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r)),
-     BCTH = (BCTH1, BCTH2, BCTH3, BCTH4),
-     BCTHL = (BCTHL1,  BCTHL2,  BCTHL3,  BCTHL4),
-     nBBCΓL = (nBBCΓL1,  nBBCΓL2,  nBBCΓL3,  nBBCΓL4),
-     nCnΓ = (nCnΓ1, nCnΓ2, nCnΓ3, nCnΓ4),
+     BCTH = BCTH,
+     BCTHL = BCTHL,
+     nBBCΓL = nBBCΓL,
+     nCnΓ = nCnΓ,
      Γ = (Γ1, Γ2, Γ3, Γ4),
-     n = (-1, 1, -1, 1),
-     bctype=bctype)
+     n = (-1, 1, -1, 1))
+    
 end
 
 function dynamicblock(ops)
@@ -542,14 +491,7 @@ function dynamicblock(ops)
     nCnΓ = ops.nCnΓ
     BCTH = ops.BCTH
     JIHP = ops.JIHP
-    
-    # velocity blocks
-    #du_u = spzeros(Nn, Nn)
-    #du_v = sparse(I, Nn, Nn)
-    #du_û = spzeros(Nn, 4nn)
-    du_ψ = spzeros(Nn, nn)
 
-    
     # accleration blocks
     dv_u = -Ã
     for i in 1:4
@@ -561,107 +503,38 @@ function dynamicblock(ops)
         dv_v .+= L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
     end
 
-    dv_û1 = (L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1]
-    dv_û2 = (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2]
-    dv_û3 = (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3]
-    dv_û4 = (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]
     
-    dv_û = [(L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[4] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]]
+    dv_û = [(L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]]
     
-    #dv_û = [dv_û1 dv_û2 dv_û3 dv_û4]
-    
-
-
-    #@show size(dv_û)
-    dv_ψ = spzeros(Nn, nn)
-
-    # flux blocks
-    
-    #dû1_u = -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
-    #dû2_u = -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
-    #dû3_u = -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
-    #dû4_u = -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]
 
     dû_u = [ -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
              -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
              -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
-             -(1 + R[4])/2 .* nBBCΓL[1]./Z̃f[4]]
+             -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]]
 
-
-
-    #display(dû1_u)
-    #display(dû2_u)
-    #display(dû3_u)
-    #display(dû4_u)
-    #display(dû_u)
-    
-    #dû1_v = (1 + R[1])/2 .* L[1]
-    #dû2_v = (1 + R[2])/2 .* L[2]
-    #dû3_v = (1 + R[3])/2 .* L[3]
-    #dû4_v = (1 + R[4])/2 .* L[4]
 
     dû_v = [ (1 + R[1])/2 .* L[1]
              (1 + R[2])/2 .* L[2]
              (1 + R[3])/2 .* L[3]
              (1 + R[4])/2 .* L[4]]
-             
-             
-
-    #display(dû1_v)
-    #display(dû2_v)
-    #display(dû3_v)
-    #display(dû4_v)
-    #display(dû_v)
     
-    #dû1_û1 = -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1]
-    #dû1_û2 = spzeros(nn, nn)
-    #dû1_û3 = spzeros(nn, nn)
-    #dû1_û4 = spzeros(nn, nn)
-
     
-    #dû2_û1 = spzeros(nn, nn)
-    #dû2_û2 = -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2]
-    #dû2_û3 = spzeros(nn, nn)
-    #dû2_û4 = spzeros(nn, nn)
-
-    
-    #dû3_û1 = spzeros(nn, nn)
-    #dû3_û2 = spzeros(nn, nn)
-    #dû3_û3 = -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3]
-    #dû3_û4 = spzeros(nn, nn)
-
-    #dû4_û1 = spzeros(nn, nn)
-    #dû4_û2 = spzeros(nn, nn)
-    #dû4_û3 = spzeros(nn, nn)
-    #dû4_û4 = -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]
-
     dû_û = [ -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
-             spzeros(nn,nn) -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn)
-             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn)
-             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1]]
+             spzeros(nn,nn) -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2] spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3] spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]]
 
-    #@show size(dû_û)
-    #dû1_ψ = spzeros(nn, nn)
-    #dû2_ψ = spzeros(nn, nn)
-    #dû3_ψ = spzeros(nn, nn)
-    #dû4_ψ = spzeros(nn, nn)
-    
 
     dû_ψ = [ spzeros(nn, nn)
              spzeros(nn, nn)
              spzeros(nn, nn)
              spzeros(nn, nn)]
 
-    # state blocks
-    #dψ_u = spzeros(nn, Nn)
-    #dψ_v = spzeros(nn, Nn)
-    #dψ_û = spzeros(nn, 4nn)
-    #dψ_ψ = spzeros(nn, nn)
-    
     Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
-          dv_u dv_v dv_û dv_ψ
+          dv_u dv_v dv_û spzeros(Nn, nn)
           dû_u dû_v dû_û dû_ψ
           spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
+
 
 
     

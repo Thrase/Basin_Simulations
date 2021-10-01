@@ -29,7 +29,7 @@ let
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
     R = (-1, 0, 0, 1)
-    ne = 8 * 2 .^ (7:7)
+    ne = 8 * 2 .^ (3:3)
     ne = ne[1]
     #for ne in nes
         
@@ -41,7 +41,7 @@ let
         
     LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
     
-    @time loc = locoperator(p, ne, ne, B_p, μ, ρ, metrics, LFToB)
+    @time loc = locoperator(p, ne, ne, B_p, μ, ρ, R, metrics, LFToB)
     
     #=
     ops = (Nn = nn^2,

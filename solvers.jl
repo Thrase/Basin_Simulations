@@ -285,11 +285,11 @@ function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
 
 
     
-    #contour(coord[1][:,1], coord[2][1,:],
-    #        (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
-    #        xlabel="off fault", ylabel="depth", fill=true, yflip=true)
+    contour(coord[1][:,1], coord[2][1,:],
+            (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
+            xlabel="off fault", ylabel="depth", fill=true, yflip=true)
 
 
-    #gui()
+    gui()
     
 end
