@@ -103,6 +103,8 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
                      crr = metrics.crr,
                      css = metrics.css,
                      crs = metrics.crs)
+
+
     
     csr = crs
     J = metrics.J
@@ -201,7 +203,6 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     for i = 1:Nrp
         rng = i .+ Nrp * (0:Ns)
         (_, S0e, SNe, _, _, Ae, _) =  variable_D2(p, Ns, css[rng])
-        R = Ae - Dr' * Hr * Diagonal(css[rng]) * Dr
 
         (Ie, Je, Ve) = findnz(Ae)
         IAss[stAss .+ (1:length(Ve))] = i .+ Nrp * (Ie .- 1)
@@ -231,7 +232,7 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     Ãrs = (Is ⊗ QrT) * sparse(1:length(csr), 1:length(csr), view(csr, :)) * (Qs ⊗ Ir)
 
     Ã = Ãrr + Ãss + Ãrs + Ãsr
-
+   
     # volume quadrature
     H̃ = kron(Hr, Hs)
     H̃inv = spdiagm(0 => 1 ./ diag(H̃))
@@ -381,7 +382,8 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
     
     JIHP = JI * H̃inv * P̃inv
-
+    
+    #=
     nCnΓ = (Crr1 * Γ1,
              Crr2 * Γ2,
              Css3 * Γ3,
@@ -402,51 +404,59 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
               -(B3r' + B3s') * H[3] * L[3],
               (B4r' + B4s') * H[4] * L[4])
 
-
+    =#
     
     # accleration blocks
-    dv_u = -Ã
-    for i in 1:4
-        dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* nBBCΓL[i])) + BCTHL[i]
-    end
-    
-    dv_v = spzeros(Nn, Nn)
-    for i in 1:4
-        dv_v .+= L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
-    end
-
-    
-    dv_û = [(L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]]
-    
-
-    dû_u = [ -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
-             -(1 + R[2])/2 .* nBBCΓL[2]./Z̃f[2]
-             -(1 + R[3])/2 .* nBBCΓL[3]./Z̃f[3]
-             -(1 + R[4])/2 .* nBBCΓL[4]./Z̃f[4]]
-
-
-    dû_v = [ (1 + R[1])/2 .* L[1]
-             (1 + R[2])/2 .* L[2]
-             (1 + R[3])/2 .* L[3]
-             (1 + R[4])/2 .* L[4]]
+    dv_u = -Ã +
+        (L[1]' * H[1] * ((1 - R[1])/2 .* (-(B1r + B1s) - Crr1 * Γ1 * L[1]))) - (B1r' + B1s') * H[1] * L[1] +
+        (L[2]' * H[2] * ((1 - R[2])/2 .* ((B2r + B2s) - Crr2 * Γ2 * L[2]))) + (B2r' + B2s') * H[2] * L[2] +
+        (L[3]' * H[3] * ((1 - R[3])/2 .* (-(B3r + B3s) - Css3 * Γ3 * L[3]))) - (B3r' + B3s') * H[3] * L[3] +
+        (L[4]' * H[4] * ((1 - R[4])/2 .* ((B4r + B4s) - Css4 * Γ4 * L[4]))) + (B4r' + B4s') * H[4] * L[4]
     
     
-    dû_û = [ -(1 + R[1])/2 .* nCnΓ[1]./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
-             spzeros(nn,nn) -(1 + R[2])/2 .* nCnΓ[2]./Z̃f[2] spzeros(nn,nn) spzeros(nn,nn)
-             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[3])/2 .* nCnΓ[3]./Z̃f[3] spzeros(nn,nn)
-             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[4])/2 .* nCnΓ[4]./Z̃f[4]]
+    dv_v =  L[1]' * H[1] * (-(1 - R[1])/2 .* Z̃f[1] .* L[1]) +
+        L[2]' * H[2] * (-(1 - R[2])/2 .* Z̃f[2] .* L[2]) +
+        L[3]' * H[3] * (-(1 - R[3])/2 .* Z̃f[3] .* L[3]) +
+        L[4]' * H[4] * (-(1 - R[4])/2 .* Z̃f[4] .* L[4])
+
+    
+    dv_û = hcat((L[1]' * H[1] * ((1 - R[1])/2 .* Crr1 * Γ1)) + (B1r' + B1s') * H[1],
+                (L[2]' * H[2] * ((1 - R[2])/2 .* Crr2 * Γ2)) - (B2r' + B2s') * H[2])
+    
+    dv_û = hcat(dv_û,
+                (L[3]' * H[3] * ((1 - R[3])/2 .* Css3 * Γ3)) + (B3r' + B3s') * H[3])
+    
+    dv_û = hcat(dv_û,
+                (L[4]' * H[4] * ((1 - R[4])/2 .* Css4 * Γ4)) - (B4r'+ B4s') * H[4])
 
 
-    dû_ψ = [ spzeros(nn, nn)
-             spzeros(nn, nn)
-             spzeros(nn, nn)
-             spzeros(nn, nn)]
 
-    Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
+    dû_u = [-(1 + R[1])/2 .* (-(B1r + B1s) - Crr1 * Γ1 * L[1])./Z̃f[1]
+            -(1 + R[2])/2 .* ((B2r + B2s) - Crr2 * Γ2 * L[2])./Z̃f[2]
+            -(1 + R[3])/2 .* (-(B3r + B3s) - Css3 * Γ3 * L[3])./Z̃f[3]
+            -(1 + R[4])/2 .* ((B4r + B4s) - Css4 * Γ4 * L[4])./Z̃f[4]]
+
+
+    dû_v = [(1 + R[1])/2 .* L[1]
+            (1 + R[2])/2 .* L[2]
+            (1 + R[3])/2 .* L[3]
+            (1 + R[4])/2 .* L[4]]
+    
+    
+    dû_û = [-(1 + R[1])/2 .* (Crr1 * Γ1)./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) -(1 + R[2])/2 .* (Crr2 * Γ2)./Z̃f[2] spzeros(nn,nn) spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[3])/2 .* (Css3 * Γ3)./Z̃f[3] spzeros(nn,nn)
+             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[4])/2 .* (Css4 * Γ4)./Z̃f[4]]
+
+    dû_ψ = [spzeros(nn, nn)
+            spzeros(nn, nn)
+            spzeros(nn, nn)
+            spzeros(nn, nn)]
+
+    Λ = [spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
           dv_u dv_v dv_û spzeros(Nn, nn)
           dû_u dû_v dû_û dû_ψ
           spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
-
 
     
     (Λ = Λ,
@@ -465,33 +475,27 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
      ny = metrics.ny,
      L = L,
      H = H,
-     Z̃f = Z̃f,
-     Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4)),
-     B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r)),
-     BCTH = BCTH,
-     BCTHL = BCTHL,
-     nBBCΓL = nBBCΓL,
-     nCnΓ = nCnΓ,
-     Γ = (Γ1, Γ2, Γ3, Γ4),
-     n = (-1, 1, -1, 1))
+     Z̃f = Z̃f)
+     #BCTH = BCTH,
+     #BCTHL = BCTHL,
+     #nBBCΓL = nBBCΓL,
+     #nCnΓ = nCnΓ)
     
 end
 
-function dynamicblock(ops)
+#=
+function dynamicblock(nn, Nn, R, ops)
 
-    Nn = ops.Nn
-    nn = ops.nn
     Ã = ops.Ã
     L = ops.L
     H = ops.H
-    R = ops.R
     Z̃f = ops.Z̃f
     nBBCΓL = ops.nBBCΓL
     BCTHL = ops.BCTHL
     nCnΓ = ops.nCnΓ
     BCTH = ops.BCTH
     JIHP = ops.JIHP
-
+    
     # accleration blocks
     dv_u = -Ã
     for i in 1:4
@@ -503,8 +507,10 @@ function dynamicblock(ops)
         dv_v .+= L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
     end
 
-    
-    dv_û = [(L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1] (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2] (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3] (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4]]
+
+    dv_û = hcat((L[1]' * H[1] * ((1 - R[1])/2 .* nCnΓ[1])) + BCTH[1], (L[2]' * H[2] * ((1 - R[2])/2 .* nCnΓ[2])) + BCTH[2])
+    dv_û = hcat(dv_û, (L[3]' * H[3] * ((1 - R[3])/2 .* nCnΓ[3])) + BCTH[3])
+    dv_û = hcat(dv_û, (L[4]' * H[4] * ((1 - R[4])/2 .* nCnΓ[4])) + BCTH[4])
     
 
     dû_u = [ -(1 + R[1])/2 .* nBBCΓL[1]./Z̃f[1]
@@ -535,13 +541,10 @@ function dynamicblock(ops)
           dû_u dû_v dû_û dû_ψ
           spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
 
-
-
-    
     return Λ
 
 end
-
+=#
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
     T = eltype(q)

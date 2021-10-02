@@ -284,12 +284,12 @@ function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
     dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 
 
-    
+    #=
     contour(coord[1][:,1], coord[2][1,:],
             (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
             xlabel="off fault", ylabel="depth", fill=true, yflip=true)
 
 
     gui()
-    
+    =#
 end
