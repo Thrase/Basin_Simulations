@@ -37,45 +37,6 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
 
                 lop = locoperator(p, N, N, B_p, μ, ρ, R, metrics, LFtoB)
                 b = b_fun(metrics.facecoord[2][1], RS)
-
-                
-                dynamic_operators = (nn = nn,
-                                     Nn = Nn,
-                                     R = R,
-                                     L = lop.L,
-                                     Ã = lop.Ã,
-                                     JIHP = lop.JIHP,
-                                     P̃I = lop.P̃I,
-                                     sJ = metrics.sJ,
-                                     Γ = lop.Γ,
-                                     Z̃f = lop.Z̃f,
-                                     H = lop.H,
-                                     Cf = lop.Cf,
-                                     B = lop.B,
-                                     BCTH = lop.BCTH,
-                                     BCTHL = lop. BCTHL,
-                                     nBBCΓL = lop.nBBCΓL,
-                                     nCnΓ = lop.nCnΓ,
-                                     n = lop.n,
-                                     fcs = metrics.facecoord,
-                                     coord = metrics.coord,
-                                     τ̃ =  Array{Any, 1}(undef, 4),
-                                     û =  Array{Any, 1}(undef, 4),
-                                     dû = Array{Any, 1}(undef, 4),
-                                     τ̂ = Array{Any, 1}(undef, 4),
-                                     τf = Array{Float64, 1}(undef, nn),
-                                     fault_v = Array{Float64, 1}(undef, nn),
-                                     B_p = B_p,
-                                     RS = RS,
-                                     MMS = MMS,
-                                     b = b,
-                                     Forcing = Forcing,
-                                     Char_Source = S_c,
-                                     RS_Source = S_rs,
-                                     State_Source = ψe_t)
-                
-
-                Λ = dynamicblock(dynamic_operators)
                 
                 block_solve_operators = (nn = nn,
                                          fc = metrics.facecoord,
@@ -120,29 +81,29 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             dt_scale = .01
             dt = dt_scale * 2 * lop.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
-            st1 = @elapsed begin
-                timestep!(q1, ODE_RHS_ACTION_CPU!, dynamic_operators, dt, t_span)
-            end
+            #st1 = @elapsed begin
+            #    timestep!(q1, ODE_RHS_ACTION_CPU!, dynamic_operators, dt, t_span)
+            #end
             
             st2 = @elapsed begin
                 timestep!(q2, ODE_RHS_BLOCK_CPU!, block_solve_operators, dt, t_span)
             end
             
-            @printf "Ran action simulation to time %s: %s s\n" t_span[2] st1
+            #@printf "Ran action simulation to time %s: %s s\n" t_span[2] st1
             @printf "Ran block simulation to time %s: %s s \n\n" t_span[2] st2
            
-            u_end1 = @view q1[1:Nn]
-            diff_u1 = u_end1 - ue(x[:], y[:], t_span[2], MMS)
-            err1[iter] = sqrt(diff_u1' * lop.JH * diff_u1)
+            #u_end1 = @view q1[1:Nn]
+            #diff_u1 = u_end1 - ue(x[:], y[:], t_span[2], MMS)
+            #err1[iter] = sqrt(diff_u1' * lop.JH * diff_u1)
 
             u_end2 = @view q2[1:Nn]
             diff_u2 = u_end2 - ue(x[:], y[:], t_span[2], MMS)
             err2[iter] = sqrt(diff_u2' * lop.JH * diff_u2)
             
-            @printf "action error: %e\n" err1[iter]
+            #@printf "action error: %e\n" err1[iter]
             @printf "block error: %e\n\n" err2[iter]
             if iter > 1
-                @printf "action rate: %f\n" log(2, err1[iter - 1]/err1[iter])
+                #@printf "action rate: %f\n" log(2, err1[iter - 1]/err1[iter])
                 @printf "block rate: %f\n" log(2, err2[iter - 1]/err2[iter])
             end
              @printf "___________________________________\n\n"
