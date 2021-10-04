@@ -19,6 +19,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
     for p in ps
         err1 = Vector{Float64}(undef, length(ns))
         err2 = Vector{Float64}(undef, length(ns))
+        err3 = Vector{Float64}(undef, length(ns))
         for (iter, N) in enumerate(ns)
             
             nn = N + 1
@@ -70,7 +71,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                  0, B_p, RS, MMS))
 
                 q2 = deepcopy(q1)
-                
+                q3 = deepcopy(q1)
                 @assert length(q1) == 2nn^2 + 5nn
             end
 
@@ -88,10 +89,15 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             st2 = @elapsed begin
                 timestep!(q2, ODE_RHS_BLOCK_CPU!, block_solve_operators, dt, t_span)
             end
+
+            st3 = @elapsed begin
+                rk41!(q3, ODE_RHS_BLOCK_CPU!, block_solve_operators, dt, t_span)
+            end
             
             #@printf "Ran action simulation to time %s: %s s\n" t_span[2] st1
-            @printf "Ran block simulation to time %s: %s s \n\n" t_span[2] st2
-           
+            @printf "Ran block simulation 2N store to time %s: %s s \n\n" t_span[2] st2
+            @printf "Ran block simulation RK4 to time %s: %s s \n\n" t_span[2] st3
+            
             #u_end1 = @view q1[1:Nn]
             #diff_u1 = u_end1 - ue(x[:], y[:], t_span[2], MMS)
             #err1[iter] = sqrt(diff_u1' * lop.JH * diff_u1)
@@ -99,12 +105,18 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             u_end2 = @view q2[1:Nn]
             diff_u2 = u_end2 - ue(x[:], y[:], t_span[2], MMS)
             err2[iter] = sqrt(diff_u2' * lop.JH * diff_u2)
-            
+
+            u_end3 = @view q3[1:Nn]
+            diff_u3 = u_end3 - ue(x[:], y[:], t_span[2], MMS)
+            err3[iter] = sqrt(diff_u3' * lop.JH * diff_u3)
+
             #@printf "action error: %e\n" err1[iter]
-            @printf "block error: %e\n\n" err2[iter]
+            @printf "block 2n error: %e\n\n" err2[iter]
+            @printf "block rk4 error: %e\n\n" err3[iter]
             if iter > 1
                 #@printf "action rate: %f\n" log(2, err1[iter - 1]/err1[iter])
-                @printf "block rate: %f\n" log(2, err2[iter - 1]/err2[iter])
+                @printf "block 2n rate: %f\n" log(2, err2[iter - 1]/err2[iter])
+                @printf "block rk4 rate: %f\n" log(2, err3[iter - 1]/err3[iter])
             end
              @printf "___________________________________\n\n"
         end

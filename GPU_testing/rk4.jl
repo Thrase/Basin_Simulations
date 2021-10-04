@@ -6,7 +6,7 @@ include("../domain.jl")
 include("../MMS/mms_funcs.jl")
 
 
-function rk4(Λ, q, dt)
+function rk4!(Λ, q, dt)
     
     k1 = Λ * q
 
@@ -19,7 +19,7 @@ function rk4(Λ, q, dt)
     dq4 = q + (dt * k3)
     k4 = Λ * dq3
     
-    qf = q + 1/6 * (k1 + 2k2 + 2k3 + k4)
+    q = q + 1/6 * (k1 + 2k2 + 2k3 + k4)
 
 end
 
