@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --account=erickson   ### change this to your actual account for charging
+#SBATCH --partition=longfat    ### queue to submit to
+#SBATCH --job-name=write_mat       ### job name
+#SBATCH --output=write_mat.out     ### file in which to store job stdout
+#SBATCH --error=write_mat.err     ### file in which to store job stderr
+#SBATCH --time=14-00:00:00   ### wall-clock time limit, in minutes
+#SBATCH --mem=512G            ### memory limit per node, in MB
+#SBATCH --nodes=1            ### number of nodes to use
+#SBATCH --ntasks-per-node=1  ### number of tasks to launch per node
+#SBATCH --cpus-per-task=1    ### number of cores for each task
+ 
+julia -t8 SpMv_timing.jl

@@ -7,6 +7,8 @@ include("../domain.jl")
 using Printf
 using LinearAlgebra
 using SparseArrays
+using MatrixMarket
+using UnicodePlots
 #CUDA.versioninfo()
 
 let 
@@ -29,39 +31,24 @@ let
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
     R = (-1, 0, 0, 1)
-    ne = 8 * 2 .^ (3:3)
-    ne = ne[1]
-    #for ne in nes
-        
-    nn = ne + 1
-        
-    @printf "nn: %d\n" nn
-        
-    metrics = create_metrics(ne, ne, B_p, μ, xt, yt)
-        
-    LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
+    nes = 8 * 2 .^ (1:5)
     
-    @time loc = locoperator(p, ne, ne, B_p, μ, ρ, R, metrics, LFToB)
+    for ne in nes
+        
+        nn = ne + 1
+        
+        @printf "nn: %d\n" nn
+        
+        metrics = create_metrics(ne, ne, B_p, μ, xt, yt)
+        
+        LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
     
-    #=
-    ops = (Nn = nn^2,
-           nn = nn,
-           Ã = loc.Ã,
-           L = loc.L,
-           H = loc.H,
-           R = R,
-           Z̃f = loc.Z̃f,
-           nBBCΓL = loc.nBBCΓL,
-           BCTHL = loc.BCTHL,
-           nCnΓ = loc.nCnΓ,
-           BCTH = loc.BCTH,
-           JIHP = loc.JIHP)
-    
-    @time Λ = dynamicblock(ops)
-    =#
-    @show (length(loc.Λ.nzval) * 8) / (1024)^3
+        @time loc = locoperator(p, ne, ne, B_p, μ, ρ, R, metrics, LFToB)
+        @show sizeof(loc.Λ)
+        @show Base.summarysize(loc.Λ)
+        @show length(loc.Λ.nzval)
+     
 
-        #=
         u1 = rand((-1.0, 1.0), size(Λ)[2])
 
         @show maximum(u1), minimum(u1), length(u1)
@@ -77,13 +64,13 @@ let
         mul!(u2, Λ, u1)
         
         @time begin
-            mul!(u1, Λ, u2)
+        mul!(u1, Λ, u2)
         end
 
         du2 .= dΛ * du1
 
         @time begin
-            du1 .= dΛ * du2
+        du1 .= dΛ * du2
         end
 
         du_res = Array(du2)
@@ -91,6 +78,6 @@ let
         @show norm(u2)
         @show norm(du_res)
         @show error
-       =# 
-    #end
+        
+    end
 end
