@@ -5,22 +5,38 @@ include("../physical_params.jl")
 include("../domain.jl")
 include("../MMS/mms_funcs.jl")
 
+CUDA.allowscalar(false)
 
-function rk4(Λ, q, dt)
+function rk4!(q, Λ, dt, tspan)
+
+    nstep = ceil(Int, (tspan[2] - tspan[1]) / dt)
+    dt = (tspan[2] - tspan[1]) / nstep
+    Δq = similar(q)
+    Δq2 = similar(q)
     
-    k1 = Λ * q
+    for step in 1:nstep
+        
+        Δq .= 0
 
-    dq2 = q + (dt/2 * k1)
-    k2 = Λ * dq1
+        t = tspan[1] + (step - 1) * dt
 
-    dq3 = q + (dt/2 * k2)
-    k3 = Λ * dq2
+        Δq2 .= Λ * q
+        Δq .+= 1/6 * dt * Δq2
 
-    dq4 = q + (dt * k3)
-    k4 = Λ * dq3
-    
-    qf = q + 1/6 * (k1 + 2k2 + 2k3 + k4)
+        Δq2 .= Λ * (q + (1/2) * dt * Δq2)
+        Δq .+= 1/6 * dt * 2Δq2
 
+        Δq2 .= Λ * (q + (1/2) * dt * Δq2)
+        Δq .+= 1/6 * dt * 2Δq2
+
+        Δq2 .= Λ * (q + dt * Δq2)
+
+        Δq .+= 1/6 * dt * Δq2
+
+        q .+= Δq
+        
+    end
+    nothing
 end
 
 
@@ -39,68 +55,59 @@ let
            r̄ = (Lw/2)^2,
            r_w = 1 + (Lw/2)/D)
 
+    # MMS params
+    MMS = (wl = Lw/2,
+           amp = .5,
+           ϵ = 0.0)
+
+
     (x1, x2, x3, x4) = (0, Lw, 0, Lw)
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
     R = (-1, 0, 0, 1)
 
-    ne = 8 * 2^5
+    ne = 8 * 2^6
     nn = ne + 1
 
+    #
+    # Get operators and domain
+    #
     metrics = create_metrics(ne, ne, B_p, μ, xt, yt)
-
     LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
+    loc = locoperator(p, ne, ne, B_p, μ, ρ, R, metrics, LFToB)
     
-    @time loc = locoperator(p, ne, ne, B_p, μ, ρ, R, metrics, LFToB)
-    
-    q = ue(x,y, 0)
-    
-    tspan = (0, 1)
-    dt_scale = .1
-    dt = dt_scale * 2 * lop.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-
-
-
-    #=
-    RKA = (
-        T(0),
-        T(-567301805773 // 1357537059087),
-        T(-2404267990393 // 2016746695238),
-        T(-3550918686646 // 2091501179385),
-        T(-1275806237668 // 842570457699),
-    )
-
-    RKB = (
-        T(1432997174477 // 9575080441755),
-        T(5161836677717 // 13612068292357),
-        T(1720146321549 // 2090206949498),
-        T(3134564353537 // 4481467310338),
-        T(2277821191437 // 14882151754819),
-    )
-
-    RKC = (
-        T(0),
-        T(1432997174477 // 9575080441755),
-        T(2526269341429 // 6820363962896),
-        T(2006345519317 // 3224310063776),
-        T(2802321613138 // 2924317926251),
-    )
-
-    nstep = ceil(Int, (tspan[1] - tspan[2]) / dt)
-    dt = (tspan[1] - tspan[2]) / nstep
-
-    fill!(Δq, 0)
-    fill!(Δq2, 0)
-    for step in 1:nstep
-        t = t0 + (step - 1) * dt
-        for s in 1:length(RKA)
-            f!(Δq2, q, p, t + RKC[s] * dt)
-            Δq .+= Δq2
-            q .+= RKB[s] * dt * Δq
-            Δq .*= RKA[s % length(RKA) + 1]
-        end
+    x = metrics.coord[1]
+    y = metrics.coord[2]
+    #
+    # get initial condtions
+    #
+    u0 = ue(x[:], y[:], 0.0, MMS)
+    v0 = ue_t(x[:], y[:], 0.0, MMS)
+    q = [u0;v0]
+    for i in 1:4
+        q = vcat(q, loc.L[i]*u0)
     end
-    =#
+    q = vcat(q, zeros(nn))
+    @show Base.summarysize(q)/(1024)^3
+    @show 8 * length(q)/(1024)^3
+    #
+    # set time and cfl condition
+    #
+    tspan = (0, .01)
+    dt_scale = .1
+    dt = dt_scale * 2 * loc.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
+
+    dΛ = CuSparseMatrixCSR(loc.Λ)
+    dq = CuArray(q)
+    @show Base.summarysize(loc.Λ) / (1024)^3
+    @show Base.summarysize(dq) / (1024)^3
+    
+    @time rk4!(q, loc.Λ, dt, tspan)
+    @time rk4!(dq, dΛ, dt, tspan)
+
+    q_end = Array(dq)
+    @show norm(q - q_end)
+
 
 end
