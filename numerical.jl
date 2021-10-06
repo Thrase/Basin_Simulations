@@ -390,7 +390,10 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
     dv_u = -Ã
     
     for i in faces
-        if faces[i] != 0
+        if faces[i] == 0
+            dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])) +
+                nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
+        else
             dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
                 nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
         end
@@ -398,7 +401,9 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
 
     dv_v = spzeros(Nn, Nn)
     for i in faces
-        if faces[i] != 0
+        if faces[i] == 0
+            dv_v .+=  L[i]' * H[i] * (- Z̃f[i] .* L[i])
+        else
             dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
         end
     end
@@ -408,7 +413,12 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
     dû_v = spzeros(4nn, Nn)
 
     for i in 1:4
-        if faces[i] != 0
+
+        if faces[i] == 0
+            dv_û[ : , (i-1) * nn + 1 : i * nn] .=
+                (L[i]' * H[i] * Cf[i][1] * Γ[i]) -
+                nl[i] * (B[i][1]' + B[i][2]') * H[i]
+        else
             dv_û[ : , (i-1) * nn + 1 : i * nn] .=
                 (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
                 nl[i] * (B[i][1]' + B[i][2]') * H[i]
