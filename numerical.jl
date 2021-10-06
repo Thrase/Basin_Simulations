@@ -514,9 +514,8 @@ function rk4!(q, f!, p, dt, tspan)
     fill!(Δq2, 0)
     
     for step in 1:nstep
-        
+        fill!(Δq, 0)
         t = tspan[1] + (step - 1) * dt
-        
         f!(Δq2, q, p, t)
         Δq .+= 1/6 * dt * Δq2
         f!(Δq2, q + (1/2) * dt * Δq2, p, t + (1/2) * dt)
@@ -531,30 +530,4 @@ function rk4!(q, f!, p, dt, tspan)
     nothing
 end
 
-function rk41!(q, f!, p, dt, tspan)
-
-    nstep = ceil(Int, (tspan[2] - tspan[1]) / dt)
-    #@show nstep
-    dt = (tspan[2] - tspan[1]) / nstep
-
-    for step in 1:nstep
-        
-        t = tspan[1] + (step - 1) * dt
-        
-        Δq1 = similar(q)
-        f!(Δq1, q, p, t)
-        
-        Δq2 = similar(q)
-        f!(Δq2, q + (1/2) * dt * Δq1, p, t + (1/2) * dt)
-        
-        Δq3 = similar(q)
-        f!(Δq3, q + (1/2) * dt * Δq2, p, t + (1/2) * dt)
-        
-        Δq4 = similar(q)
-        f!(Δq4, q + dt * Δq3, p, t + dt)
-        
-        q .+= 1/6 * dt * (Δq1 + 2Δq2 + 2Δq3 + Δq4)
-    end
-    nothing
-end
 
