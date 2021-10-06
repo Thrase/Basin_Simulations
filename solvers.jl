@@ -71,7 +71,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
         τ̂[i] = -(1 - R[i])/2 * (Z̃f[i] .* vf - τ̃[i]) + S̃_c ./ 2
         
     end
-    #=
+    
     ### rate-state boundary condition ###
     # transformed quantities on face 1
     z̃f1 = Z̃f[1]
@@ -135,7 +135,7 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
     dψ .= State_Source(f1x, f1y, t, B_p, RS, MMS) #(b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(2 .* fault_v) ./ RS.V0) .+ 
         #RS_Source(f1x, f1y, b, t, 1, B_p, RS, MMS)
     τ̂[1] = τf
-    =#
+    
     ### set velocity and displacement evolution ###
     du .= v
     mul!(dv, Ã, u, -1, 0)
@@ -283,13 +283,45 @@ function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
     
     dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 
-
-    #=
-    contour(coord[1][:,1], coord[2][1,:],
-            (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
-            xlabel="off fault", ylabel="depth", fill=true, yflip=true)
+end
 
 
-    gui()
-    =#
+function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
+
+    nn = p.nn
+    fc = p.fc
+    coord = p.coord
+    R = p.R
+    B_p = p.B_p
+    MMS = p.MMS
+    Λ = p.Λ
+    sJ = p.sJ
+    Z̃ = p.Z̃
+    L = p.L
+    H = p.H
+    P̃I = p.P̃I
+    JIHP = p.JIHP
+    CHAR_SOURCE = p.CHAR_SOURCE
+    FORCE = p.FORCE
+
+    u = q[1:nn^2]
+
+    # compute all temporal derivatives
+    dq .= Λ * q
+    
+    for i in 1:4
+        fx = fc[1][i]
+        fy = fc[2][i]
+        
+        S̃_c = sJ[i] .* CHAR_SOURCE(fx, fy, t, i, R[i], B_p, MMS)
+        
+        dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= S̃_c ./ (2*Z̃[i])
+        
+        dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * S̃_c ./ 2
+    end
+
+    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
+    
+    dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+
 end

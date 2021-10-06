@@ -34,9 +34,11 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             y = metrics.coord[2]
 
             LFtoB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
+            faces = [1 2 3 4]
             ot = @elapsed begin
 
-                lop = locoperator(p, N, N, B_p, μ, ρ, R, metrics, LFtoB)
+                d_op = operators_dynamic(p, N, N, B_p, μ, ρ, R, faces, metrics, LFtoB)
+
                 b = b_fun(metrics.facecoord[2][1], RS)
                 
                 block_solve_operators = (nn = nn,
@@ -45,13 +47,13 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                          R = R,
                                          B_p = B_p,
                                          MMS = MMS,
-                                         Λ = lop.Λ,
+                                         Λ = d_op.Λ,
                                          sJ = metrics.sJ,
-                                         Z̃ = lop.Z̃f,
-                                         L = lop.L,
-                                         H = lop.H,
-                                         P̃I = lop.P̃I,
-                                         JIHP = lop.JIHP,
+                                         Z̃ = d_op.Z̃f,
+                                         L = d_op.L,
+                                         H = d_op.H,
+                                         P̃I = d_op.P̃I,
+                                         JIHP = d_op.JIHP,
                                          CHAR_SOURCE = S_c,
                                          FORCE = Forcing)
 
@@ -64,7 +66,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                 v0 = ue_t(x[:], y[:], 0.0, MMS)
                 q1 = [u0;v0]
                 for i in 1:4
-                    q1 = vcat(q1, lop.L[i]*u0)
+                    q1 = vcat(q1, d_op.L[i]*u0)
                 end
                 q1 = vcat(q1, ψe(metrics.facecoord[1][1],
                                 metrics.facecoord[2][1],
@@ -80,45 +82,25 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             @printf "\n___________________________________\n"
             
             dt_scale = .01
-            dt = dt_scale * 2 * lop.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-            
-            #st1 = @elapsed begin
-            #    timestep!(q1, ODE_RHS_ACTION_CPU!, dynamic_operators, dt, t_span)
-            #end
+            dt = dt_scale * 2 * d_op.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
             st2 = @elapsed begin
                 timestep!(q2, ODE_RHS_BLOCK_CPU!, block_solve_operators, dt, t_span)
             end
 
-            st3 = @elapsed begin
-                rk41!(q3, ODE_RHS_BLOCK_CPU!, block_solve_operators, dt, t_span)
-            end
-            
-            #@printf "Ran action simulation to time %s: %s s\n" t_span[2] st1
             @printf "Ran block simulation 2N store to time %s: %s s \n\n" t_span[2] st2
-            @printf "Ran block simulation RK4 to time %s: %s s \n\n" t_span[2] st3
             
-            #u_end1 = @view q1[1:Nn]
-            #diff_u1 = u_end1 - ue(x[:], y[:], t_span[2], MMS)
-            #err1[iter] = sqrt(diff_u1' * lop.JH * diff_u1)
-
             u_end2 = @view q2[1:Nn]
             diff_u2 = u_end2 - ue(x[:], y[:], t_span[2], MMS)
-            err2[iter] = sqrt(diff_u2' * lop.JH * diff_u2)
+            err2[iter] = sqrt(diff_u2' * d_op.JH * diff_u2)
 
-            u_end3 = @view q3[1:Nn]
-            diff_u3 = u_end3 - ue(x[:], y[:], t_span[2], MMS)
-            err3[iter] = sqrt(diff_u3' * lop.JH * diff_u3)
-
-            #@printf "action error: %e\n" err1[iter]
             @printf "block 2n error: %e\n\n" err2[iter]
-            @printf "block rk4 error: %e\n\n" err3[iter]
+
             if iter > 1
-                #@printf "action rate: %f\n" log(2, err1[iter - 1]/err1[iter])
                 @printf "block 2n rate: %f\n" log(2, err2[iter - 1]/err2[iter])
-                @printf "block rk4 rate: %f\n" log(2, err3[iter - 1]/err3[iter])
             end
-             @printf "___________________________________\n\n"
+         
+            @printf "___________________________________\n\n"
         end
     end
 
