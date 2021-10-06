@@ -98,7 +98,7 @@ function computetraction_mod(lop, lf, u, δ)
     return (HfI_FT * u + τf * (δ .- δ / 2)) ./ sJ
 end
 
-function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB, 
+function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB, 
                      τscale = 2,
                      crr = metrics.crr,
                      css = metrics.css,
@@ -300,16 +300,15 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     
     # Boundars Derivatives
     B1r =  Crr1 * kron(Is, S0)
-    #display(sparse(B1r'))
     B1s = Crs1 * L[1] * kron(Ds, Ir)
     B2r = Crr2 * kron(Is, SN)
-    #display(sparse(B2r'))
     B2s = Crs2 * L[2] * kron(Ds, Ir)
     B3s = Css3 * kron(S0, Ir)
     B3r = Csr3 * L[3] * kron(Is, Dr)
     B4s = Css4 * kron(SN, Ir)
     B4r = Csr4 * L[4] * kron(Is, Dr)
     
+
     (xf1, xf2, xf3, xf4) = metrics.facecoord[1]
     (yf1, yf2, yf3, yf4) = metrics.facecoord[2]
 
@@ -374,57 +373,112 @@ function locoperator(p, Nr, Ns, B_p, μ, ρ, R, metrics, LFToB,
     P4 = sparse(1:Nrp, 1:Nrp, p4)
 
     # dynamic penalty matrices
-    Γ1 = (2/(α*hr))*Is + τR1 * P1
-    Γ2 = (2/(α*hr))*Is + τR2 * P2
-    Γ3 = (2/(α*hs))*Ir + τR3 * P3
-    Γ4 = (2/(α*hs))*Ir + τR4 * P4
+    Γ = ((2/(α*hr))*Is + τR1 * P1,
+         (2/(α*hr))*Is + τR2 * P2,
+         (2/(α*hs))*Ir + τR3 * P3,
+         (2/(α*hs))*Ir + τR4 * P4)
 
     JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
     
     JIHP = JI * H̃inv * P̃inv
     
-    
+    Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4))
+    B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r))
+    nl = (-1, 1, -1, 1)
     # accleration blocks
-    dv_u = -Ã +
-        (L[1]' * H[1] * ((1 - R[1])/2 .* (-(B1r + B1s) - Crr1 * Γ1 * L[1]))) - (B1r' + B1s') * H[1] * L[1] +
-        (L[2]' * H[2] * ((1 - R[2])/2 .* ((B2r + B2s) - Crr2 * Γ2 * L[2]))) + (B2r' + B2s') * H[2] * L[2] +
-        (L[3]' * H[3] * ((1 - R[3])/2 .* (-(B3r + B3s) - Css3 * Γ3 * L[3]))) - (B3r' + B3s') * H[3] * L[3] +
-        (L[4]' * H[4] * ((1 - R[4])/2 .* ((B4r + B4s) - Css4 * Γ4 * L[4]))) + (B4r' + B4s') * H[4] * L[4]
+    dv_u = -Ã
+    for i in faces
+        dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) + nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
+    end
+
+    # accleration blocks
+    
+    dv_u1 = -Ã +
+    (L[1]' * H[1] * ((1 - R[1])/2 .* (-(B1r + B1s) - Crr1 * Γ[1] * L[1]))) - (B1r' + B1s') * H[1] * L[1] +
+    (L[2]' * H[2] * ((1 - R[2])/2 .* ((B2r + B2s) - Crr2 * Γ[2] * L[2]))) + (B2r' + B2s') * H[2] * L[2] +
+    (L[3]' * H[3] * ((1 - R[3])/2 .* (-(B3r + B3s) - Css3 * Γ[3] * L[3]))) - (B3r' + B3s') * H[3] * L[3] +
+    (L[4]' * H[4] * ((1 - R[4])/2 .* ((B4r + B4s) - Css4 * Γ[4] * L[4]))) + (B4r' + B4s') * H[4] * L[4]
+     
+    @assert isapprox(dv_u, dv_u1)
+
+    dv_v = spzeros(Nn, Nn)
+    for i in faces
+    dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
+    end
+
+    
+    dv_v1 =  L[1]' * H[1] * (-(1 - R[1])/2 .* Z̃f[1] .* L[1]) +
+    L[2]' * H[2] * (-(1 - R[2])/2 .* Z̃f[2] .* L[2]) +
+    L[3]' * H[3] * (-(1 - R[3])/2 .* Z̃f[3] .* L[3]) +
+    L[4]' * H[4] * (-(1 - R[4])/2 .* Z̃f[4] .* L[4])
+    
+    @assert isapprox(dv_v, dv_v1)
+
+    dv_û = spzeros(Nn, nn)
+    dû_u = spzeros(nn, Nn)
+    dû_v = spzeros(nn, Nn)
+    
+    dv_û1 = hcat((L[1]' * H[1] * ((1 - R[1])/2 .* Crr1 * Γ[1])) + (B1r' + B1s') * H[1],
+                (L[2]' * H[2] * ((1 - R[2])/2 .* Crr2 * Γ[2])) - (B2r' + B2s') * H[2])
+    
+    dv_û1 = hcat(dv_û1,
+                (L[3]' * H[3] * ((1 - R[3])/2 .* Css3 * Γ[3])) + (B3r' + B3s') * H[3])
+    
+    dv_û1 = hcat(dv_û1,
+                (L[4]' * H[4] * ((1 - R[4])/2 .* Css4 * Γ[4])) - (B4r'+ B4s') * H[4])
+
+
+    dû_u1 = [-(1 + R[1])/2 .* (-(B1r + B1s) - Crr1 * Γ[1] * L[1])./Z̃f[1]
+            -(1 + R[2])/2 .* ((B2r + B2s) - Crr2 * Γ[2] * L[2])./Z̃f[2]
+            -(1 + R[3])/2 .* (-(B3r + B3s) - Css3 * Γ[3] * L[3])./Z̃f[3]
+            -(1 + R[4])/2 .* ((B4r + B4s) - Css4 * Γ[4] * L[4])./Z̃f[4]]
     
     
-    dv_v =  L[1]' * H[1] * (-(1 - R[1])/2 .* Z̃f[1] .* L[1]) +
-        L[2]' * H[2] * (-(1 - R[2])/2 .* Z̃f[2] .* L[2]) +
-        L[3]' * H[3] * (-(1 - R[3])/2 .* Z̃f[3] .* L[3]) +
-        L[4]' * H[4] * (-(1 - R[4])/2 .* Z̃f[4] .* L[4])
-
-    
-    dv_û = hcat((L[1]' * H[1] * ((1 - R[1])/2 .* Crr1 * Γ1)) + (B1r' + B1s') * H[1],
-                (L[2]' * H[2] * ((1 - R[2])/2 .* Crr2 * Γ2)) - (B2r' + B2s') * H[2])
-    
-    dv_û = hcat(dv_û,
-                (L[3]' * H[3] * ((1 - R[3])/2 .* Css3 * Γ3)) + (B3r' + B3s') * H[3])
-    
-    dv_û = hcat(dv_û,
-                (L[4]' * H[4] * ((1 - R[4])/2 .* Css4 * Γ4)) - (B4r'+ B4s') * H[4])
-
-
-
-    dû_u = [-(1 + R[1])/2 .* (-(B1r + B1s) - Crr1 * Γ1 * L[1])./Z̃f[1]
-            -(1 + R[2])/2 .* ((B2r + B2s) - Crr2 * Γ2 * L[2])./Z̃f[2]
-            -(1 + R[3])/2 .* (-(B3r + B3s) - Css3 * Γ3 * L[3])./Z̃f[3]
-            -(1 + R[4])/2 .* ((B4r + B4s) - Css4 * Γ4 * L[4])./Z̃f[4]]
-
-
-    dû_v = [(1 + R[1])/2 .* L[1]
+    dû_v1 = [(1 + R[1])/2 .* L[1]
             (1 + R[2])/2 .* L[2]
             (1 + R[3])/2 .* L[3]
             (1 + R[4])/2 .* L[4]]
+
+    for (ind, i) in enumerate(faces)
+        #@show ind, i
+        if ind != i            
+            if ind != 1
+                dv_û = hcat(d_û, spzeros(Nn, nn))
+                dû_u = vcat(dû_u, spzeros(nn, Nn))
+                dû_v = vcat(dû_v, spzeros(nn, Nn))
+            end
+        else
+            if ind == 1
+                dv_û .= (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) + nl[i] * (B[i][1]' + B[i][2]') * H[i]
+                dû_u .= -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
+                dû_v .= (1 + R[i])/2 .* L[i]
+            else
+                dv_û = hcat(dv_û, (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) + nl[i] * (B[i][1]' + B[i][2]') * H[i])
+                dû_u = vcat(dû_u ,-(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])./Z̃f[i])
+                dû_v = vcat(dû_v, (1 + R[i])/2 .* L[i])
+            end
+        end
+    end
+
+    @show norm(dv_û1 - dv_û)
+    @assert isapprox(dv_û1, dv_û)
+    @assert isapprox(dû_u1, dû_u)
+    @assert isapprox(dû_v1, dû_v)
     
+    dû_û1 = [-(1 + R[1])/2 .* (Crr1 * Γ[1])./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
+    spzeros(nn,nn) -(1 + R[2])/2 .* (Crr2 * Γ[2])./Z̃f[2] spzeros(nn,nn) spzeros(nn,nn)
+    spzeros(nn,nn) spzeros(nn,nn) -(1 + R[3])/2 .* (Css3 * Γ[3])./Z̃f[3] spzeros(nn,nn)
+    spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[4])/2 .* (Css4 * Γ[4])./Z̃f[4]]
     
-    dû_û = [-(1 + R[1])/2 .* (Crr1 * Γ1)./Z̃f[1] spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn)
-             spzeros(nn,nn) -(1 + R[2])/2 .* (Crr2 * Γ2)./Z̃f[2] spzeros(nn,nn) spzeros(nn,nn)
-             spzeros(nn,nn) spzeros(nn,nn) -(1 + R[3])/2 .* (Css3 * Γ3)./Z̃f[3] spzeros(nn,nn)
-             spzeros(nn,nn) spzeros(nn,nn) spzeros(nn,nn) -(1 + R[4])/2 .* (Css4 * Γ4)./Z̃f[4]]
+    dû_û = spzeros(4nn, 4nn)
+
+    for i in 1:4
+        if faces[i] != 0
+            dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] = -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
+        end
+    end
+
+    @assert isapprox(dû_û1, dû_û)
 
     dû_ψ = [spzeros(nn, nn)
             spzeros(nn, nn)
