@@ -390,14 +390,17 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
     dv_u = -Ã
     
     for i in faces
-        dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
-            nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
+        if faces[i] != 0
+            dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
+                nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
+        end
     end
 
     dv_v = spzeros(Nn, Nn)
-    
     for i in faces
-        dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
+        if faces[i] != 0
+            dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
+        end
     end
 
     dv_û = spzeros(Nn, 4nn)
@@ -406,31 +409,34 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
 
     for i in 1:4
         if faces[i] != 0
-            dv_û[ : , (i-1) * nn + 1 : i * nn] .= (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) - nl[i] * (B[i][1]' + B[i][2]') * H[i]
-            dû_u[(i-1) * nn + 1 : i * nn , : ] .= -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
+            dv_û[ : , (i-1) * nn + 1 : i * nn] .=
+                (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
+                nl[i] * (B[i][1]' + B[i][2]') * H[i]
+        
+            dû_u[(i-1) * nn + 1 : i * nn , : ] .=
+                -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) -
+                Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
+        
             dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
+            
         end
     end
+
     
     dû_û = spzeros(4nn, 4nn)
-
     for i in 1:4
         if faces[i] != 0
             dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
         end
     end
 
-    dû_ψ = [spzeros(nn, nn)
-            spzeros(nn, nn)
-            spzeros(nn, nn)
-            spzeros(nn, nn)]
+    dû_ψ = spzeros(4nn, nn)
 
-    Λ = [spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 4nn) spzeros(Nn, nn)
+    Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 5nn)
           dv_u dv_v dv_û spzeros(Nn, nn)
           dû_u dû_v dû_û dû_ψ
-          spzeros(nn, Nn) spzeros(nn, Nn) spzeros(nn, 4nn) spzeros(nn, nn)]
+          spzeros(nn, 2Nn + 5nn) ]
 
-    
     (Λ = Λ,
      Ã = Ã,
      P̃I = P̃inv,
