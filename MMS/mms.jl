@@ -37,26 +37,29 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             faces = [0 2 3 4]
             ot = @elapsed begin
 
-                d_op = operators_dynamic(p, N, N, B_p, μ, ρ, R, faces, metrics, LFtoB)
+                d_ops = operators_dynamic(p, N, N, B_p, μ, ρ, R, faces, metrics, LFtoB)
 
-                display(d_op.Λ)
-                quit()
                 b = b_fun(metrics.facecoord[2][1], RS)
+
+                τ̃f = Array{Float64, 1}(undef, nn)
+                vf = Array{Float64, 1}(undef, nn)
+                v̂_fric = Array{Float64, 1}(undef, nn)
                 
-                block_solve_operators = (nn = nn,
+                block_solve_operators = (d_ops = d_ops,
+                                         nn = nn,
                                          fc = metrics.facecoord,
                                          coord = metrics.coord,
                                          R = R,
                                          B_p = B_p,
                                          MMS = MMS,
-                                         Λ = d_op.Λ,
+                                         RS = RS,
+                                         b = b,
                                          sJ = metrics.sJ,
-                                         Z̃ = d_op.Z̃f,
-                                         L = d_op.L,
-                                         H = d_op.H,
-                                         P̃I = d_op.P̃I,
-                                         JIHP = d_op.JIHP,
+                                         τ̃f = τ̃f,
+                                         vf = vf,
+                                         v̂_fric = v̂_fric,
                                          CHAR_SOURCE = S_c,
+                                         STATE_SOURCE = ψe_t,
                                          FORCE = Forcing)
 
             end
@@ -68,7 +71,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                 v0 = ue_t(x[:], y[:], 0.0, MMS)
                 q1 = [u0;v0]
                 for i in 1:4
-                    q1 = vcat(q1, d_op.L[i]*u0)
+                    q1 = vcat(q1, d_ops.L[i]*u0)
                 end
                 q1 = vcat(q1, ψe(metrics.facecoord[1][1],
                                 metrics.facecoord[2][1],
@@ -84,22 +87,22 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             @printf "\n___________________________________\n"
             
             dt_scale = .01
-            dt = dt_scale * 2 * d_op.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
+            dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
             st2 = @elapsed begin
                 timestep!(q2, ODE_RHS_BLOCK_CPU_FAULT!, block_solve_operators, dt, t_span)
             end
 
-            @printf "Ran block simulation 2N store to time %s: %s s \n\n" t_span[2] st2
+            @printf "Ran block fault simulation to time %s: %s s \n\n" t_span[2] st2
             
             u_end2 = @view q2[1:Nn]
             diff_u2 = u_end2 - ue(x[:], y[:], t_span[2], MMS)
-            err2[iter] = sqrt(diff_u2' * d_op.JH * diff_u2)
+            err2[iter] = sqrt(diff_u2' * d_ops.JH * diff_u2)
 
-            @printf "block 2n error: %e\n\n" err2[iter]
+            @printf "block fault error: %e\n\n" err2[iter]
 
             if iter > 1
-                @printf "block 2n rate: %f\n" log(2, err2[iter - 1]/err2[iter])
+                @printf "block fault rate: %f\n" log(2, err2[iter - 1]/err2[iter])
             end
          
             @printf "___________________________________\n\n"

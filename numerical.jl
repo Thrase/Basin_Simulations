@@ -389,9 +389,9 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
     # accleration blocks
     dv_u = -Ã
     
-    for i in faces
+    for i in 1:4
         if faces[i] == 0
-            dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
+            dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])) +
                 nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
         else
             dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
@@ -400,9 +400,9 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
     end
 
     dv_v = spzeros(Nn, Nn)
-    for i in faces
+    for i in 1:4
         if faces[i] == 0
-            dv_v .+=  L[i]' * H[i] * (- Z̃f[i] .* L[i])
+            dv_v .+=  L[i]' * H[i] * (-Z̃f[i] .* L[i])
         else
             dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
         end
@@ -413,10 +413,9 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
     dû_v = spzeros(4nn, Nn)
 
     for i in 1:4
-
         if faces[i] == 0
                         dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
+                (L[i]' * H[i] * Cf[i][1] * Γ[i]) -
                 nl[i] * (B[i][1]' + B[i][2]') * H[i]
         else
             dv_û[ : , (i-1) * nn + 1 : i * nn] .=
@@ -428,7 +427,6 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
                 Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
         
             dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
-            
         end
     end
 
@@ -447,14 +445,17 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
           dû_u dû_v dû_û dû_ψ
           spzeros(nn, 2Nn + 5nn) ]
 
+    nCnΓ1 = Crr1 * Γ[1]
+    nBBCΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
+    
     (Λ = Λ,
      Ã = Ã,
      P̃I = P̃inv,
      H̃I = H̃inv,
      JI = JI,
      JIHP = JIHP,
-     coord = metrics.coord,
-     facecoord = metrics.facecoord,
+     nCnΓ1 = nCnΓ1,
+     nBBCΓL1 = nBBCΓL1,
      hmin = hmin,
      cmax = cmax,
      JH = JH,
