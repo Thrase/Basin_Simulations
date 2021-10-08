@@ -34,11 +34,13 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             y = metrics.coord[2]
 
             LFtoB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
-            faces = [1 2 3 4]
+            faces = [0 2 3 4]
             ot = @elapsed begin
 
                 d_op = operators_dynamic(p, N, N, B_p, μ, ρ, R, faces, metrics, LFtoB)
 
+                display(d_op.Λ)
+                quit()
                 b = b_fun(metrics.facecoord[2][1], RS)
                 
                 block_solve_operators = (nn = nn,
@@ -85,7 +87,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             dt = dt_scale * 2 * d_op.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
             st2 = @elapsed begin
-                timestep!(q2, ODE_RHS_BLOCK_CPU!, block_solve_operators, dt, t_span)
+                timestep!(q2, ODE_RHS_BLOCK_CPU_FAULT!, block_solve_operators, dt, t_span)
             end
 
             @printf "Ran block simulation 2N store to time %s: %s s \n\n" t_span[2] st2

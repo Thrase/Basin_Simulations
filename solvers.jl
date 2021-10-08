@@ -60,7 +60,6 @@ function ODE_RHS_D_MMS!(dq, q, p, t)
         τ̃[i] =  nBBCΓL[i] * u + nCnΓ[i] * û[i]
     end
 
-
     ### charcterstic boundary conditions ###
     for i in 1:4
         vf = L[i]*v
@@ -294,12 +293,16 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     R = p.R
     B_p = p.B_p
     MMS = p.MMS
+    RS = p.RS
     Λ = p.Λ
     sJ = p.sJ
     Z̃ = p.Z̃
     L = p.L
     H = p.H
     P̃I = p.P̃I
+    b = p.b
+    vf = p.vf
+    τ̃f = p.τ̃f
     JIHP = p.JIHP
     CHAR_SOURCE = p.CHAR_SOURCE
     FORCE = p.FORCE
@@ -308,20 +311,51 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
 
     # compute all temporal derivatives
     dq .= Λ * q
-    
-    for i in 1:4
-        fx = fc[1][i]
-        fy = fc[2][i]
+    # get velocity on fault
+    vf .= L[1] * v
+    # compute numerical traction on face 1
+    τ̃f
+    # Root find for RS friction
+    for n in 1:nn
         
-        S̃_c = sJ[i] .* CHAR_SOURCE(fx, fy, t, i, R[i], B_p, MMS)
+        v̂_root(v̂) = rateandstateD(v̂,
+                                  Z̃[1][n],
+                                  vf[n],
+                                  sJ[1][n],
+                                  q[2nn^2 + 4nn + n],
+                                  RS.a,
+                                  τ̃f[n],
+                                  RS.σn,
+                                  RS.V0)
+
+        left = -1e5#vn - τ̃n/z̃n
+        right = 1e5#-left
         
-        dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= S̃_c ./ (2*Z̃[i])
+        if left > right  
+            tmp = left
+            left = right
+            right = tmp
+        end
         
-        dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * S̃_c ./ 2
+        (v̂n, _, _) = newtbndv(v̂_root, left, right, vf[n]; ftol = 1e-12,
+                              atolx = 1e-12, rtolx = 1e-12)
+        
+        # write velocity flux into q
+        q[2nn^2 + n] .= v̂n
+        # write traction flux into q
+        
     end
 
-    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
     
+    # Non-fault Source injection
+    for i in 2:4
+        fx = fc[1][i]
+        fy = fc[2][i]
+        S̃_c = sJ[i] .* CHAR_SOURCE(fx, fy, t, i, R[i], B_p, MMS)
+        dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= S̃_c ./ (2*Z̃[i])
+        dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * S̃_c ./ 2
+    end
+    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
     dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 
 end
