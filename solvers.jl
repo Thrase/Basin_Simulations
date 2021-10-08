@@ -297,6 +297,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     R = p.R
     B_p = p.B_p
     RS = p.RS
+    b = p.b
     MMS = p.MMS
     Λ = p.d_ops.Λ
     sJ = p.sJ
@@ -351,11 +352,6 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
 
         v̂_fric[n] = v̂n
     end
-
-    # debug rootfinder
-    #@show norm(v̂_fric - ue_t(fc[1][1], fc[2][1], t, MMS))
-    #@assert norm(v̂_fric - ue_t(fc[1][1], fc[2][1], t, MMS)) < .01
-
                  
     # write velocity flux into q
     dq[2nn^2 + 1 : 2nn^2 + nn] .= v̂_fric
@@ -372,7 +368,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 
     # psi source
-    dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= STATE_SOURCE(fc[1][1], fc[2][1], t, B_p, RS, MMS)
+    dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn]) ./ b) .- abs.(2 .* v̂_fric) ./ RS.V0)     dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .+= STATE_SOURCE(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
 
 
     contour(coord[1][:,1], coord[2][1,:],

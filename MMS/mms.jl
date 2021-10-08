@@ -59,7 +59,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                          vf = vf,
                                          v̂_fric = v̂_fric,
                                          CHAR_SOURCE = S_c,
-                                         STATE_SOURCE = ψe_t,
+                                         STATE_SOURCE = S_rs,
                                          FORCE = Forcing)
 
             end

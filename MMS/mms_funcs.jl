@@ -92,7 +92,7 @@ function S_c(fx, fy, t, fnum, R, B_p, MMS)
 end
 
 
-function S_rs(fx, fy, b, t, fnum, B_p, RS, MMS)
+function S_rs(fx, fy, b, t, B_p, RS, MMS)
     
     ψ = ψe(fx, fy, t, B_p, RS, MMS)
     V = 2*ue_t(fx, fy, t, MMS)
