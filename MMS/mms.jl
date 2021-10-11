@@ -90,7 +90,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
             st2 = @elapsed begin
-                timestep!(q2, ODE_RHS_BLOCK_CPU_FAULT!, block_solve_operators, dt, t_span)
+                timestep!(q2, ODE_RHS_BLOCK_CPU_MMS_FAULT!, block_solve_operators, dt, t_span)
             end
 
             @printf "Ran block fault simulation to time %s: %s s \n\n" t_span[2] st2
