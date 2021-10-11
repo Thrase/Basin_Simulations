@@ -69,7 +69,7 @@ function ψe_t(fx, fy, t, B_p, RS, MMS)
     τf = τe(fx, fy, t, 1, B_p, MMS)
     τf_t = τe_t(fx, fy, t, 1, B_p, MMS)
     
-    return τf_t ./ RS.σn .* coth.(τf ./ (RS.σn .* RS.a)) - (RS.a .* Ve_t ./ Ve)
+    return τf_t ./ RS.σn .* coth.(τf ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve
 
 end
 
@@ -96,7 +96,7 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
     
     ψ = ψe(fx, fy, t, B_p, RS, MMS)
     V = 2*ue_t(fx, fy, t, MMS)
-    G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(V) ./ RS.V0)
+    G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(V) / RS.V0)
     ψ_t = ψe_t(fx, fy, t, B_p, RS, MMS)
     return  ψ_t .- G
 

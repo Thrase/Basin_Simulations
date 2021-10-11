@@ -86,7 +86,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             @printf "Running simulations with %s nodes...\n" nn
             @printf "\n___________________________________\n"
             
-            dt_scale = .01
+            dt_scale = .0001
             dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
             st2 = @elapsed begin
