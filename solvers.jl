@@ -213,6 +213,5 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     
     # psi source
     dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(2 .* v̂_fric) ./ RS.V0)
-    
 
 end
