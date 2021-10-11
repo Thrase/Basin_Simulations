@@ -76,7 +76,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                 q1 = vcat(q1, ψe(metrics.facecoord[1][1],
                                 metrics.facecoord[2][1],
                                  0, B_p, RS, MMS))
-
+                display(q1)
                 q2 = deepcopy(q1)
                 q3 = deepcopy(q1)
                 @assert length(q1) == 2nn^2 + 5nn

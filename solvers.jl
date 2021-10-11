@@ -142,12 +142,10 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
 
     nn = p.nn
     fc = p.fc
-    coord = p.coord
     R = p.R
     B_p = p.B_p
     RS = p.RS
     b = p.b
-    MMS = p.MMS
     Λ = p.d_ops.Λ
     sJ = p.sJ
     Z̃f = p.d_ops.Z̃f
@@ -157,9 +155,6 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     JIHP = p.d_ops.JIHP
     nCnΓ1 = p.d_ops.nCnΓ1
     nBBCΓL1 = p.d_ops.nBBCΓL1
-    CHAR_SOURCE = p.CHAR_SOURCE
-    STATE_SOURCE = p.STATE_SOURCE
-    FORCE = p.FORCE
     vf = p.vf
     τ̃f = p.τ̃f
     v̂_fric = p.v̂_fric
@@ -188,8 +183,8 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
                                   RS.σn,
                                   RS.V0)
 
-        left = -1e5#vn - τ̃n/z̃n
-        right = 1e5#-left
+        left = -1e10#vf[n] - τ̃f[n]/Z̃f[1][n]
+        right = 1e10#-left
         
         if left > right  
             tmp = left
@@ -201,7 +196,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
                               atolx = 1e-12, rtolx = 1e-12)
 
         if isnan(v̂n)
-            #println("Not bracketing root")
+            println("Not bracketing root")
         end
         v̂_fric[n] = v̂n
     end
@@ -213,5 +208,14 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     
     # psi source
     dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(2 .* v̂_fric) ./ RS.V0)
+
+end
+
+function ODE_RHS_GPU_FAULT!(dq, q, p, t_span)
+
+
+
+
+
 
 end

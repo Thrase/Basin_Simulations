@@ -542,3 +542,25 @@ function rk4!(q, f!, p, dt, tspan)
 end
 
 
+function rk4!(q, Λ, dt, tspan)
+
+    nstep = ceil(Int, (tspan[2] - tspan[1]) / dt)
+    dt = (tspan[2] - tspan[1]) / nstep
+    Δq = similar(q)
+    Δq2 = similar(q)
+    for step in 1:nstep
+        Δq .= 0
+        t = tspan[1] + (step - 1) * dt
+        Δq2 .= Λ * q
+        Δq .+= 1/6 * dt * Δq2
+        Δq2 .= Λ * (q + (1/2) * dt * Δq2)
+        Δq .+= 1/6 * dt * 2Δq2
+        Δq2 .= Λ * (q + (1/2) * dt * Δq2)
+        Δq .+= 1/6 * dt * 2Δq2
+        Δq2 .= Λ * (q + dt * Δq2)
+        Δq .+= 1/6 * dt * Δq2
+        q .+= Δq
+    end
+    nothing
+end
+
