@@ -1,5 +1,6 @@
 using Plots
-
+using CUDA
+using CUDA.CUSPARSE
 
 function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
 
@@ -166,7 +167,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     # compute all temporal derivatives
     dq .= Λ * q
     # get velocity on fault
-    vf .= L[1] * q[nn^2 + 1 : 2nn^2]
+    vf .= L * q[nn^2 + 1 : 2nn^2]
     # compute numerical traction on face 1
     τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
 
@@ -192,7 +193,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
             right = tmp
         end
         
-        (v̂n, _, _) = newtbndv(v̂_root, left, right, vf[n]; ftol = 1e-12,
+         (v̂n, _, _) = newtbndv(v̂_root, left, right, vf[n]; ftol = 1e-12,
                               atolx = 1e-12, rtolx = 1e-12)
 
         if isnan(v̂n)
@@ -211,11 +212,60 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
 
 end
 
-function ODE_RHS_GPU_FAULT!(dq, q, p, t_span)
+function ODE_RHS_GPU_FAULT!(q, Δq, p, dt, t_span)
+
+    T = eltype(q)
+    
+    nn = CuArray(p.nn)
+    Λ = CuArray(p.Λ)
+    Z̃f = CuArray(p.Z̃f)
+    L = CuArray(p.L)
+    H = CuArray(p.H)
+    P̃I = CuArray(p.P̃I)
+    JIHP = CuArray(p.JIHP)
+    nCnΓ1 = CuArray(p.nCnΓ1)
+    nBBCΓL1 = CuArray(p.nBBCΓL1)
+    fc = CuArray(p.facecoord)
+    sJ = CuArray(p.sJ)
+    RS = p.RS
+    b = CuArray(p.b)
+    vf = CuArray(p.vf)
+    τ̃f = CuArray(p.τ̃f)
+    v̂_fric = CuArray(p.v̂_fric)
+    
+    RKA = CuArray([
+        T(0),
+        T(-567301805773 // 1357537059087),
+        T(-2404267990393 // 2016746695238),
+        T(-3550918686646 // 2091501179385),
+        T(-1275806237668 // 842570457699),
+    ])
+
+    RKB = CuArray[
+        T(1432997174477 // 9575080441755),
+        T(5161836677717 // 13612068292357),
+        T(1720146321549 // 2090206949498),
+        T(3134564353537 // 4481467310338),
+        T(2277821191437 // 14882151754819),
+    ])
+
+    RKC = CuArray([
+        T(0),
+        T(1432997174477 // 9575080441755),
+        T(2526269341429 // 6820363962896),
+        T(2006345519317 // 3224310063776),
+        T(2802321613138 // 2924317926251),
+    ])
 
 
-
-
+    for step in 1:nstep
+        t = t0 + (step - 1) * dt
+        for s in 1:length(RKA)
+            #f!(Δq, RKA[s % length(RKA)], q, p, t + RKC[s] * dt)
+            
+            q .+= RKB[s] * dt * Δq
+        end
+    end
 
 
 end

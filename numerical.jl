@@ -1,11 +1,13 @@
 using SparseArrays
 using LinearAlgebra
+
 include("DiagonalSBP.jl")
 
 const BC_DIRICHLET = 1
 const BC_NEUMANN = 2
 const BC_LOCKED_INTERFACE = 0
 const BC_JUMP_INTERFACE   = 7
+
 
 # Quasi-Dynamic rootfinding problem on the fault
 function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)

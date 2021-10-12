@@ -43,7 +43,7 @@ let
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
 
-    R = (-1, 0, 0, 1)
+    R = [-1, 0, 0, 1]
 
     ne = 8 #* 2^2
     nn = ne + 1
@@ -100,9 +100,27 @@ let
                  CHAR_SOURCE = S_c,
                  STATE_SOURCE = S_rs,
                  FORCE = Forcing)
+
+
+    GPU_operators = (nn = nn,
+                 Λ = ops.Λ,
+                 Z̃f = ops.Z̃f[1],
+                 L = ops.L[1],
+                 H = ops.H[1],
+                 P̃I = ops.P̃I,
+                 JIHP = ops.JIHP,
+                 nCnΓ1 = ops.nCnΓ1,
+                 nBBCΓL1 = ops.nBBCΓL1,
+                 fc = metrics.facecoord,
+                 sJ = metrics.sJ[1],
+                 RS = RS,
+                 b = b,
+                 vf = vf,
+                 τ̃f = τ̃f,
+                 v̂_fric = v̂_fric)
     
-    @time rk4!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
-    @time 
+    rk4!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
+    @time ODE_RHS_GPU_FAULT!(q, operators, dt, tspan)
     #@time rk4!(dq, dΛ, dt, tspan)
     #display(q)
     #q_end = Array(dq)
