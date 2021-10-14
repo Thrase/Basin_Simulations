@@ -8,6 +8,7 @@ include("../numerical.jl")
 include("../solvers.jl")
 
 CUDA.allowscalar(false)
+#CUDA.versioninfo()
 
 let
 
@@ -72,7 +73,7 @@ let
                    metrics.facecoord[2][1],
                    0.0, B_p, RS, MMS))
    
-
+    q1 = deepcopy(q)
     #
     # set time and cfl condition
     #
@@ -100,7 +101,7 @@ let
                  CHAR_SOURCE = S_c,
                  STATE_SOURCE = S_rs,
                  FORCE = Forcing)
-
+    
 
     GPU_operators = (nn = nn,
                  Λ = ops.Λ,
@@ -111,7 +112,6 @@ let
                  JIHP = ops.JIHP,
                  nCnΓ1 = ops.nCnΓ1,
                  nBBCΓL1 = ops.nBBCΓL1,
-                 fc = metrics.facecoord,
                  sJ = metrics.sJ[1],
                  RS = RS,
                  b = b,
@@ -119,8 +119,8 @@ let
                  τ̃f = τ̃f,
                  v̂_fric = v̂_fric)
     
-    rk4!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
-    @time ODE_RHS_GPU_FAULT!(q, operators, dt, tspan)
+    #@time rk4!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
+    @time ODE_RHS_GPU_FAULT!(q1, GPU_operators, dt, tspan)
     #@time rk4!(dq, dΛ, dt, tspan)
     #display(q)
     #q_end = Array(dq)

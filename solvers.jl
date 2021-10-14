@@ -2,6 +2,8 @@ using Plots
 using CUDA
 using CUDA.CUSPARSE
 
+CUDA.allowscalar(false)
+
 function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
 
     nn = p.nn
@@ -167,7 +169,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     # compute all temporal derivatives
     dq .= Λ * q
     # get velocity on fault
-    vf .= L * q[nn^2 + 1 : 2nn^2]
+    vf .= L[1] * q[nn^2 + 1 : 2nn^2]
     # compute numerical traction on face 1
     τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
 
@@ -212,11 +214,12 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
 
 end
 
-function ODE_RHS_GPU_FAULT!(q, Δq, p, dt, t_span)
-
-    T = eltype(q)
+function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
     
-    nn = CuArray(p.nn)
+    nn = p.nn
+    T = eltype(q)
+    q = CuArray(q)
+    Δq = similar(q)
     Λ = CuArray(p.Λ)
     Z̃f = CuArray(p.Z̃f)
     L = CuArray(p.L)
@@ -225,9 +228,9 @@ function ODE_RHS_GPU_FAULT!(q, Δq, p, dt, t_span)
     JIHP = CuArray(p.JIHP)
     nCnΓ1 = CuArray(p.nCnΓ1)
     nBBCΓL1 = CuArray(p.nBBCΓL1)
-    fc = CuArray(p.facecoord)
     sJ = CuArray(p.sJ)
     RS = p.RS
+    rootfind = CuArray([p.nn, RS.a, RS.V0, RS.σn, RS.Dc, RS.f0, -1e10, 1e10])
     b = CuArray(p.b)
     vf = CuArray(p.vf)
     τ̃f = CuArray(p.τ̃f)
@@ -241,7 +244,7 @@ function ODE_RHS_GPU_FAULT!(q, Δq, p, dt, t_span)
         T(-1275806237668 // 842570457699),
     ])
 
-    RKB = CuArray[
+    RKB = CuArray([
         T(1432997174477 // 9575080441755),
         T(5161836677717 // 13612068292357),
         T(1720146321549 // 2090206949498),
@@ -257,15 +260,46 @@ function ODE_RHS_GPU_FAULT!(q, Δq, p, dt, t_span)
         T(2802321613138 // 2924317926251),
     ])
 
+    v = @view q[nn^2 + 1: 2nn^2]
+    u = @view q[1: nn^2]
+    û1 = @view q[2nn^2 + 1 : 2nn^2 + nn]
+    ψ = @view q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn]
+    
+    
+    nstep = ceil(Int, (t_span[2] - t_span[1]) / dt)
+    dt = (t_span[2] - t_span[1]) / nstep
 
+    threads = 1024
+    blocks = cld(nn, 1024)
+    #@show typeof(rootfind)
+    #quit()
     for step in 1:nstep
-        t = t0 + (step - 1) * dt
-        for s in 1:length(RKA)
+        # compute all temporal derivatives
+        # get velocity on fault
+        vf .= L * v
+        # compute numerical traction on face 1
+        τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
+        @cuda blocks=blocks threads=threads dynamic_rootfind_d!(Δq,
+                                                                vf,
+                                                                τ̃f,
+                                                                ψ,
+                                                                Z̃f,
+                                                                sJ,
+                                                                H,
+                                                                L,
+                                                                rateandstateD_device,
+                                                                rootfind)
+        
+        Δq .= Λ * q
+        q .= q + dt * Δq
+
+        #for s in 1:length(RKA)
+            #dq .+= Λ * q
             #f!(Δq, RKA[s % length(RKA)], q, p, t + RKC[s] * dt)
             
-            q .+= RKB[s] * dt * Δq
-        end
+            #q .+= RKB[s] * dt * Δq
+        #end
     end
-
-
+    
+    nothing
 end

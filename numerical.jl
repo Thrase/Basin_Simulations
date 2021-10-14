@@ -1,5 +1,7 @@
 using SparseArrays
 using LinearAlgebra
+using CUDA
+using CUDA.CUSPARSE
 
 include("DiagonalSBP.jl")
 
@@ -27,6 +29,19 @@ function rateandstateD(v̂, z̃, v, sJ, ψ, a, τ̃, σn, V0)
     dfdv̂  = a * (1 / sqrt(1 + (2v̂ * Y)^2)) * 2Y
     g = sJ * σn * f + τ̃ + z̃*(v̂ - v)
     dgdv̂ = z̃ + sJ * σn * dfdv̂
+    
+    return (g, dgdv̂)
+end
+
+
+# Dynamic roofinding problem on the fault
+function rateandstateD_device(v̂::Float64, z̃::Float64, v::Float64, sJ::Float64,
+                              ψ::Float64, a::Float64, τ̃::Float64, σn::Float64, V0::Float64)
+    Y = (1 / (2 * V0)) * exp(ψ / a)
+    f = a * CUDA.asinh(2v̂ * (1 / (2 * V0)) * exp(ψ / a))
+    dfdv̂  = a * (1 / sqrt(1 + (2v̂ * Y)^2)) * 2Y
+    g = sJ * σn * f .+ τ̃ .+ z̃*(v̂ .- v)
+    dgdv̂ = z̃ .+ sJ * σn * dfdv̂
     
     return (g, dgdv̂)
 end
@@ -68,6 +83,88 @@ function newtbndv(func, xL, xR, x; ftol = 1e-6, maxiter = 500, minchange=0,
     end
     return (x, f, -maxiter)
 end
+
+function dynamic_rootfind_d!(Δq,
+                             vf,
+                             τ̃f,
+                             ψ,
+                             Z̃f,
+                             sJ,
+                             H,
+                             L,
+                             root_func, 
+                             rootfind)
+    
+    node = blockDim().x * blockIdx().x + threadIdx().x
+
+    #unpack params
+    
+    nn = rootfind[1]
+    a = rootfind[2]
+    V0 = rootfind[3]
+    σn = rootfind[4]
+    Dc = rootfind[5]
+    f0 = rootfind[6]
+    vL = rootfind[7]
+    vR = rootfind[8]
+    
+    if node < nn
+        
+        v_iter = vf[node]
+        z̃n = Z̃f[node]
+        vn = vf[node]
+        sJn = sJ[node]
+        ψn = ψ[node] 
+        τ̃n = τ̃f[node]
+        
+        Y = (1 / (2 * V0)) * exp(ψn / a)
+        
+        gL = sJn * σn * a * CUDA.asinh(2vL * Y) .+
+            τ̃n .+ z̃n*(vL .- vn)
+        gR = sJn * σn * a * CUDA.asinh(2vR * Y) .+
+            τ̃n .+ z̃n*(vR .- vn)
+        
+
+        #if gL * gR > 0
+        #    Δq[2nn^2 + node] = Float64(NaN)
+        #end
+
+        g = sJn * σn * a * CUDA.asinh(2v_iter * Y) .+
+            τ̃n .+ z̃n*(v_iter .- vn)
+        dg = z̃n .+ sJn * σn * a * (1 / sqrt(1 + (2v_iter * Y)^2)) * 2Y
+
+        dvlr = vR - vL
+
+        for iter = 1:1000
+            dv = -g / dg
+            v_iter  = v_iter + dv
+
+            if v < vL || v > vR || abs(dv) / dvlr < 0
+                v = (vR + vL) / 2
+                dv = (vR - vL) / 2
+            end
+        
+            g = sJn * σn * a * CUDA.asinh(2v_iter * Y) .+
+            τ̃n .+ z̃n*(v_iter .- vn)
+            dg = z̃n .+ sJn * σn * a * (1 / sqrt(1 + (2v_iter * Y)^2)) * 2Y
+
+            
+            if g * gL > 0
+                (gL, vL) = (g, v_iter)
+            else
+                (gR, vR) = (g, v_iter)
+            end
+            dxlr = vR - vL
+            
+            if abs(g) < ftol && abs(dv) < atolx + rtolx * (abs(dv) + abs(v_iter))
+                Δq[2nn^2 + node] = v_iter
+            end
+        end
+    end
+    nothing
+end
+
+
 
 function locbcarray_mod!(ge, lop, LFToB, bc_Dirichlet, bc_Neumann)
     F = lop.F
@@ -270,10 +367,10 @@ function operators_dynamic(p, Nr, Ns, B_p, μ, ρ, R, faces, metrics, LFToB,
 
     H = (Hs, Hs, Hr, Hr)
     # Volume to Face Operators (transpose of these is face to volume)
-    L = (kron(Ir, es0)',
-         kron(Ir, esN)',
-         kron(er0, Is)',
-         kron(erN, Is)')
+    L = (convert(Array{Float64, 2}, kron(Ir, es0)'),
+         convert(Array{Float64, 2}, kron(Ir, esN)'),
+         convert(Array{Float64, 2}, kron(er0, Is)'),
+         convert(Array{Float64, 2}, kron(erN, Is)'))
 
     # coefficent matrices
     Crr1 = spdiagm(0 => crr[1, :])
