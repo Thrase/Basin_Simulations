@@ -209,7 +209,7 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
     dq[nn^2 + 1 : 2nn^2] .+= L[1]' * H[1] * (Z̃f[1] .* v̂_fric)
     dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
     
-    # psi source
+    # state evolution
     dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(2 .* v̂_fric) ./ RS.V0)
 
 end
@@ -219,7 +219,7 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
     nn = p.nn
     T = eltype(q)
     q = CuArray(q)
-    Δq = similar(q)
+    Δq = CuArray(zeros(length(q)))
     Λ = CuArray(p.Λ)
     Z̃f = CuArray(p.Z̃f)
     L = CuArray(p.L)
@@ -233,9 +233,9 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
     rootfind = CuArray([p.nn, RS.a, RS.V0, RS.σn, RS.Dc, RS.f0, -1e10, 1e10])
     b = CuArray(p.b)
     vf = CuArray(p.vf)
-    τ̃f = CuArray(p.τ̃f)
-    v̂_fric = CuArray(p.v̂_fric)
+    store_τ̃v̂ = CuArray(p.τ̃f)
     
+    #=
     RKA = CuArray([
         T(0),
         T(-567301805773 // 1357537059087),
@@ -259,6 +259,7 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
         T(2006345519317 // 3224310063776),
         T(2802321613138 // 2924317926251),
     ])
+    =#
 
     v = @view q[nn^2 + 1: 2nn^2]
     u = @view q[1: nn^2]
@@ -271,18 +272,20 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
 
     threads = 1024
     blocks = cld(nn, 1024)
-    #@show typeof(rootfind)
-    #quit()
+    
+    
     for step in 1:nstep
-        # compute all temporal derivatives
+        
+        Δq .= Λ * q
         # get velocity on fault
         vf .= L * v
         # compute numerical traction on face 1
-        τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
-        @cuda blocks=blocks threads=threads dynamic_rootfind_d!(Δq,
+        store_τ̃v̂ .= nBBCΓL1 * u + nCnΓ1 * û1
+        @cuda blocks=blocks threads=threads dynamic_rootfind_d!(Δq,                  
                                                                 vf,
-                                                                τ̃f,
+                                                                store_τ̃v̂,
                                                                 ψ,
+                                                                b,
                                                                 Z̃f,
                                                                 sJ,
                                                                 H,
@@ -290,7 +293,16 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
                                                                 rateandstateD_device,
                                                                 rootfind)
         
-        Δq .= Λ * q
+        synchronize()
+
+        Δq[2nn^2 + 1 : 2nn^2 + nn] .= store_τ̃v̂
+
+        Δq[nn^2 + 1 : 2nn^2] .+= L' * H * (Z̃f .* store_τ̃v̂)
+
+        Δq[nn^2 + 1:2nn^2] .= JIHP * Δq[nn^2 + 1:2nn^2]
+
+        Δq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= vf
+
         q .= q + dt * Δq
 
         #for s in 1:length(RKA)

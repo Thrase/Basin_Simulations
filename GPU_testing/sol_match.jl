@@ -46,7 +46,7 @@ let
 
     R = [-1, 0, 0, 1]
 
-    ne = 8 #* 2^2
+    ne = 8 * 2^4
     nn = ne + 1
 
     #
@@ -119,12 +119,12 @@ let
                  τ̃f = τ̃f,
                  v̂_fric = v̂_fric)
     
-    #@time rk4!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
+    @time euler!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
     @time ODE_RHS_GPU_FAULT!(q1, GPU_operators, dt, tspan)
     #@time rk4!(dq, dΛ, dt, tspan)
     #display(q)
-    #q_end = Array(dq)
-    #@show norm(q - q_end)
+    q_end = Array(q1)
+    @show norm(q - q_end)
 
 
 end

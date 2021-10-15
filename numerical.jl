@@ -86,8 +86,9 @@ end
 
 function dynamic_rootfind_d!(Δq,
                              vf,
-                             τ̃f,
+                             store_τ̃v̂,
                              ψ,
+                             b,
                              Z̃f,
                              sJ,
                              H,
@@ -115,7 +116,8 @@ function dynamic_rootfind_d!(Δq,
         vn = vf[node]
         sJn = sJ[node]
         ψn = ψ[node] 
-        τ̃n = τ̃f[node]
+        bn = b[node]
+        τ̃n = store_τ̃v̂[node]
         
         Y = (1 / (2 * V0)) * exp(ψn / a)
         
@@ -157,7 +159,10 @@ function dynamic_rootfind_d!(Δq,
             dxlr = vR - vL
             
             if abs(g) < ftol && abs(dv) < atolx + rtolx * (abs(dv) + abs(v_iter))
-                Δq[2nn^2 + node] = v_iter
+                #reuse τ̃f as storage for v_fric
+                store_τ̃v̂[node] = v_iter
+                vf[node] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .-
+                                                                 abs.(2 .* v_iter) ./ V0)
             end
         end
     end
@@ -663,3 +668,17 @@ function rk4!(q, Λ, dt, tspan)
     nothing
 end
 
+function euler!(q, f!, p, dt, t_span)
+
+    Δq = similar(q)
+    nstep = ceil(Int, (t_span[2] - t_span[1]) / dt)
+    dt = (t_span[2] - t_span[1]) / nstep
+
+    for step in 1:nstep
+        fill!(Δq, 0)
+        t = t_span[1] + (step - 1) * dt
+        f!(Δq, q, p, t)
+        q .+= dt * Δq
+    end
+
+end
