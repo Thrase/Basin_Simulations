@@ -161,8 +161,7 @@ function dynamic_rootfind_d!(Δq,
             if abs(g) < ftol && abs(dv) < atolx + rtolx * (abs(dv) + abs(v_iter))
                 #reuse τ̃f as storage for v_fric
                 store_τ̃v̂[node] = v_iter
-                vf[node] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .-
-                                                                 abs.(2 .* v_iter) ./ V0)
+                vf[node] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .- abs.(2 .* v_iter) ./ V0)
             end
         end
     end

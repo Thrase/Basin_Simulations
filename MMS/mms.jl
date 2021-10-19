@@ -61,6 +61,60 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                                          CHAR_SOURCE = S_c,
                                          STATE_SOURCE = S_rs,
                                          FORCE = Forcing)
+                
+                # sources for GPU
+                dt_scale = .0001
+                dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
+                nstep = ceil(Int, (t_span[2] - t_span[1]) / dt)
+                dt = (t_span[2] - t_span[1]) / nstep
+
+                volume_source = Array{Float64,2}(undef, nn^2, nstep)
+                source_1 = Array{Float64, 2}(undef, nn, nstep)
+                source_2 = Array{Float64, 2}(undef, nn, nstep)
+                source_3 = Array{Float64, 2}(undef, nn, nstep)
+                source_4 = Array{Float64, 2}(undef, nn, nstep)
+                
+                x = metrics.coord[1]
+                y = metrics.coord[2]
+                fc = metrics.facecoord
+
+                for step in 1:nstep
+                    time = t_span[1] + (step - 1) * dt
+                    volume_source[:, step] .= d_ops.P̃I * Forcing(x[:], y[:], time, B_p, MMS)
+                    source_1[:, step] .= S_rs(fc[1][1], fc[2][1], b, time, B_p, RS, MMS)
+                    source_2[:, step] .= S_c(fc[1][2], fc[2][2], time, 2, R[2], B_p, MMS)
+                    source_3[:, step] .= S_c(fc[1][3], fc[2][3], time, 3, R[3], B_p, MMS)
+                    source_4[:, step] .= S_c(fc[1][4], fc[2][4], time, 4, R[4], B_p, MMS)
+                end
+
+                times = t_span[1]: dt : t_span[2]
+                #@show times
+                #@show length(times)
+                #quit()
+                #Volume_source = Forcing
+
+                GPU_operators = (nn = nn,
+                                 Λ = d_ops.Λ,
+                                 Z̃f = d_ops.Z̃f,
+                                 L = d_ops.L,
+                                 H = d_ops.H,
+                                 P̃I = d_ops.P̃I,
+                                 JIHP = d_ops.JIHP,
+                                 nCnΓ1 = d_ops.nCnΓ1,
+                                 nBBCΓL1 = d_ops.nBBCΓL1,
+                                 sJ = metrics.sJ,
+                                 RS = RS,
+                                 b = b,
+                                 vf = vf,
+                                 τ̃f = τ̃f,
+                                 v̂_fric = v̂_fric,
+                                 source_1 = source_1,
+                                 source_2 = source_2,
+                                 source_3 = source_3,
+                                 source_4 = source_4,
+                                 volume_source = volume_source)
+                
+
 
             end
 
@@ -76,33 +130,51 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
                 q1 = vcat(q1, ψe(metrics.facecoord[1][1],
                                 metrics.facecoord[2][1],
                                  0, B_p, RS, MMS))
-                display(q1)
+                
                 q2 = deepcopy(q1)
-                q3 = deepcopy(q1)
                 @assert length(q1) == 2nn^2 + 5nn
+
             end
 
             @printf "Got initial conditions: %s s\n" it
             @printf "Running simulations with %s nodes...\n" nn
             @printf "\n___________________________________\n"
             
-            dt_scale = .0001
-            dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
+            st1 = @elapsed begin
+               ODE_RHS_GPU_FAULT!(q1, GPU_operators, dt, t_span)
+            end
+            
+             @printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st1
+
             st2 = @elapsed begin
-                timestep!(q2, ODE_RHS_BLOCK_CPU_MMS_FAULT!, block_solve_operators, dt, t_span)
+                euler!(q2, ODE_RHS_BLOCK_CPU_MMS_FAULT!, block_solve_operators, dt, t_span)
             end
 
-            @printf "Ran block fault simulation to time %s: %s s \n\n" t_span[2] st2
+            @printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st2
             
+            u_end1 = @view Array(q1)[1:Nn]
+            diff_u1 = u_end1 - ue(x[:], y[:], t_span[2], MMS)
+            err1[iter] = sqrt(diff_u1' * d_ops.JH * diff_u1)
+
+
+            contour(x[:,1], y[1,:],
+                    (reshape(u_end1, (nn, nn)) .- ue(x, y, t_span[2], MMS))',
+                    xlabel="off fault", ylabel="depth", fill=true, yflip=true)
+
+            gui()
+            sleep(10)
+
             u_end2 = @view q2[1:Nn]
             diff_u2 = u_end2 - ue(x[:], y[:], t_span[2], MMS)
             err2[iter] = sqrt(diff_u2' * d_ops.JH * diff_u2)
-
-            @printf "block fault error: %e\n\n" err2[iter]
+            
+            @printf "GPU error: %e\n\n" err1[iter]
+            @printf "CPU error: %e\n\n" err2[iter]
 
             if iter > 1
-                @printf "block fault rate: %f\n" log(2, err2[iter - 1]/err2[iter])
+                @printf "GPU rate: %f\n" log(2, err1[iter - 1]/err1[iter])
+                @printf "CPU rate: %f\n" log(2, err2[iter - 1]/err2[iter])
             end
          
             @printf "___________________________________\n\n"

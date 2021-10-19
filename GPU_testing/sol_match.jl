@@ -77,7 +77,7 @@ let
     #
     # set time and cfl condition
     #
-    tspan = (0, .0005)
+    t_span = (0, .0001)
     dt_scale = .0001
     dt = dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
 
@@ -118,10 +118,16 @@ let
                  vf = vf,
                  τ̃f = τ̃f,
                  v̂_fric = v̂_fric)
+
+    nstep = ceil(Int, (t_span[2] - t_span[1]) / dt)
+    dt = (t_span[2] - t_span[1]) / nstep
+    @show nstep
+    quit()
     
-    @time euler!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, tspan)
-    @time ODE_RHS_GPU_FAULT!(q1, GPU_operators, dt, tspan)
-    #@time rk4!(dq, dΛ, dt, tspan)
+    
+    @time euler!(q, ODE_RHS_BLOCK_CPU_FAULT!, operators, dt, t_span)
+    @time ODE_RHS_GPU_FAULT!(q1, GPU_operators, dt, t_span)
+    #@time rk4!(dq, dΛ, dt, t_span)
     #display(q)
     q_end = Array(q1)
     @show norm(q - q_end)

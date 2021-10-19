@@ -221,20 +221,38 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
     q = CuArray(q)
     Δq = CuArray(zeros(length(q)))
     Λ = CuArray(p.Λ)
-    Z̃f = CuArray(p.Z̃f)
-    L = CuArray(p.L)
-    H = CuArray(p.H)
+    Z̃f1 = CuArray(p.Z̃f[1])
+    Z̃f2 = CuArray(p.Z̃f[2])
+    Z̃f3 = CuArray(p.Z̃f[3])
+    Z̃f4 = CuArray(p.Z̃f[4])
+    L1 = CuArray(p.L[1])
+    L2 = CuArray(p.L[2])
+    L3 = CuArray(p.L[3])
+    L4 = CuArray(p.L[4])
+    H1 = CuArray(p.H[1])
+    H2 = CuArray(p.H[2])
+    H3 = CuArray(p.H[3])
+    H4 = CuArray(p.H[4])
     P̃I = CuArray(p.P̃I)
     JIHP = CuArray(p.JIHP)
     nCnΓ1 = CuArray(p.nCnΓ1)
     nBBCΓL1 = CuArray(p.nBBCΓL1)
-    sJ = CuArray(p.sJ)
+    sJ1 = CuArray(p.sJ[1])
+    sJ2 = CuArray(p.sJ[2])
+    sJ3 = CuArray(p.sJ[3])
+    sJ4 = CuArray(p.sJ[4])
     RS = p.RS
     rootfind = CuArray([p.nn, RS.a, RS.V0, RS.σn, RS.Dc, RS.f0, -1e10, 1e10])
     b = CuArray(p.b)
     vf = CuArray(p.vf)
     store_τ̃v̂ = CuArray(p.τ̃f)
+    source_1 = CuArray(p.source_1)
+    source_2 = CuArray(p.source_2)
+    source_3 = CuArray(p.source_3)
+    source_4 = CuArray(p.source_4)
+    volume_source = CuArray(p.volume_source)
     
+
     #=
     RKA = CuArray([
         T(0),
@@ -278,35 +296,43 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
         
         Δq .= Λ * q
         # get velocity on fault
-        vf .= L * v
+        vf .= L1 * v
         # compute numerical traction on face 1
         store_τ̃v̂ .= nBBCΓL1 * u + nCnΓ1 * û1
-        @cuda blocks=blocks threads=threads dynamic_rootfind_d!(Δq,                  
-                                                                vf,
+        @cuda blocks=blocks threads=threads dynamic_rootfind_d!(Δq,                                                                                  vf,
                                                                 store_τ̃v̂,
                                                                 ψ,
                                                                 b,
-                                                                Z̃f,
-                                                                sJ,
-                                                                H,
-                                                                L,
+                                                                Z̃f1,
+                                                                sJ1,
+                                                                H1,
+                                                                L1,
                                                                 rateandstateD_device,
                                                                 rootfind)
         
         synchronize()
-
+        
+        
         Δq[2nn^2 + 1 : 2nn^2 + nn] .= store_τ̃v̂
+        Δq[nn^2 + 1 : 2nn^2] .+= L1' * H1 * (Z̃f1 .* store_τ̃v̂)
+        
+        Δq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source_2[:, step] ./ (2*Z̃f2)
+        Δq[nn^2 + 1 : 2nn^2] .+= L2' * H2 * source_2[:, step] ./ 2
+        Δq[2nn^2 + 2nn + 1 : 2nn^2 + 3nn] .+= source_3[:,step] ./ (2*Z̃f3)
+        Δq[nn^2 + 1 : 2nn^2] .+= L3' * H3 * source_3[:, step] ./ 2
+        Δq[2nn^2 + 3nn + 1 : 2nn^2 + 4nn] .+= source_4[:,step] ./ (2*Z̃f4)
+        Δq[nn^2 + 1 : 2nn^2] .+= L4' * H4 * source_4[:, step] ./ 2
 
-        Δq[nn^2 + 1 : 2nn^2] .+= L' * H * (Z̃f .* store_τ̃v̂)
 
         Δq[nn^2 + 1:2nn^2] .= JIHP * Δq[nn^2 + 1:2nn^2]
+        Δq[nn^2 + 1:2nn^2] .= volume_source[:, step]
 
-        Δq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= vf
+        Δq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= vf + source_1[:, step]
 
         q .= q + dt * Δq
 
         #for s in 1:length(RKA)
-            #dq .+= Λ * q
+            #Δq .+= Λ * q
             #f!(Δq, RKA[s % length(RKA)], q, p, t + RKC[s] * dt)
             
             #q .+= RKB[s] * dt * Δq
