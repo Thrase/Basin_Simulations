@@ -1,15 +1,16 @@
 include("../numerical.jl")
 include("../physical_params.jl")
 include("../domain.jl")
+include("../MMS/mms_funcs.jl")
 
-#using CUDA
-#using CUDA.CUSPARSE
+using CUDA
+using CUDA.CUSPARSE
 using Printf
 using LinearAlgebra
 using SparseArrays
 using MatrixMarket
 using UnicodePlots
-#CUDA.versioninfo()
+
 
 let 
     
@@ -25,6 +26,20 @@ let
            c = (Lw/2)/D,
            r̄ = (Lw/2)^2,
            r_w = 1 + (Lw/2)/D)
+    
+    MMS = (wl = Lw/2,
+           amp = .5,
+           ϵ = .01)
+
+    RS = (Hvw = 12,
+          Ht = 6,
+          σn = 50.0,
+          a = .015,
+          b0 = .02,
+          bmin = 0.0,
+          Dc = 10e6,
+          f0 = .6,
+          V0 = 1e-6)
 
     (x1, x2, x3, x4) = (0, Lw, 0, Lw)
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
@@ -41,42 +56,39 @@ let
         
         metrics = create_metrics(ne, ne, B_p, μ, xt, yt)
         
+        x = metrics.coord[1]
+        y = metrics.coord[2]
+
         LFToB = [BC_DIRICHLET, BC_DIRICHLET, BC_NEUMANN, BC_NEUMANN]
     
-        @time loc = locoperator(p, ne, ne, B_p, μ, ρ, R, metrics, LFToB)
-        @show sizeof(loc.Λ)
-        @show Base.summarysize(loc.Λ)
-        @show length(loc.Λ.nzval)
-     
-
-        u1 = rand((-1.0, 1.0), size(Λ)[2])
-
-        @show maximum(u1), minimum(u1), length(u1)
+        faces = [1 2 3 4]
+        d_ops_waveprop = operators_dynamic(p, ne, ne, B_p, μ, ρ, R, faces, metrics, LFToB)
+        Λ = d_ops_waveprop.Λ
         
-        u2 = zeros(size(Λ)[2])
+
+        u0 = ue(x[:], y[:], 0.0, MMS)
+        v0 = ue_t(x[:], y[:], 0.0, MMS)
+        q1 = [u0;v0]
+        for i in 1:4
+            q1 = vcat(q1, d_ops_waveprop.L[i]*u0)
+        end
+        q1 = vcat(q1, ψe(metrics.facecoord[1][1],
+                         metrics.facecoord[2][1],
+                         0, B_p, RS, MMS))     
 
         dΛ = CuSparseMatrixCSR(Λ)
-        du1 = CuArray(u1)
-        du2 = CuArray(u2)
+        dq = CuArray(q1)
+        dΔq = CuArray(zeros(length(dq)))
         
-        @show (length(Λ.nzval) * 8) / (1024)^3
+        q = deepcopy(q1)
+        Δq = zeros(length(q1))
         
-        mul!(u2, Λ, u1)
         
-        @time begin
-        mul!(u1, Λ, u2)
-        end
+        @time Δq .= Λ * q
+        @time dΔq .= dΛ * dq
 
-        du2 .= dΛ * du1
-
-        @time begin
-        du1 .= dΛ * du2
-        end
-
-        du_res = Array(du2)
-        error = norm(u2 .- du_res)
-        @show norm(u2)
-        @show norm(du_res)
+        dΔq_res = Array(dΔq)
+        error = norm(dΔq_res .- Δq)
         @show error
         
     end

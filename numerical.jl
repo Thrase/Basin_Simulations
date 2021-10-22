@@ -10,6 +10,7 @@ const BC_NEUMANN = 2
 const BC_LOCKED_INTERFACE = 0
 const BC_JUMP_INTERFACE   = 7
 
+CUDA.allowscalar(false)
 
 # Quasi-Dynamic rootfinding problem on the fault
 function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
@@ -573,30 +574,38 @@ end
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
     T = eltype(q)
-
-    RKA = (
+    
+    RKA = [
         T(0),
         T(-567301805773 // 1357537059087),
         T(-2404267990393 // 2016746695238),
         T(-3550918686646 // 2091501179385),
         T(-1275806237668 // 842570457699),
-    )
+    ]
 
-    RKB = (
+    RKB = [
         T(1432997174477 // 9575080441755),
         T(5161836677717 // 13612068292357),
         T(1720146321549 // 2090206949498),
         T(3134564353537 // 4481467310338),
         T(2277821191437 // 14882151754819),
-    )
+    ]
 
-    RKC = (
+    RKC = [
         T(0),
         T(1432997174477 // 9575080441755),
         T(2526269341429 // 6820363962896),
         T(2006345519317 // 3224310063776),
         T(2802321613138 // 2924317926251),
-    )
+    ]
+    
+    #=
+    if typeof(q) == CuArray{Float64, 1}
+        RKA = CuArray(RKA)
+        RKB = CuArray(RKB)
+        RKC = CuArray(RKC)
+    end
+    =#
 
     nstep = ceil(Int, (t1 - t0) / dt)
     dt = (t1 - t0) / nstep
@@ -608,7 +617,7 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
         for s in 1:length(RKA)
             f!(Δq2, q, p, t + RKC[s] * dt)
             Δq .+= Δq2
-            q .+= RKB[s] * dt * Δq
+            q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
     end
@@ -667,15 +676,14 @@ function rk4!(q, Λ, dt, tspan)
     nothing
 end
 
-function euler!(q, f!, p, dt, t_span)
-
-    Δq = similar(q)
+function euler!(q, f!, p, dt, t_span, Δq = similar(q))
+    
     nstep = ceil(Int, (t_span[2] - t_span[1]) / dt)
     dt = (t_span[2] - t_span[1]) / nstep
 
     for step in 1:nstep
-        fill!(Δq, 0)
         t = t_span[1] + (step - 1) * dt
+        fill!(Δq, 0)
         f!(Δq, q, p, t)
         q .+= dt * Δq
     end

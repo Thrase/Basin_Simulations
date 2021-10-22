@@ -4,7 +4,7 @@ using CUDA.CUSPARSE
 
 CUDA.allowscalar(false)
 
-function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
+function MMS_WAVEPROP_CPU!(dq, q, p, t)
 
     nn = p.nn
     fc = p.fc
@@ -12,13 +12,13 @@ function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
     R = p.R
     B_p = p.B_p
     MMS = p.MMS
-    Λ = p.d_ops.Λ
+    Λ = p.d_ops_waveprop.Λ
     sJ = p.sJ
-    Z̃f = p.d_ops.Z̃f
-    L = p.d_ops.L
-    H = p.d_ops.H
-    P̃I = p.d_ops.P̃I
-    JIHP = p.d_ops.JIHP
+    Z̃f = p.d_ops_waveprop.Z̃f
+    L = p.d_ops_waveprop.L
+    H = p.d_ops_waveprop.H
+    P̃I = p.d_ops_waveprop.P̃I
+    JIHP = p.d_ops_waveprop.JIHP
     CHAR_SOURCE = p.CHAR_SOURCE
     FORCE = p.FORCE
 
@@ -27,32 +27,28 @@ function ODE_RHS_BLOCK_CPU!(dq, q, p, t)
     # compute all temporal derivatives
     dq .= Λ * q
 
-
     for i in 1:4
         fx = fc[1][i]
         fy = fc[2][i]
-        
         S̃_c = sJ[i] .* CHAR_SOURCE(fx, fy, t, i, R[i], B_p, MMS)
-        
         dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= S̃_c ./ (2*Z̃f[i])
-        
         dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * S̃_c ./ 2
     end
-
-    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
-    
+    dq[nn^2 + 1 : 2nn^2] .= JIHP * dq[nn^2 + 1 : 2nn^2]
     dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
-
-    contour(coord[1][:,1], coord[2][1,:],
-            (reshape(u, (nn, nn)) .- ue(coord[1],coord[2], t, MMS))',
-            xlabel="off fault", ylabel="depth", fill=true, yflip=true)
-    gui()
-   
-    
 end
 
 
-function ODE_RHS_BLOCK_CPU_MMS_FAULT!(dq, q, p, t)
+function WAVEPROP!(dq, q, p, t)
+    nn = p.nn
+    Λ = p.Λ_waveprop
+    JIHP = p.JIHP
+    dq .= Λ * q
+    dq[nn^2 + 1 : 2nn^2] .= JIHP * dq[nn^2 + 1 : 2nn^2]
+end
+
+
+function MMS_FAULT_CPU!(dq, q, p, t)
 
     nn = p.nn
     fc = p.fc
@@ -102,8 +98,8 @@ function ODE_RHS_BLOCK_CPU_MMS_FAULT!(dq, q, p, t)
                                   RS.σn,
                                   RS.V0)
 
-        left = -1e5#vn - τ̃n/z̃n
-        right = 1e5#-left
+        left = -1e5
+        right = 1e5
         
         if left > right  
             tmp = left
@@ -141,7 +137,7 @@ function ODE_RHS_BLOCK_CPU_MMS_FAULT!(dq, q, p, t)
 end
 
 
-function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
+function FAULT_CPU!(dq, q, p, t)
 
     nn = p.nn
     fc = p.fc
@@ -214,13 +210,18 @@ function ODE_RHS_BLOCK_CPU_FAULT!(dq, q, p, t)
 
 end
 
-function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
+
+
+
+
+
+function MMS_GPU_FAULT!(q, p, dt, t_span)
     
     nn = p.nn
     T = eltype(q)
     q = CuArray(q)
     Δq = CuArray(zeros(length(q)))
-    Λ = CuArray(p.Λ)
+    Λ = CuSparseMatrixCSR(p.Λ_fault)
     Z̃f1 = CuArray(p.Z̃f[1])
     Z̃f2 = CuArray(p.Z̃f[2])
     Z̃f3 = CuArray(p.Z̃f[3])
@@ -246,7 +247,7 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
     b = CuArray(p.b)
     vf = CuArray(p.vf)
     store_τ̃v̂ = CuArray(p.τ̃f)
-    source_1 = CuArray(p.source_1)
+    source_fault = CuArray(p.source_fault)
     source_2 = CuArray(p.source_2)
     source_3 = CuArray(p.source_3)
     source_4 = CuArray(p.source_4)
@@ -325,11 +326,11 @@ function ODE_RHS_GPU_FAULT!(q, p, dt, t_span)
 
 
         Δq[nn^2 + 1:2nn^2] .= JIHP * Δq[nn^2 + 1:2nn^2]
-        Δq[nn^2 + 1:2nn^2] .= volume_source[:, step]
+        Δq[nn^2 + 1:2nn^2] .+= volume_source[:, step]
 
-        Δq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= vf + source_1[:, step]
+        Δq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= vf + source_fault[:, step]
 
-        q .= q + dt * Δq
+        q .+=  dt * Δq
 
         #for s in 1:length(RKA)
             #Δq .+= Λ * q
