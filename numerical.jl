@@ -455,8 +455,7 @@ function operators_dynamic(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
             (nl[3] * (B[3][1] + B[3][2])) - (τs[3] ⊗ er0'),
             (nl[4] * (B[4][1] + B[4][2])) - (τs[4] ⊗ er0'))
     
-    
-    M̃ = deepcopy(Ã)
+    M̃ = copy(Ã)
         #M̃ = Ã
         for i in 1:4
             M̃ .+= -L[i]' * (nl[i] * H[i] * (B[i][1] + B[i][2])) -
