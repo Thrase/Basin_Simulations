@@ -12,13 +12,13 @@ function MMS_WAVEPROP_CPU!(dq, q, p, t)
     R = p.R
     B_p = p.B_p
     MMS = p.MMS
-    Λ = p.d_ops_waveprop.Λ
+    Λ = p.d_ops.Λ
     sJ = p.sJ
-    Z̃f = p.d_ops_waveprop.Z̃f
-    L = p.d_ops_waveprop.L
-    H = p.d_ops_waveprop.H
-    P̃I = p.d_ops_waveprop.P̃I
-    JIHP = p.d_ops_waveprop.JIHP
+    Z̃f = p.d_ops.Z̃f
+    L = p.d_ops.L
+    H = p.d_ops.H
+    P̃I = p.d_ops.P̃I
+    JIHP = p.d_ops.JIHP
     CHAR_SOURCE = p.CHAR_SOURCE
     FORCE = p.FORCE
 
@@ -41,7 +41,7 @@ end
 
 function WAVEPROP!(dq, q, p, t)
     nn = p.nn
-    Λ = p.Λ_waveprop
+    Λ = p.d_ops.Λ
     JIHP = p.JIHP
     dq .= Λ * q
     dq[nn^2 + 1 : 2nn^2] .= JIHP * dq[nn^2 + 1 : 2nn^2]
@@ -113,12 +113,12 @@ function MMS_FAULT_CPU!(dq, q, p, t)
         if isnan(v̂n)
             #println("Not bracketing root")
         end
-        v̂_fric[n] = v̂n
+        
+        dq[2nn^2 + n] = v̂n
+        dq[nn^2 + 1 + (n - 1)*nn] +=  H[1][n, n] * (Z̃f[1][n] * v̂n)
+        
     end
                  
-    # write velocity flux into q
-    dq[2nn^2 + 1 : 2nn^2 + nn] .= v̂_fric
-    dq[nn^2 + 1 : 2nn^2] .+= L[1]' * H[1] * (Z̃f[1] .* v̂_fric)
 
     # Non-fault Source injection
     for i in 2:4
