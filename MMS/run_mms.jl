@@ -10,9 +10,9 @@ let
     
     # mesh refinement
     ns = 8 * 2 .^ (1:4)
-    
+    @show ns
     # order of operators
-    p = [4]
+    p = [2]
 
     # Basin Params
     B_p = (μ_out = 36.0,

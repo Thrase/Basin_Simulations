@@ -232,70 +232,28 @@ function FAULT_GPU!(dq, q, p, t)
     dψ = @view dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn]
     dvf = @view dq[nn^2 + 1: nn : 2nn^2]
     dq .= Λ * q
+
     # compute numerical traction on face 1
-    #τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
+    τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
     
-    
-    @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, sJ, ψ, dψ, b, RS)
-
-
-    # Root find for RS friction
-    #=
-    for n in 1:nn
-
-        vn = v[1 + nn * (n-1)]
-
-
-        v̂_root(v̂) = rateandstateD(v̂,
-                                  Z̃f[1][n],
-                                  vn,
-                                  sJ[1][n],
-                                  ψ[n],
-                                  RS.a,
-                                  τ̃f[n],
-                                  RS.σn,
-                                  RS.V0)
-        left = vn - τ̃f[n]/Z̃f[n]
-        right = -left
-        
-        if left > right  
-            tmp = left
-            left = right
-            right = tmp
-        end
-        
-        (v̂n, _, _) = newtbndv(v̂_root, left, right, vn; ftol = 1e-12,
-                              atolx = 1e-12, rtolx = 1e-12)
-
-        if isnan(v̂n)
-            println("Not bracketing root")
-        end
-
-        dû1[n] = v̂n
-        dv[1 + (n - 1)*nn] +=  H[1][n, n] * (Z̃f[1][n] * v̂n)
-        dψ[n] = (b[n] .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ[n]) ./ b[n]) .- abs.(2 .* v̂n) ./ RS.V0)
-    end
-    =#
-    
-    display(Array(τ̃f))
-
+    @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
 
     dv .= JIHP * dq[nn^2 + 1:2nn^2]
 
 end
 
 
-function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, sJ, ψ, dψ, b, RS)
+function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
 
     a = RS[1]
     σn = RS[2]
     V0 = RS[3]
-    DC = RS[4]
+    Dc = RS[4]
     f0 = RS[5]
     nn = RS[6]
 
     n = blockDim().x * (blockIdx().x - 1) + threadIdx().x  
-    
+    #@cuprintln("hello")
     if n <= nn
         
         vn = vf[n]
@@ -303,10 +261,54 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, sJ, ψ, dψ, b, RS)
         sJn = sJ[n]
         ψn = ψ[n]
         τ̃n = τ̃f[n]
-        
-        value = test()
-        @cuprintln("value is $value")
+        bn = b[n]
+        Hn = H[n]
+        v̂nL = vn - τ̃f[n]/Z̃f[n]
+        v̂nR = -v̂nL
 
+        (fL, _) = rateandstateD_GPU(v̂nL, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+        (fR, _) = rateandstateD_GPU(v̂nR, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+        (f, df) = rateandstateD_GPU(vn, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+        
+        if fL .* fR > 0
+            @cuprintln("Not bracketing root!")
+        end
+
+        dv̂nlr = v̂nR - v̂nL
+
+        v̂n = vn
+        
+        count = 0
+        for iter in 1:500
+
+            dv̂n = -f / df
+            v̂n  = v̂n + dv̂n
+
+            if v̂n < v̂nL || v̂n > v̂nR || abs(dv̂n) / dv̂nlr < 0
+                v̂n = (v̂nR + v̂nL) / 2
+                dv̂n = (v̂nR - v̂nL) / 2
+            end
+
+            (f, df) = rateandstateD_GPU(v̂n, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+
+            if f * fL > 0
+                (fL, v̂nL) = (f, v̂n)
+            else
+                (fR, v̂nR) = (f, v̂n)
+            end
+            dv̂nlr = v̂nR - v̂nL
+
+            if abs(f) < 1e-12 && abs(dv̂n) < 1e-12 + 1e-12 * (abs(dv̂n) + abs(v̂n))
+                break
+            end
+            count += 1
+        end
+        
+        dû1[n] = v̂n
+        
+        dvf[n] += Hn * (Z̃n * v̂n)
+
+        dψ[n] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .- abs.(2 .* v̂n) ./ V0)
     end
     
     nothing
@@ -314,9 +316,66 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, sJ, ψ, dψ, b, RS)
 end
 
 
-function test()
-    return 55
+# bracketed newton method
+function newtbndv(func, xL, xR, x; ftol = 1e-6, maxiter = 500, minchange=0,
+                  atolx = 1e-4, rtolx = 1e-4)
 
+    (fL, _) = func(xL)
+    (fR, _) = func(xR)
+    if fL .* fR > 0
+        return (typeof(x)(NaN), typeof(x)(NaN), -maxiter)
+    end
+
+    (f, df) = func(x)
+    dxlr = xR - xL
+
+    for iter = 1:maxiter
+        dx = -f / df
+        x  = x + dx
+
+        if x < xL || x > xR || abs(dx) / dxlr < minchange
+            x = (xR + xL) / 2
+            dx = (xR - xL) / 2
+        end
+
+        (f, df) = func(x)
+
+        if f * fL > 0
+            (fL, xL) = (f, x)
+        else
+            (fR, xR) = (f, x)
+        end
+        dxlr = xR - xL
+
+        if abs(f) < ftol && abs(dx) < atolx + rtolx * (abs(dx) + abs(x))
+            return (x, f, iter)
+        end
+    end
+    return (x, f, -maxiter)
+end
+
+
+# Dynamic roofinding problem on the fault
+function rateandstateD(v̂, z̃, v, sJ, ψ, a, τ̃, σn, V0)
+    Y = (1 / (2 * V0)) * exp(ψ / a)
+    f = a * asinh(2v̂ * Y)
+    dfdv̂  = a * (1 / sqrt(1 + (2v̂ * Y)^2)) * 2Y
+    g = sJ * σn * f + τ̃ + z̃*(v̂ - v)
+    dgdv̂ = z̃ + sJ * σn * dfdv̂
+    
+    return (g, dgdv̂)
+end
+
+
+# Dynamic roofinding problem on the fault
+function rateandstateD_GPU(v̂, z̃, v, sJ, ψ, a, τ̃, σn, V0)
+    Y = (1 / (2 * V0)) * exp(ψ / a)
+    f = a * CUDA.asinh(2v̂ * Y)
+    dfdv̂  = a * (1 / sqrt(1 + (2v̂ * Y)^2)) * 2Y
+    g = sJ * σn * f + τ̃ + z̃*(v̂ - v)
+    dgdv̂ = z̃ + sJ * σn * dfdv̂
+    
+    return (g, dgdv̂)
 end
 
 
@@ -386,42 +445,6 @@ end
 
 
 
-# bracketed newton method
-function newtbndv(func, xL, xR, x; ftol = 1e-6, maxiter = 500, minchange=0,
-                  atolx = 1e-4, rtolx = 1e-4)
-    (fL, _) = func(xL)
-    (fR, _) = func(xR)
-    if fL .* fR > 0
-        return (typeof(x)(NaN), typeof(x)(NaN), -maxiter)
-    end
-
-    (f, df) = func(x)
-    dxlr = xR - xL
-
-    for iter = 1:maxiter
-        dx = -f / df
-        x  = x + dx
-
-        if x < xL || x > xR || abs(dx) / dxlr < minchange
-            x = (xR + xL) / 2
-            dx = (xR - xL) / 2
-        end
-
-        (f, df) = func(x)
-
-        if f * fL > 0
-            (fL, xL) = (f, x)
-        else
-            (fR, xR) = (f, x)
-        end
-        dxlr = xR - xL
-
-        if abs(f) < ftol && abs(dx) < atolx + rtolx * (abs(dx) + abs(x))
-            return (x, f, iter)
-        end
-    end
-    return (x, f, -maxiter)
-end
 
 # Quasi-Dynamic rootfinding problem on the fault
 function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
@@ -433,14 +456,3 @@ function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
     (g, dgdV)
 end
 
-
-# Dynamic roofinding problem on the fault
-function rateandstateD(v̂, z̃, v, sJ, ψ, a, τ̃, σn, V0)
-    Y = (1 / (2 * V0)) * exp(ψ / a)
-    f = a * asinh(2v̂ * Y)
-    dfdv̂  = a * (1 / sqrt(1 + (2v̂ * Y)^2)) * 2Y
-    g = sJ * σn * f + τ̃ + z̃*(v̂ - v)
-    dgdv̂ = z̃ + sJ * σn * dfdv̂
-    
-    return (g, dgdv̂)
-end

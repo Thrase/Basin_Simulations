@@ -367,6 +367,7 @@ function operators_dynamic(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
           dû_u dû_v dû_û dû_ψ
           spzeros(nn, 2Nn + 5nn) ]
 
+
     nCnΓ1 = Crr1 * Γ[1]
     nBBCΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
     

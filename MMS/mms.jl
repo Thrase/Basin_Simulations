@@ -66,18 +66,30 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
 
          
              
+                threads = 512
+                GS = 0.0
+                GS += (length(d_ops.Λ.nzval) * 8)/1e9
+                GS += length(metrics.sJ[1]) * 8/1e9
+                GS += length(d_ops.Z̃f[1]) * 8/1e9
+                GS += length(b) * 8/1e9
+                GS += length(d_ops.L[1].nzval) * 8/1e9
+                GS += length(d_ops.H[1].nzval) * 8/1e9
+                GS += length(d_ops.JIHP.nzval) * 8/1e9
+                GS += length(d_ops.nCnΓ1.nzval) * 8/1e9
+                GS += length(d_ops.nBBCΓL1.nzval) * 8/1e9
 
+                @printf "Estimated Gigabytes allocating to the GPU %f\n" GS
                 GPU_operators = (nn = nn,
-                                 threads = 1024,
-                                 blocks = cld(nn,1024),
-                                 Λ = CuArray(d_ops.Λ),
+                                 threads = threads,
+                                 blocks = cld(nn, threads),
+                                 Λ = CuSparseMatrixCSC(d_ops.Λ),
                                  sJ = CuArray(metrics.sJ[1]),
                                  Z̃f = CuArray(d_ops.Z̃f[1]),
-                                 L = CuArray(d_ops.L[1]),
-                                 H = CuArray(d_ops.H[1]),
-                                 JIHP = CuArray(d_ops.JIHP),
-                                 nCnΓ1 = CuArray(d_ops.nCnΓ1),
-                                 nBBCΓL1 = CuArray(d_ops.nBBCΓL1),
+                                 L = CuSparseMatrixCSC(d_ops.L[1]),
+                                 H = CuArray(diag(d_ops.H[1])),
+                                 JIHP = CuSparseMatrixCSC(d_ops.JIHP),
+                                 nCnΓ1 = CuSparseMatrixCSC(d_ops.nCnΓ1),
+                                 nBBCΓL1 = CuSparseMatrixCSC(d_ops.nBBCΓL1),
                                  RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, nn]),
                                  b = CuArray(b),
                                  τ̃f = CuArray(zeros(nn)))
@@ -114,37 +126,38 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             @printf "\n___________________________________\n"
             
             
-            #st3 = @elapsed begin
-            #    timestep!(q3, FAULT_GPU!, GPU_operators, dt, t_span)
-            #end
-            
-
-            #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
-
-            st4 = @elapsed begin
-               timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
+            st3 = @elapsed begin
+                timestep!(q3, FAULT_GPU!, GPU_operators, dt, t_span)
             end
             
-            @printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
-            
-            
-            #st5 = @elapsed begin
-            #    timestep!(q5, FAULT_CPU!, cpu_operators, dt, t_span)
-            #end
 
-            #@printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
+            @printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
+
+            #st4 = @elapsed begin
+            #   timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
+            #end
+            
+            #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
+            
+            
+            st5 = @elapsed begin
+                timestep!(q5, FAULT_CPU!, cpu_operators, dt, t_span)
+            end
+
+            @printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
             
             
             u_end3 = @view Array(q3)[1:Nn]
             u_end5 = @view q5[1:Nn]
 
+            #=
             x = metrics.coord[1]
             y = metrics.coord[2]
                 
             u_end4 = @view q4[1:Nn]
             diff_u4 = u_end4 - ue(x[:], y[:], t_span[2], MMS)
             err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
-            
+            =#
             #=
             contour(x[:,1], x[1,:],
                     (reshape(u_end3, (nn, nn)) .- ue(x, y, t_span[2], MMS))',
@@ -152,18 +165,14 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS)
             gui()
             =#
 
-            #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
-            #@printf "GPU fault error: %e\n\n" err1[iter]
-            #@printf "CPU fault  error: %e\n\n" err2[iter]
-            #@printf "GPU waveprop error: %e\n\n" err3[iter]
+            @printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
+            
+            #=
             @printf "CPU error with manufactured solution: %e\n" err4[iter]
             if iter > 1
-                #@printf "GPU fault rate: %f\n" log(2, err1[iter - 1]/err1[iter])
-                #@printf "CPU fault rate: %f\n" log(2, err2[iter - 1]/err2[iter])
-                #@printf "GPU waveprop rate: %f\n" log(2, err3[iter - 1]/err3[iter])
                 @printf "CPU rate: %f\n" log(2, err4[iter - 1]/err4[iter])
             end
-            
+            =#
             @printf "___________________________________\n\n"
         end
     end
