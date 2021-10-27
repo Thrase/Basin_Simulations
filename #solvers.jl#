@@ -314,14 +314,6 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, sJ, ψ, dψ, b, RS)
 end
 
 
-function test()
-    return 55
-
-end
-
-
-
-
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
     T = eltype(q)
     
