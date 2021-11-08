@@ -1,0 +1,82 @@
+qt.qpa.xcb: could not connect to display :1
+qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+
+Available platform plugins are: linuxfb, minimal, offscreen, vnc, xcb.
+
+connect: Connection refused
+GKS: can't connect to GKS socket application
+
+
+signal (11): Segmentation fault
+in expression starting at /gpfs/home/tharvey2/Basin_Simulations/Basin.jl:15
+gks_drv_socket at /home/tharvey2/.julia/artifacts/1fbc5d63ee59773d2832c0f9beac7d1116b27291/lib/libGR.so (unknown line)
+gks_ddlk.isra.0 at /home/tharvey2/.julia/artifacts/1fbc5d63ee59773d2832c0f9beac7d1116b27291/lib/libGR.so (unknown line)
+gks_open_ws at /home/tharvey2/.julia/artifacts/1fbc5d63ee59773d2832c0f9beac7d1116b27291/lib/libGR.so (unknown line)
+initgks at /home/tharvey2/.julia/artifacts/1fbc5d63ee59773d2832c0f9beac7d1116b27291/lib/libGR.so (unknown line)
+gr_setcharheight at /home/tharvey2/.julia/artifacts/1fbc5d63ee59773d2832c0f9beac7d1116b27291/lib/libGR.so (unknown line)
+setcharheight at /home/tharvey2/.julia/packages/GR/82MXo/src/GR.jl:1630
+unknown function (ip: 0x2aab0fafcb91)
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2231 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+#gr_set_font#379 at /home/tharvey2/.julia/packages/Plots/S30zV/src/backends/gr.jl:407
+gr_set_font##kw at /home/tharvey2/.julia/packages/Plots/S30zV/src/backends/gr.jl:406
+unknown function (ip: 0x2aab0fafbef1)
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2231 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+gr_set_tickfont at /home/tharvey2/.julia/packages/Plots/S30zV/src/backends/gr.jl:686
+_update_min_padding! at /home/tharvey2/.julia/packages/Plots/S30zV/src/backends/gr.jl:887
+iterate at ./generator.jl:47 [inlined]
+_collect at ./array.jl:699
+collect_similar at ./array.jl:628
+unknown function (ip: 0x2aab0faceea5)
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2231 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+map at ./abstractarray.jl:2162
+_update_min_padding! at /home/tharvey2/.julia/packages/Plots/S30zV/src/layouts.jl:287
+prepare_output at /home/tharvey2/.julia/packages/Plots/S30zV/src/plot.jl:224
+display at /home/tharvey2/.julia/packages/Plots/S30zV/src/output.jl:147 [inlined]
+gui at /home/tharvey2/.julia/packages/Plots/S30zV/src/output.jl:137
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2231 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+gui at /home/tharvey2/.julia/packages/Plots/S30zV/src/output.jl:137
+STOPFUN_Q at /gpfs/home/tharvey2/Basin_Simulations/solvers.jl:139
+apply_discrete_callback! at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/callbacks.jl:850 [inlined]
+handle_callbacks! at /home/tharvey2/.julia/packages/OrdinaryDiffEq/hHILQ/src/integrators/integrator_utils.jl:254
+_loopfooter! at /home/tharvey2/.julia/packages/OrdinaryDiffEq/hHILQ/src/integrators/integrator_utils.jl:197
+loopfooter! at /home/tharvey2/.julia/packages/OrdinaryDiffEq/hHILQ/src/integrators/integrator_utils.jl:162 [inlined]
+solve! at /home/tharvey2/.julia/packages/OrdinaryDiffEq/hHILQ/src/solve.jl:448
+#__solve#399 at /home/tharvey2/.julia/packages/OrdinaryDiffEq/hHILQ/src/solve.jl:5 [inlined]
+__solve##kw at /home/tharvey2/.julia/packages/OrdinaryDiffEq/hHILQ/src/solve.jl:4 [inlined]
+#solve_call#56 at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/solve.jl:61 [inlined]
+solve_call##kw at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/solve.jl:48 [inlined]
+#solve_up#58 at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/solve.jl:82
+solve_up##kw at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/solve.jl:75 [inlined]
+#solve#57 at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/solve.jl:70 [inlined]
+solve##kw at /home/tharvey2/.julia/packages/DiffEqBase/FMY9y/src/solve.jl:68
+unknown function (ip: 0x2aab0f40de8a)
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2231 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+jl_apply at /buildworker/worker/package_linux64/build/src/julia.h:1690 [inlined]
+do_call at /buildworker/worker/package_linux64/build/src/interpreter.c:117
+eval_value at /buildworker/worker/package_linux64/build/src/interpreter.c:206
+eval_body at /buildworker/worker/package_linux64/build/src/interpreter.c:428
+jl_interpret_toplevel_thunk at /buildworker/worker/package_linux64/build/src/interpreter.c:660
+jl_toplevel_eval_flex at /buildworker/worker/package_linux64/build/src/toplevel.c:840
+jl_parse_eval_all at /buildworker/worker/package_linux64/build/src/ast.c:913
+jl_load_rewrite at /buildworker/worker/package_linux64/build/src/toplevel.c:914
+include at ./Base.jl:380
+include at ./Base.jl:368
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2214 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+exec_options at ./client.jl:296
+_start at ./client.jl:506
+jfptr__start_51675.clone_1 at /gpfs/packages/julia/julia-1.5.1/lib/julia/sys.so (unknown line)
+_jl_invoke at /buildworker/worker/package_linux64/build/src/gf.c:2214 [inlined]
+jl_apply_generic at /buildworker/worker/package_linux64/build/src/gf.c:2398
+unknown function (ip: 0x401931)
+unknown function (ip: 0x401533)
+__libc_start_main at /lib64/libc.so.6 (unknown line)
+unknown function (ip: 0x4015d4)
+Allocations: 251148960 (Pool: 250950206; Big: 198754); GC: 123
+/cm/local/apps/slurm/var/spool/job16578138/slurm_script: line 14: 57344 Segmentation fault      (core dumped) julia --project -t8 Basin.jl input_files/basin_d4_1200.dat

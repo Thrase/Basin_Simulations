@@ -9,10 +9,10 @@ function read_params(f_name)
         end
     end
     close(f)
-    T = parse(Float64, params[1])
-    N = parse(Int64, params[2])
-    Lw = parse(Float64, params[3])
-    trans_flag = params[4]
+    p = parse(Int64, params[1])
+    T = parse(Float64, params[2])
+    N = parse(Int64, params[3])
+    Lw = parse(Float64, params[4])
     r̂ = parse(Float64, params[5])
     l = parse(Float64, params[6])
     b_depth = parse(Float64, params[7])
@@ -22,5 +22,5 @@ function read_params(f_name)
     ic_file = params[11]
     ic_t_file = params[12]
 
-    return T, N, Lw, trans_flag, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file
+    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file
 end

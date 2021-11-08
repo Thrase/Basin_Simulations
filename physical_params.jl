@@ -87,22 +87,45 @@ function η(y, B_p)
 end
 
 
-function b_fun(yf, RS)
+
+function fault_params(fc)
+
     
-    b = Array{Float64,1}(undef, length(yf))
-    depth = yf[end]
-
-    for i in 1:length(yf)
-        #if 0 <= yf[i] < RS.Hvw
-            b[i] =  RS.b0
-        #end
-        #if RS.Hvw <= yf[i] < RS.Hvw + RS.Ht
-        #    b[i] = RS.b0 + (RS.bmin - RS.b0)*(yf[i] - RS.Hvw) / RS.Ht
-        #end
-        #if RS.Hvw + RS.Ht <= yf[i] < depth
-        #    b[i] = RS.bmin
-        #end
+    Wf = 24
+    Hvw = 12
+    Ht = 6
+    δNp = findmin(abs.(Wf .- fc))[2]
+    gNp = findmin(abs.(16 .- fc))[2]
+    VWp = findmin(abs.((Hvw + Ht) .- fc))[2]
+    a = .015
+    b0 = .02
+    bmin = 0.0
+    
+    
+    function b_fun(y)
+        if 0 <= y < Hvw
+            return b0
+        end
+        if Hvw <= y < Hvw + Ht
+            return b0 + (bmin - b0)*(y-Hvw)/Ht
+        end
+        if Hvw + Ht <= y < Wf
+            return bmin
+        end
+        return bmin
     end
-    return b
 
+    
+    RS = (σn = 50.0,
+          a = a,
+          b = b_fun.(fc[1:δNp]),
+          Dc = .008,
+          f0 = .6,
+          V0 = 1e-6,
+          τ_inf = 24.82,
+          Vp = 1e-9)
+
+
+    return δNp, gNp, VWp, RS
+    
 end

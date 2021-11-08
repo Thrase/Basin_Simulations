@@ -44,7 +44,7 @@ function transforms_n(Lw)
     return xt, yt
 end
 
-function create_metrics(Nr, Ns, B_p, μ,
+function create_metrics(Nr, Ns, B_p, μ, ρ,
                         xf=(r,s)->(r, ones(size(r)), zeros(size(r))),
                         yf=(r,s)->(s, zeros(size(s)), ones(size(s))))
 
@@ -59,7 +59,7 @@ function create_metrics(Nr, Ns, B_p, μ,
     # Create the mesh
     r = ones(1, Nsp) ⊗ r
     s = s' ⊗ ones(Nrp)
-    
+
     (x, xr, xs) = xf(r, s)
     (y, yr, ys) = yf(r, s)
 
@@ -74,11 +74,8 @@ function create_metrics(Nr, Ns, B_p, μ,
     ry = -xs ./ J
     sy =  xr ./ J
 
-    #display(x)
-    #display(y)
-    #quit()
     μx = μy = μ(x, y, B_p)
-    
+        
 
     # variable coefficient matrix components
     crr = J .* (rx .* μx .* rx + ry .* μy .* ry)
@@ -92,6 +89,9 @@ function create_metrics(Nr, Ns, B_p, μ,
     sJ1 = hypot.(nx1, ny1)
     nx1 = nx1 ./ sJ1
     ny1 = ny1 ./ sJ1
+    μf1 = μ(xf1, yf1, B_p)
+    η = μf1 ./ (2 * sqrt.(μf1 ./ ρ(xf1, yf1, B_p)))
+
 
     (xf2, yf2) = (view(x, Nrp, :), view(y, Nrp, :))
     nx2 =  ys[end, :]
@@ -99,6 +99,7 @@ function create_metrics(Nr, Ns, B_p, μ,
     sJ2 = hypot.(nx2, ny2)
     nx2 = nx2 ./ sJ2
     ny2 = ny2 ./ sJ2
+    μf2 = μ(xf2, yf2, B_p)
 
     (xf3, yf3) = (view(x, :, 1), view(y, :, 1))
     nx3 =  yr[:, 1]
@@ -116,6 +117,8 @@ function create_metrics(Nr, Ns, B_p, μ,
 
     (coord = (x,y),
      facecoord = ((xf1, xf2, xf3, xf4), (yf1, yf2, yf3, yf4)),
+     μf2 = μf2,
+     η = η,
      crr = crr, css = css, crs = crs,
      J=J,
      JI = JI,

@@ -6,10 +6,10 @@ let
     # Basin Depth
     D = .25
     # simulation timespan
-    t_span = (0, .01)
+    t_span = (0, .001)
     
     # mesh refinement
-    ns = 8 * 2 .^ (1:4)
+    ns = 8 * 2 .^ (4:4)
     @show ns
     # order of operators
     p = [2]

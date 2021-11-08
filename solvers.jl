@@ -1,8 +1,168 @@
 using Plots
 using CUDA
 using CUDA.CUSPARSE
+using Printf
+using BenchmarkTools
 
 CUDA.allowscalar(false)
+
+
+function Q_DYNAMIC!(dψV, ψδ, p, t)
+
+    nn = p.nn
+    Δτ = p.vars.Δτ
+    τ = p.vars.τ
+    M = p.ops.M̃
+    u = p.vars.u
+    ge = p.vars.ge
+    RS = p.RS
+    η = p.metrics.η
+    μf2 = p.metrics.μf2
+    fc = p.metrics.facecoord[2][1]
+    Lw = p.Lw
+
+    reject_step = p.reject_step
+    if reject_step[1]
+        return
+    end
+    
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn .+ (1:nn)]
+    dψ = @view dψV[1:nn]
+    V = @view dψV[nn .+ (1:nn)]
+    
+    
+    bc_Dirichlet = (lf, x, y) -> (2-lf)*(δ ./ 2) + (lf-1) .* ((RS.τ_inf*Lw) ./ μf2 .+ t * RS.Vp/2)
+    bc_Neumann   = (lf, x, y) -> zeros(size(x))
+    
+    locbcarray_mod!(ge, p, bc_Dirichlet, bc_Neumann)
+    
+    u[:] = M \ ge
+    
+    Δτ .= - computetraction_mod(p, 1, u, δ)
+
+    # solve for velocity point by point and set state derivative
+    for n = 1:nn
+
+        ψn = ψ[n]
+        bn = RS.b[n]
+        τn = Δτ[n]
+        τ[n] = τn
+        ηn = η[n]
+
+        if isnan(τn) || !isfinite(τn)
+            #println("τ reject")
+            reject_step[1] = true
+            return
+        end
+
+        VR = abs(τn / ηn)
+        VL = -VR
+        Vn = V[n]
+        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
+                                 atolx = 1e-12, rtolx = 1e-12)
+        
+        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+            #println("V reject")
+            reject_step[1] = true
+            return
+        end
+
+        V[n] = Vn
+        
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+        else
+            dψ[n] = 0
+        end
+        
+        if !isfinite(dψ[n]) || isnan(dψ[n])
+            #println("ψ reject")
+            dψ[n] = 0
+            reject_step[1] = true
+            return
+        end
+    end
+    
+    nothing
+end
+
+
+# timestepping rejection function
+function stepcheck(_, p, _)
+    if p.reject_step[1]
+        p.reject_step[1] = false
+        return true
+    end
+    return false
+end
+
+# function for every accepted timstep with integrator stopping condition
+function STOPFUN_Q(ψδ,t,i)
+    
+    if isdefined(i,:fsallast)
+
+        nn = i.p.nn
+        RS = i.p.RS
+        τ = i.p.vars.τ
+        t_prev = i.p.vars.t_prev
+        year_seconds = i.p.vars.year_seconds
+        u_prev = i.p.vars.u_prev
+        u = i.p.vars.u
+        fault_coord = i.p.metrics.facecoord[2][1]
+        Lw = i.p.Lw
+        io = i.p.io
+        pf = i.p.io.pf
+        η = i.p.metrics.η
+        
+        dψV = i.fsallast
+        ψ = ψδ[(1:nn)]
+        δ = ψδ[nn .+ (1:nn)]
+        V = @view dψV[nn .+ (1:nn)]
+        Vmax = maximum(abs.(V))
+        
+        
+        write_out(δ, V, τ, ψ, t,
+                  fault_coord,
+                  Lw,
+                  io.station_names,
+                  η)
+        
+        
+        if pf[1] % 30 == 0
+
+            
+            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+                  xlabel="Slip", linecolor=:blue, linewidth=.1,
+                  legend=false)
+            gui()
+            
+            write_out_ss(δ, V, τ, ψ, t,
+                         io.slip_file,
+                         io.stress_file,
+                         io.slip_rate_file,
+                         io.state_file)
+           
+        end
+
+        year_count = (t - t_prev[2])/year_seconds
+
+        
+        if Vmax >= 1e-2 && year_count > (t_prev[2] + 20)
+            return true
+        end
+        
+        pf[1] += 1
+        u_prev .= u
+        t_prev[1] = t
+        
+    end
+    
+    return false
+        
+end
+
 
 function MMS_WAVEPROP_CPU!(dq, q, p, t)
 
@@ -231,13 +391,18 @@ function FAULT_GPU!(dq, q, p, t)
     dû1 = @view dq[2nn^2 + 1 : 2nn^2 + nn]
     dψ = @view dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn]
     dvf = @view dq[nn^2 + 1: nn : 2nn^2]
+
+   
     dq .= Λ * q
 
     # compute numerical traction on face 1
+    
     τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
+    
     
     @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
 
+    
     dv .= JIHP * dq[nn^2 + 1:2nn^2]
 
 end
@@ -263,7 +428,7 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
         τ̃n = τ̃f[n]
         bn = b[n]
         Hn = H[n]
-        v̂nL = vn - τ̃f[n]/Z̃f[n]
+        v̂nL = vn - τ̃n/Z̃n
         v̂nR = -v̂nL
 
         (fL, _) = rateandstateD_GPU(v̂nL, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
@@ -288,7 +453,7 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
                 v̂n = (v̂nR + v̂nL) / 2
                 dv̂n = (v̂nR - v̂nL) / 2
             end
-
+            
             (f, df) = rateandstateD_GPU(v̂n, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
 
             if f * fL > 0
@@ -379,11 +544,115 @@ function rateandstateD_GPU(v̂, z̃, v, sJ, ψ, a, τ̃, σn, V0)
 end
 
 
+function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
+    T = eltype(q)
+    
+    nn = p.nn
+    Lw = p.Lw
+    fc = p.fc
+    pf = p.io.pf
+    τ̃f = p.τ̃f
+    sJ = p.sJ
+    Z̃f = p. Z̃f
+    io = p.io
+    v̂ = p.v̂
+    d_to_s = p.d_to_s
+    vf = @view q[nn^2 + 1: nn : 2nn^2]
+    uf = @view q[1 : nn : nn^2]
+    ψ = @view q[2nn^2 + 4nn + 1 : 2nn^2 + 5*nn]
+
+
+    RKA = [
+        T(0),
+        T(-567301805773 // 1357537059087),
+        T(-2404267990393 // 2016746695238),
+        T(-3550918686646 // 2091501179385),
+        T(-1275806237668 // 842570457699),
+    ]
+
+    RKB = [
+        T(1432997174477 // 9575080441755),
+        T(5161836677717 // 13612068292357),
+        T(1720146321549 // 2090206949498),
+        T(3134564353537 // 4481467310338),
+        T(2277821191437 // 14882151754819),
+    ]
+
+    RKC = [
+        T(0),
+        T(1432997174477 // 9575080441755),
+        T(2526269341429 // 6820363962896),
+        T(2006345519317 // 3224310063776),
+        T(2802321613138 // 2924317926251),
+    ]
+    
+
+    nstep = ceil(Int, (t1 - t0) / dt)
+    dt = (t1 - t0) / nstep
+
+    pf[1] = .01
+    pf[2] = 1.0
+
+    fill!(Δq, 0)
+    fill!(Δq2, 0)
+    for step in 1:nstep
+        t = t0 + (step - 1) * dt
+        for s in 1:length(RKA)
+            f!(Δq2, q, p, t + RKC[s] * dt)
+            v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
+            Δq .+= Δq2
+            q .+= (RKB[s] * dt) .* Δq
+            Δq .*= RKA[s % length(RKA) + 1]
+        end
+
+        if step == ceil(Int, pf[1]/dt)
+            write_out(Array(2uf),
+                      Array(2v̂),
+                      Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
+                      Array(ψ),
+                      t,
+                      fc,
+                      Lw,
+                      io.station_names)
+            pf[1] +=.1
+        end
+        
+        if step == ceil(Int, pf[2]/dt)
+
+            δ = Array(2uf)
+            plot!(δ, fc, yflip = true, ylabel="Depth",
+                  xlabel="Slip", linecolor=:red, linewidth=.1,
+                  legend=false)
+            gui()
+            
+            write_out_ss(δ,
+                         Array(2v̂),
+                         Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
+                         Array(ψ),
+                         t,
+                         io.slip_file,
+                         io.stress_file,
+                         io.slip_rate_file,
+                         io.state_file)
+            pf[2] += 1.0
+        end
+        
+        if (maximum(2*v̂)) < d_to_s && pf[1] > 7.0
+            return t
+        end
+        
+    end
+
+    nothing
+
+end
 
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
     T = eltype(q)
-    
+    @show Base.summarysize(Δq)/1e9
+    @show Base.summarysize(Δq)/1e9
+
     RKA = [
         T(0),
         T(-567301805773 // 1357537059087),
@@ -442,8 +711,6 @@ function euler!(q, f!, p, dt, t_span, Δq = similar(q))
     end
 
 end
-
-
 
 
 # Quasi-Dynamic rootfinding problem on the fault
