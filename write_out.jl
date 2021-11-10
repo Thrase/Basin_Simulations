@@ -4,10 +4,10 @@ using WriteVTK
 function make_ss(fault_coord, δNp, input_file)
 
     num = 1
-    dir_name = string("../erickson/output_files/basin_data", num)
+    dir_name = string("../../erickson/output_files/basin_data", num)
     while isdir(dir_name)
         num += 1
-        dir_name = string("../erickson/output_files/basin_data", num)
+        dir_name = string("../../erickson/output_files/basin_data", num)
     end
     
     mkdir(dir_name)

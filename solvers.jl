@@ -1,4 +1,4 @@
-using Plots
+#using Plots
 using CUDA
 using CUDA.CUSPARSE
 using Printf
@@ -132,12 +132,12 @@ function STOPFUN_Q(ψδ,t,i)
         
         if pf[1] % 30 == 0
 
-            
+            #=
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
                   xlabel="Slip", linecolor=:blue, linewidth=.1,
                   legend=false)
             gui()
-            
+            =#
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
                          io.stress_file,
@@ -437,6 +437,7 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
         
         if fL .* fR > 0
             @cuprintln("Not bracketing root!")
+            return nothing
         end
 
         dv̂nlr = v̂nR - v̂nL
@@ -620,11 +621,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         if step == ceil(Int, pf[2]/dt)
 
             δ = Array(2uf)
+            #=
             plot!(δ, fc, yflip = true, ylabel="Depth",
                   xlabel="Slip", linecolor=:red, linewidth=.1,
                   legend=false)
             gui()
-            
+            =#
             write_out_ss(δ,
                          Array(2v̂),
                          Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),

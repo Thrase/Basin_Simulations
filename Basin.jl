@@ -10,7 +10,7 @@ using Printf
 using OrdinaryDiffEq
 using CUDA
 using CUDA.CUSPARSE
-using Plots
+#using Plots
 
 let
     p,
