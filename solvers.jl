@@ -20,6 +20,7 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
     μf2 = p.metrics.μf2
     fc = p.metrics.facecoord[2][1]
     Lw = p.Lw
+    vf = p.vf
 
     reject_step = p.reject_step
     if reject_step[1]
@@ -32,10 +33,10 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
     V = @view dψV[nn .+ (1:nn)]
     
     
-    bc_Dirichlet = (lf, x, y) -> (2-lf)*(δ ./ 2) + (lf-1) .* ((RS.τ_inf*Lw) ./ μf2 .+ t * RS.Vp/2)
-    bc_Neumann   = (lf, x, y) -> zeros(size(x))
+    #bc_Dirichlet = (lf, x, y) -> (2-lf)*(δ ./ 2) + (lf-1) .* ((RS.τ_inf*Lw) ./ μf2 .+ t * RS.Vp/2)
+    #bc_Neumann   = (lf, x, y) -> zeros(size(x))
     
-    locbcarray_mod!(ge, p, bc_Dirichlet, bc_Neumann)
+    locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
     
     u[:] = M \ ge
     
@@ -115,6 +116,7 @@ function STOPFUN_Q(ψδ,t,i)
         io = i.p.io
         pf = i.p.io.pf
         η = i.p.metrics.η
+        cycles = i.p.cycles[1]
         
         dψV = i.fsallast
         ψ = ψδ[(1:nn)]
@@ -136,8 +138,13 @@ function STOPFUN_Q(ψδ,t,i)
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
                   xlabel="Slip", linecolor=:blue, linewidth=.1,
                   legend=false)
-            gui()
             =#
+            #plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            #      xlabel="Slip", linecolor=:blue, linewidth=.1,
+            #      legend=false)
+            #plot(plt1, plt2, layout=2)
+            #gui()
+            
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
                          io.stress_file,
@@ -145,11 +152,21 @@ function STOPFUN_Q(ψδ,t,i)
                          io.state_file)
            
         end
-
-        year_count = (t - t_prev[2])/year_seconds
-
         
-        if Vmax >= 1e-2 && year_count > (t_prev[2] + 20)
+        #=
+        if cycles == 2
+            plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+                 xlabel="Slip", linecolor=:blue, linewidth=.1,
+                 legend=false)
+            gui()
+            sleep(10000)
+        end
+        =#
+
+        year_count = t/year_seconds
+
+        #@show Vmax, cycles
+        if Vmax >= 1e-2 #&& year_count > (t_prev[2] + 20)
             return true
         end
         
@@ -434,11 +451,6 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
         (fL, _) = rateandstateD_GPU(v̂nL, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
         (fR, _) = rateandstateD_GPU(v̂nR, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
         (f, df) = rateandstateD_GPU(vn, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
-        
-        if fL .* fR > 0
-            @cuprintln("Not bracketing root!")
-            return nothing
-        end
 
         dv̂nlr = v̂nR - v̂nL
 
@@ -471,7 +483,7 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
         end
         
         dû1[n] = v̂n
-        
+
         dvf[n] += Hn * (Z̃n * v̂n)
 
         dψ[n] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .- abs.(2 .* v̂n) ./ V0)
@@ -591,7 +603,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     nstep = ceil(Int, (t1 - t0) / dt)
     dt = (t1 - t0) / nstep
 
-    pf[1] = .01
+    pf[1] = .1
     pf[2] = 1.0
 
     fill!(Δq, 0)
@@ -606,9 +618,17 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             Δq .*= RKA[s % length(RKA) + 1]
         end
 
+        v̂_cpu = Array(v̂)
+
         if step == ceil(Int, pf[1]/dt)
+            
+            if any(isnan, v̂_cpu)
+                @printf "nan from dynamic rootfinder"
+                exit()
+            end
+
             write_out(Array(2uf),
-                      Array(2v̂),
+                      2v̂_cpu,
                       Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
                       Array(ψ),
                       t,
@@ -625,10 +645,14 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             plot!(δ, fc, yflip = true, ylabel="Depth",
                   xlabel="Slip", linecolor=:red, linewidth=.1,
                   legend=false)
+            #plt2 = plot(δ, fc, yflip = true, ylabel="Depth",
+            #      xlabel="Slip", linecolor=:red, linewidth=.1,
+            #legend=false)
+            #plot(plt1, plt2, layout=2)
             gui()
             =#
             write_out_ss(δ,
-                         Array(2v̂),
+                         2v̂_cpu,
                          Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
                          Array(ψ),
                          t,
@@ -638,8 +662,15 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                          io.state_file)
             pf[2] += 1.0
         end
+
         
-        if (maximum(2*v̂)) < d_to_s && pf[1] > 7.0
+        #@show 2*maximum(v̂_cpu)
+        if (2 * maximum(v̂_cpu)) < d_to_s #&& pf[2] > 10.0
+            #plot(2*v̂_cpu, fc, yflip = true, ylabel="Depth",
+            #     xlabel="Slip", linecolor=:red, linewidth=.1,
+            #     legend=false)
+            #gui()
+            #sleep(1000000)
             return t
         end
         
