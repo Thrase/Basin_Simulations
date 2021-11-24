@@ -5,7 +5,7 @@
 #SBATCH --output=batch_output/B_d4_p4_1200.out    ### file in which to store job stdout
 #SBATCH --error=batch_output/B_d4_p4_1200.err     ### file in which to store job stderr
 #SBATCH --time=14-00:00:00   		   ### wall-clock time limit, in minutes
-#SBATCH --mem=128G            		   ### memory limit per node, in MB
+#SBATCH --mem=256G            		   ### memory limit per node, in MB
 #SBATCH --nodes=1           		   ### number of nodes to use
 #SBATCH --ntasks-per-node=1  		   ### number of tasks to launch per node
 #SBATCH --gres=gpu:1	     		   ### GPUs

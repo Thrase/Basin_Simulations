@@ -1,2 +1,48 @@
 d_to_s = 0.0001
-got grid in 4.160402 seconds
+got grid in 4.000837 seconds
+set-up io
+Got Ã in 4.477608 seconds
+Got boundary ops in 1.655596 seconds
+Got quasi-dynamic ops in 2.844664 seconds
+Got Λ and friends in 384.465284 seconds
+Got operators
+Got initial conditions
+Approximately 0.020508 Gib to GPU
+On cycle 1
+Begining Inter-seismic period...
+Interseismic period took 15152.683210051 seconds. 
+Simulation time is now 125.85635786286467 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 183.479478047 seconds. 
+Simulation time is now 125.85635807482267 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Interseismic period took 4.102641002 seconds. 
+Simulation time is now 125.85635807483371 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 167.767367668 seconds. 
+Simulation time is now 125.85635829409374 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Interseismic period took 19961.433888198 seconds. 
+Simulation time is now 243.69670510651008 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 171.495539132 seconds. 
+Simulation time is now 243.69670532854292 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Interseismic period took 4.068726972 seconds. 
+Simulation time is now 243.69670532855397 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 170.309922863 seconds. 
+Simulation time is now 243.69670555139322 years. 
+
+On cycle 5
+Begining Inter-seismic period...

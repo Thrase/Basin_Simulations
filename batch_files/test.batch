@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --account=erickson		   ### change this to the actual account
+#SBATCH --partition=cisds    		   ### queue to submit to
+#SBATCH --job-name=Btest              	   ### job name
+#SBATCH --output=batch_output/B_test.out    ### file in which to store job stdout
+#SBATCH --error=batch_output/B_test.err     ### file in which to store job stderr
+#SBATCH --time=14-00:00:00   		   ### wall-clock time limit, in minutes
+#SBATCH --mem=128G            		   ### memory limit per node, in MB
+#SBATCH --nodes=1           		   ### number of nodes to use
+#SBATCH --ntasks-per-node=1  		   ### number of tasks to launch per node
+#SBATCH --gres=gpu:1	     		   ### GPUs
+#SBATCH --cpus-per-task=8    		   ### number of cores for each task
+ 
+julia -t8 --track-allocation=user ../Basin.jl ../input_files/test_input.dat
