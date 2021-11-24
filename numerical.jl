@@ -16,7 +16,7 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw, bc_Dirichlet, bc_Neumann)
+function locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
     F = p.ops.F
     (xf, yf) = p.metrics.facecoord
     sJ = p.metrics.sJ
