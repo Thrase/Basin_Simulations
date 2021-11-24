@@ -16,21 +16,22 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function locbcarray_mod!(ge, p, bc_Dirichlet, bc_Neumann)
+function locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw, bc_Dirichlet, bc_Neumann)
     F = p.ops.F
     (xf, yf) = p.metrics.facecoord
     sJ = p.metrics.sJ
     τ = p.ops.τQ
-    ge[:] .= 0
+    ge .= 0
     
     for i in 1:4
-        if i == 1 || i == 2
-            vf = bc_Dirichlet(i, xf[i], yf[i])
+        if i == 1 
+            vf .= δ./2
+        elseif i == 2
+            vf .= (RS.τ_inf * Lw) ./ μf2 .+ t * RS.Vp/2
         elseif i == 3 || i == 4
-            gN = bc_Neumann(i, xf[i], yf[i])
-            vf = sJ[i] .* gN ./ τ[i]
+            vf .= 0
         end
-        ge[:] -= F[i] * vf
+        ge .-= F[i] * vf
     end
     
 end

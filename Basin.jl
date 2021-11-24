@@ -124,14 +124,16 @@ let
 
     
     static_params = (reject_step = [false],
-              Lw = Lw,
-              nn = nn,
-              d_to_s = d_to_s,
-              vars = vars,
-              ops = ops,
-              metrics = metrics,
-              io = io,
-              RS = RS)
+                     Lw = Lw,
+                     nn = nn,
+                     d_to_s = d_to_s,
+                     vars = vars,
+                     ops = ops,
+                     metrics = metrics,
+                     io = io,
+                     RS = RS,
+                     vf = zeros(nn),
+                     cycles = [0])
 
     threads = 512
     dynamic_params = (nn = nn,
@@ -161,7 +163,7 @@ let
     cycles = 1
     
     while t_now < T * year_seconds
-        
+        static_params.cycles[1] = cycles
         @printf "On cycle %d\n" cycles
         
         @printf "Begining Inter-seismic period...\n"
@@ -175,11 +177,13 @@ let
                         internalnorm=(x, _)->norm(x, Inf), callback=stopper)
         end
         
-        @printf "Interseismic period took %s seconds. \n\n" inter_time
+        @printf "Interseismic period took %s seconds. \n" inter_time
         flush(stdout)
         # dynamic inital conditions
         t_now = sol.t[end]
         t_span = (t_now,  sim_seconds)
+        @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
+
         q = Array(q)
         q[1:nn^2] .= static_params.vars.u[:]
         q[nn^2 + 1 : 2nn^2] .= (static_params.vars.u - static_params.vars.u_prev)/(sol.t[end] - static_params.vars.t_prev[1])
@@ -189,25 +193,30 @@ let
         end
         q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
         
-        #writedlm("tempout", q)
-    
-        #q = readdlm("tempout")
+        temp_io = open(io.slip_file, "a")
+        writedlm(temp_io, ["BREAK"])
+        close(temp_io)
+
         @printf "Begining Co-sesimic period...\n"
         flush(stdout)
         co_time = @elapsed begin
             q = CuArray(q)
             t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
         end
-
-        @printf "Coseismic period took %s seconds. \n\n" co_time
+        @printf "Coseismic period took %s seconds. \n" co_time
         flush(stdout)
         ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
         ψδ[nn + 1: 2nn] .= Array(2 * q[1 : nn : nn^2])
-        static_params.vars.t_prev[2] = t_now
-        t_span = (t_now, sim_seconds)
         static_params.vars.t_prev[2] = t_now/year_seconds
-        io.pf[1] = 0
-        io.pf[2] = 0
+        t_span = (t_now, sim_seconds)
+        
+        temp_io = open(io.slip_file, "a")
+        writedlm(temp_io, ["BREAK"])
+        close(temp_io)
+
+        @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
+        static_params.io.pf[1] = 0
+        static_params.io.pf[2] = 0
         cycles += 1
     end
 
