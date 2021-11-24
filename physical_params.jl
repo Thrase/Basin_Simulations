@@ -13,9 +13,10 @@ function μ(x, y, B_p)
         return repeat([μ_out], outer=length(x))
     end
     =#
-  
-    return (μ_out - μ_in)/2 *
-        (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
+
+    return μ_out
+    #return (μ_out - μ_in)/2 *
+        #(tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
     
 end
 
@@ -35,8 +36,9 @@ function ρ(x, y, B_p)
     end
     =#
 
-    return (ρ_out - ρ_in)/2 *
-        (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
+    return ρ_out
+    #return (ρ_out - ρ_in)/2 *
+    #    (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
     
 end
 
@@ -119,7 +121,7 @@ function fault_params(fc)
     RS = (σn = 50.0,
           a = a,
           b = b_fun.(fc[1:δNp]),
-          Dc = .008,
+          Dc = .032,
           f0 = .6,
           V0 = 1e-6,
           τ_inf = 24.82,

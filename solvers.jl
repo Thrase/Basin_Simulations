@@ -134,16 +134,16 @@ function STOPFUN_Q(ψδ,t,i)
         
         if pf[1] % 30 == 0
 
-            #=
+            
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
                   xlabel="Slip", linecolor=:blue, linewidth=.1,
                   legend=false)
-            =#
+            
             #plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             #      xlabel="Slip", linecolor=:blue, linewidth=.1,
             #      legend=false)
             #plot(plt1, plt2, layout=2)
-            #gui()
+            gui()
             
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
@@ -604,7 +604,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     dt = (t1 - t0) / nstep
 
     pf[1] = .1
-    pf[2] = 1.0
+    pf[2] = .5
 
     fill!(Δq, 0)
     fill!(Δq2, 0)
@@ -641,7 +641,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         if step == ceil(Int, pf[2]/dt)
 
             δ = Array(2uf)
-            #=
+            
             plot!(δ, fc, yflip = true, ylabel="Depth",
                   xlabel="Slip", linecolor=:red, linewidth=.1,
                   legend=false)
@@ -660,7 +660,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-            pf[2] += 1.0
+            pf[2] += .5
         end
 
         
