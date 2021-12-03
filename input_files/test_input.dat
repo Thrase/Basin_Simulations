@@ -1,11 +1,11 @@
 # Parameter input file for Basin Simulations
 #
 #
-P=2
-Total_time=200.0
-Number_nodes=400
+P=6
+Total_time=400.0
+Number_nodes=700
 Domain_length=24
-r_hat=.75
+r_hat=.7
 l=.05
 b_depth=4
 dynamic_flag=1

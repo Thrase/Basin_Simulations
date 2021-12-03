@@ -6,15 +6,15 @@ function μ(x, y, B_p)
     r̄ = B_p.r̄
     r_w = B_p.r_w
 
-    #=
+    
     if ndims(x) == 2
         return repeat([μ_out], outer=size(x))
     else
         return repeat([μ_out], outer=length(x))
     end
-    =#
+    
 
-    return μ_out
+    
     #return (μ_out - μ_in)/2 *
         #(tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
     
@@ -28,15 +28,15 @@ function ρ(x, y, B_p)
     r̄ = B_p.r̄
     r_w = B_p.r_w
 
-    #=
+    
     if ndims(x) == 2
         return repeat([ρ_out], outer=size(x))
     else
         return repeat([ρ_out], outer=length(x))
     end
-    =#
+    
 
-    return ρ_out
+    
     #return (ρ_out - ρ_in)/2 *
     #    (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
     

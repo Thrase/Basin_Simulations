@@ -10,7 +10,7 @@ using Printf
 using OrdinaryDiffEq
 using CUDA
 using CUDA.CUSPARSE
-#using Plots
+using Plots
 
 let
     p,
@@ -63,6 +63,10 @@ let
     # fault Params
     fc = metrics.facecoord[2][1]
     (x, y) = metrics.coord
+    for i in 2:length(fc)
+        @show fc[i], fc[i] - fc[i-1]
+    end
+    #quit()
 
     η = metrics.η
 
@@ -182,6 +186,7 @@ let
         # dynamic inital conditions
         t_now = sol.t[end]
         t_span = (t_now,  sim_seconds)
+
         @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
 
         q = Array(q)
