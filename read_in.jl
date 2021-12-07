@@ -21,6 +21,7 @@ function read_params(f_name)
     dt_scale = parse(Float64, params[10])
     ic_file = params[11]
     ic_t_file = params[12]
-
-    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file
+    Dc = parse(Float64, params[13])
+    force = parse(Int64, params[14])
+    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, force
 end

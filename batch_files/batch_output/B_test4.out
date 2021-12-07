@@ -1,5 +1,5 @@
 d_to_s = 1.0e-5
-got grid in 14.583357 seconds
+got grid in 14.009993 seconds
 (fc[i], fc[i] - fc[i - 1]) = (0.01714152286295345, 0.01714152286295345)
 (fc[i], fc[i] - fc[i - 1]) = (0.034283045725910455, 0.017141522862957004)
 (fc[i], fc[i] - fc[i - 1]) = (0.05142456858886746, 0.017141522862957004)
@@ -801,12 +801,3 @@ got grid in 14.583357 seconds
 (fc[i], fc[i] - fc[i - 1]) = (23.468947579377236, 0.5284935292471715)
 (fc[i], fc[i] - fc[i - 1]) = (24.0, 0.531052420622764)
 set-up io
-Got Ã in 306.639788 seconds
-Got boundary ops in 116.499393 seconds
-Got quasi-dynamic ops in 166.113849 seconds
-Got Λ and friends in 18370.773075 seconds
-Got operators
-Got initial conditions
-Approximately 0.005136 Gib to GPU
-On cycle 1
-Begining Inter-seismic period...

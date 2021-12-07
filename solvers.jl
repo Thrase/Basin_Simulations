@@ -570,6 +570,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     io = p.io
     v̂ = p.v̂
     d_to_s = p.d_to_s
+    force = p.force
     vf = @view q[nn^2 + 1: nn : 2nn^2]
     uf = @view q[1 : nn : nn^2]
     ψ = @view q[2nn^2 + 4nn + 1 : 2nn^2 + 5*nn]
@@ -667,15 +668,17 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
         
         #@show 2*maximum(v̂_cpu)
-        if (2 * maximum(v̂_cpu)) < d_to_s #&& pf[2] > 10.0
+        if (2 * maximum(v̂_cpu)) < d_to_s && force == 0 #&& pf[2] > 10.0
             #plot(2*v̂_cpu, fc, yflip = true, ylabel="Depth",
              #    xlabel="Slip", linecolor=:red, linewidth=.1,
              #    legend=false)
             #gui()
             #sleep(1000000)
             return t
+        elseif (2 * maximum(v̂_cpu)) < d_to_s && force == 1 && dt*step > 1e5
+            return t
         end
-        
+
     end
 
     nothing

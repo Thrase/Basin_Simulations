@@ -90,7 +90,7 @@ end
 
 
 
-function fault_params(fc)
+function fault_params(fc, Dc)
 
     
     Wf = 24
@@ -121,7 +121,7 @@ function fault_params(fc)
     RS = (σn = 50.0,
           a = a,
           b = b_fun.(fc[1:δNp]),
-          Dc = .032,
+          Dc = Dc,
           f0 = .6,
           V0 = 1e-6,
           τ_inf = 24.82,

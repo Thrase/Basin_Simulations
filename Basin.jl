@@ -24,7 +24,9 @@ let
     d_to_s,
     dt_scale,
     ic_file,
-    ic_t_file = read_params(ARGS[1])
+    ic_t_file,
+    Dc,
+    force = read_params(ARGS[1])
     
     @show d_to_s
     nn = N + 1
@@ -73,7 +75,7 @@ let
     δNp, 
     gNp, 
     VWp, 
-    RS = fault_params(fc)
+    RS = fault_params(fc, Dc)
 
     # io stuffs
     dir_name,
@@ -158,7 +160,8 @@ let
                       fc = metrics.facecoord[2][1],
                       Lw = Lw,
                       io = io,
-                      d_to_s = d_to_s)
+                      d_to_s = d_to_s,
+                      force = force)
 
     @printf "Approximately %f Gib to GPU\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
