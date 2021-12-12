@@ -389,7 +389,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
 
  
     (Λ = Λ,
-     M̃ = cholesky(Symmetric(M̃)),
+     M̃ = Symmetric(M̃),
      F = F,
      HIFT = HIFT,
      τQ = (diag(τs[1]),
