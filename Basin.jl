@@ -169,7 +169,7 @@ let
     
     cycles = 1
     
-    while t_now < T * year_seconds
+    #while t_now < T * year_seconds
         static_params.cycles[1] = cycles
         @printf "On cycle %d\n" cycles
         
@@ -185,7 +185,8 @@ let
         end
         
         @printf "Interseismic period took %s seconds. \n" inter_time
-        flush(stdout)
+    flush(stdout)
+    #=
         # dynamic inital conditions
         t_now = sol.t[end]
         t_span = (t_now,  sim_seconds)
@@ -227,7 +228,7 @@ let
         static_params.io.pf[2] = 0
         cycles += 1
     end
-
+    =#
 end
 
 

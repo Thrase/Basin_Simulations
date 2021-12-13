@@ -3,7 +3,7 @@
 #
 P=4
 Total_time=400.0
-Number_nodes=800
+Number_nodes=400
 Domain_length=24
 r_hat=.75
 l=.05

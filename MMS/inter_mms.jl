@@ -1,9 +1,7 @@
-include("mms.jl")
+include("mms_funcs.jl")
 
 let
 
-    # 1 is dynamic 0 is static
-    test_type = 0
     # Domain length
     Lw = 1.0
     # Basin Depth
@@ -36,21 +34,7 @@ let
           Dc = 10e6,
           f0 = .6,
           V0 = 1e-6)
-
     
-    # MMS params
-    MMS = (wl = Lw/2,
-           amp = .5,
-           ϵ = .01,
-           t̄ = 35,
-           t_w = 10,
-           t_f = 70,
-           τ∞ = 31.73,
-           Vp = 10e-9,
-           H = .25,
-           Vmin = 10e-12,
-           δ_e = 10e-9*35/2-10e-12*35)
 
-    refine(p, ns, t_span, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS, test_type)
 
 end

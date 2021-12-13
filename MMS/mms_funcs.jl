@@ -57,7 +57,6 @@ function ψe(fx, fy, t, B_p, RS, MMS)
 
     Ve = 2*ue_t(fx, fy, t, MMS)
     τf = τe(fx, fy, t, 1, B_p, MMS)
-    #display(τf)
     return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τf ./ (RS.a .* RS.σn)))
     
 end
@@ -101,3 +100,71 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
     return  ψ_t .- G
 
 end
+
+
+ϕ(x, y, MMS) = (MMS.H*(MMS.H + x))/((MMS.H + x)^2 + y^2)
+
+ϕ_x(x, y, MMS) = MMS.H * (y^2 - (MMS.H + x)^2)/(((MMS.H + x)^2 + y^2)^2)
+
+ϕ_xx(x, y, MMS) = (2*MMS.H * (H + x)(MMS.H^2 + 2*MMS.H*x + x^2 + 3y^2))/((MMS.H^2 + 2MMS.H*x + x^2 + y^2)^3)
+
+ϕ_y(x, y, MMS) = -(2*MMS.H*y*(MMS.H + x))/(((MMS.H + x)^2 + y^2)^2)
+
+ϕ_yy(x, y, MMS) = (2 * MMS.H * (MMS.H + x)*(3*y^2 - (MMS.H + x)^2))/(((MMS.H+x)^2 + y^2)^3)
+
+K(t, MMS) = 1/π * (atan((t - MMS.t̄)/MMS.t_w) + π/2) + MMS.Vmin/MMS.δ_e * t
+
+K_t(t, MMS) = MMS.t_w/(π * (MMS.t̄^2 - 2*MMS.t̄*t + MMS.t_w^2 + t^2)) + MMS.Vmin/MMS.δ_e
+                  
+K_tt(t, MMS) = 2*MMS.t_w*(MMS.t̄ - t)/(π * (MMS.t̄^2 - 2MMS.t̄*t + MMS.t_w^2 + t^2)^2)
+
+h_e(x, y, t, MMS) = MMS.δ_e/2 * K(t, MMS)*ϕ(x,y) + MMS.Vp/2*t(1 - ϕ(x,y,MMS)) + MMS.τ∞/24*x
+
+h_et(x, y, t, MMS) = MMS.δ_e/2 * K_t(t, MMS)*ϕ(x,y) + MMS.Vp/2(1 - ϕ(x,y,MMS))
+
+h_ett(x, y, t, MMS) = MMS.δ_e/2 * K_tt(t, MMS)*ϕ(x,y, MMS)
+
+h_ex(x, y, t, MMS) = MMS.δ_e/2 * K(t, MMS)*ϕ_x(x,y, MMS) - MMS.Vp/2*t*ϕ_x(x, y, MMS) + MMS.τ∞/24
+
+h_ext(x, y, t, MMS) = MMS.δ_e/2 * K_t(t, MMS)*ϕ_x(x,y, MMS) - MMS.Vp/2 * ϕ_x(x, y, MMS)
+
+h_exx(x, y, t, MMS) = MMS.δ_e/2 * K(t, MMS)*ϕ_xx(x,y, MMS) - MMS.Vp/2*t*ϕ_xx(x, y, MMS)
+
+h_ey(x , y, t, MMS) = MMS.δ_e/2 * K(t, MMS)*ϕ_y(x, y, MMS) - ϕ_y(x, y, MMS)
+
+h_eyy(x , y, t, MMS) = MMS.δ_e/2 * K(t, MMS)*ϕ_yy(x, y, MMS) - ϕ_yy(x, y, MMS)
+
+
+h_FORCE(x, y, t, B_p, MMS) = (μ_x(x, y, B_p) .* ue_x(x, y, t, MMS) .+ μ(x, y, B_p) .* ue_xx(x, y, t, MMS) .+
+                       μ_y(x, y, B_p) .* ue_y(x, y, t, MMS) .+ μ(x, y, B_p) .* ue_yy(x, y, t, MMS))
+
+function ψe_2(y, t, B_p, RS, MMS)
+
+    τe = μ(0, y, B_p) * h_ex(0, y, t, MMS)
+    Ve = 2 * h_et(0, y, t, MMS)
+
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τe ./ (RS.a .* RS.σn))) - η(y, B_p) * Ve
+end
+
+function ψe_2t(y, t, B_p, RS, MMS)
+
+    τe = - μ(0, y, B_p) * h_ex(0, y, t, MMS)
+    Ve = 2 * h_et(0, y, t, MMS)
+    Ve_t = 2 * h_ett(0, y, t, MMS)
+    τe_t = - μ(0, y, B_p) * h_ext(0, y, t, MMS)
+    
+    return τf_t ./ RS.σn .* coth.(τe ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve - η(y, B_p) * Vett
+end
+
+function fault_force(y, t, b, B_p, RS, MMS)
+
+    ψe = ψe_2(y, t, B_p, RS, MMS)
+    Ve = 2 * he_t(0, y, t, MMS)
+    G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(Ve) / RS.V0)
+    
+    return ψe_2t(y, t, B_p, RS, MMS) - G
+end
+
+
+
+

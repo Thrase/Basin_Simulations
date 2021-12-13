@@ -132,26 +132,31 @@ function STOPFUN_Q(ψδ,t,i)
                   η)
         
         
-        #if pf[1] % 30 == 0
+        if pf[1] % 30 == 0
 
+            #=    
+            plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
+            legend=false)
             
-        #plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-        #      xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
-        #      legend=false)
+            plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            xlabel="Slip", linecolor=:blue, linewidth=.1,
+            legend=false)
+            plot(plt1, plt2, layout=2)
+            gui()
+            =#
             
-        #plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-        #            xlabel="Slip", linecolor=:blue, linewidth=.1,
-        #            legend=false)
-        #plot(plt1, plt2, layout=2)
-        #gui()
-            
-        write_out_ss(δ, V, τ, ψ, t,
-                     io.slip_file,
-                     io.stress_file,
-                     io.slip_rate_file,
-                     io.state_file)
-        
-        #end
+            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            xlabel="Slip", linecolor=:blue, linewidth=.1,
+            legend=false)
+            gui()
+
+            write_out_ss(δ, V, τ, ψ, t,
+                         io.slip_file,
+                         io.stress_file,
+                         io.slip_rate_file,
+                         io.state_file)
+        end
         
         #=
         if cycles == 2
@@ -760,4 +765,85 @@ function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
     dgdV = σn .* dfdV + ηn
     (g, dgdV)
 end
+
+
+function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
+
+    nn = p.nn
+    Δτ = p.vars.Δτ
+    τ = p.vars.τ
+    M = p.ops.M̃
+    u = p.vars.u
+    ge = p.vars.ge
+    RS = p.RS
+    η = p.metrics.η
+    μf2 = p.metrics.μf2
+    fc = p.metrics.facecoord[2][1]
+    Lw = p.Lw
+    vf = p.vf
+
+    reject_step = p.reject_step
+    if reject_step[1]
+        return
+    end
+    
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn .+ (1:nn)]
+    dψ = @view dψV[1:nn]
+    V = @view dψV[nn .+ (1:nn)]
+    
+    
+    locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
+    
+    u[:] = M \ ge
+    
+    Δτ .= - computetraction_mod(p, 1, u, δ)
+
+    # solve for velocity point by point and set state derivative
+    for n = 1:nn
+
+        ψn = ψ[n]
+        bn = RS.b[n]
+        τn = Δτ[n]
+        τ[n] = τn
+        ηn = η[n]
+
+        if isnan(τn) || !isfinite(τn)
+            #println("τ reject")
+            reject_step[1] = true
+            return
+        end
+
+        VR = abs(τn / ηn)
+        VL = -VR
+        Vn = V[n]
+        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
+                                 atolx = 1e-12, rtolx = 1e-12)
+        
+        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+            #println("V reject")
+            reject_step[1] = true
+            return
+        end
+
+        V[n] = Vn
+        
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+        else
+            dψ[n] = 0
+        end
+        
+        if !isfinite(dψ[n]) || isnan(dψ[n])
+            #println("ψ reject")
+            dψ[n] = 0
+            reject_step[1] = true
+            return
+        end
+    end
+    
+    nothing
+end
+
 
