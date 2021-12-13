@@ -163,6 +163,7 @@ function fault_force(y, t, b, B_p, RS, MMS)
     G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(Ve) / RS.V0)
     
     return ψe_2t(y, t, B_p, RS, MMS) - G
+
 end
 
 

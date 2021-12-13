@@ -37,6 +37,30 @@ function locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
     
 end
 
+function locbcarray_mod_mms!(ge, vf, δ, p, RS, t, μf2, Lw)
+    
+    F = p.ops.F
+    (xf, yf) = p.metrics.facecoord
+    sJ = p.metrics.sJ
+    coord = metrics.coord
+    τ = p.ops.τQ
+    ge .= 0
+    
+    for i in 1:4
+        if i == 1 
+            vf .= δ./2
+        elseif i == 2
+            vf .= (RS.τ_inf * Lw) ./ μf2 .+ t * RS.Vp/2
+        elseif i == 3 || i == 4
+            vf .= 0
+        end
+        ge .-= F[i] * vf
+    end
+
+    ge .+= h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    
+end
+
 function computetraction_mod(p, f, u, δ)
     HIFT = p.ops.HIFT[f]
     τf = p.ops.τQ[f]
