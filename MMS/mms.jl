@@ -161,6 +161,9 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
 
             #quasi dynamic MMS
             else
+
+
+
                 
             end
         end
