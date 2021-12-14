@@ -135,15 +135,15 @@ function STOPFUN_Q(ψδ,t,i)
         #if pf[1] % 30 == 0
 
             
-        #plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-        #      xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
-        #      legend=false)
+        plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+              xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
+              legend=false)
             
-        #plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-        #            xlabel="Slip", linecolor=:blue, linewidth=.1,
-        #            legend=false)
-        #plot(plt1, plt2, layout=2)
-        #gui()
+        plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+                    xlabel="Slip", linecolor=:blue, linewidth=.1,
+                    legend=false)
+        plot(plt1, plt2, layout=2)
+        gui()
             
         write_out_ss(δ, V, τ, ψ, t,
                      io.slip_file,
@@ -570,7 +570,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     io = p.io
     v̂ = p.v̂
     d_to_s = p.d_to_s
-    force = p.force
     vf = @view q[nn^2 + 1: nn : 2nn^2]
     uf = @view q[1 : nn : nn^2]
     ψ = @view q[2nn^2 + 4nn + 1 : 2nn^2 + 5*nn]
@@ -643,7 +642,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
         δ = Array(2uf)
         
-        #=
+        
         plt1 = plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
                     xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
                     legend=false)
@@ -653,7 +652,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         plot(plt1, plt2, layout=2)
         #sleep(.)
         gui()
-        =#
+        
         write_out_ss(δ,
                      2v̂_cpu,
                      Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
@@ -668,14 +667,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
         
         #@show 2*maximum(v̂_cpu)
-        if (2 * maximum(v̂_cpu)) < d_to_s && force == 0 #&& pf[2] > 10.0
+        if (2 * maximum(v̂_cpu)) < d_to_s
             #plot(2*v̂_cpu, fc, yflip = true, ylabel="Depth",
              #    xlabel="Slip", linecolor=:red, linewidth=.1,
              #    legend=false)
             #gui()
             #sleep(1000000)
-            return t
-        elseif (2 * maximum(v̂_cpu)) < d_to_s && force == 1 && dt*step > 1e5
             return t
         end
 

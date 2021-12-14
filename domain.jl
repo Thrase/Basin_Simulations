@@ -14,6 +14,21 @@ function transforms_e(Lw, r̂, l)
                    zeros(size(r)),
                    ((A .* sech.((s .- 1) ./ l).^2) ./ l) .+ b)
 
+    
+    r = -1:.01:1
+    s = -1:.01:1
+
+
+    scatter(r, xt(r,s))
+    gui()
+
+    cont = readline()
+
+    if cont == "n"
+        quit()
+    end
+
+        
         
     return xt, yt
     

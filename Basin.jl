@@ -25,8 +25,7 @@ let
     dt_scale,
     ic_file,
     ic_t_file,
-    Dc,
-    force = read_params(ARGS[1])
+    Dc = read_params(ARGS[1])
     
     @show d_to_s
     nn = N + 1
@@ -160,15 +159,15 @@ let
                       fc = metrics.facecoord[2][1],
                       Lw = Lw,
                       io = io,
-                      d_to_s = d_to_s,
-                      force = force)
+                      d_to_s = d_to_s)
 
+        
     @printf "Approximately %f Gib to GPU\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
     
     cycles = 1
-    
+    plot()
     while t_now < T * year_seconds
         static_params.cycles[1] = cycles
         @printf "On cycle %d\n" cycles
