@@ -780,7 +780,10 @@ function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
     μf2 = p.metrics.μf2
     fc = p.metrics.facecoord[2][1]
     Lw = p.Lw
-    vf = p.vf
+    vf = p.vars.vf
+    b = p.b
+    MMS = p.MMS
+    B_p = p.B_p
 
     reject_step = p.reject_step
     if reject_step[1]
@@ -803,7 +806,7 @@ function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
     for n = 1:nn
 
         ψn = ψ[n]
-        bn = RS.b[n]
+        bn = b[n]
         τn = Δτ[n]
         τ[n] = τn
         ηn = η[n]
@@ -830,7 +833,7 @@ function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
         V[n] = Vn
         
         if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0) + fault_force(fc[n], t, bn, RS, MMS)
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0) #+ fault_force(fc[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end

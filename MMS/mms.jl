@@ -2,6 +2,7 @@ using Plots
 using Printf
 using CUDA
 using CUDA.CUSPARSE
+using OrdinaryDiffEq
 
 include("../physical_params.jl")
 include("mms_funcs.jl")
@@ -35,7 +36,6 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
             x = metrics.coord[1]
             y = metrics.coord[2]
 
-            ot = @elapsed begin
                 faces_fault = [0 2 3 4]
                 @time d_ops = operators(p, N, N, μ, ρ, R, B_p, faces_fault, metrics)
                 
@@ -61,7 +61,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 
 
                 # Dynamic MMS
-                if test_type == 1
+            if test_type == 1
 
                     
                     threads = 512
@@ -81,7 +81,8 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                     #@printf "Estimated Gigabytes allocating to the GPU %f\n" GS
 
                     #quit()
-
+                    ot = @elapsed begin
+                                    
                     GPU_operators = (nn = nn,
                                      threads = threads,
                                      blocks = cld(nn, threads),
@@ -98,8 +99,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                                      τ̃f = CuArray(zeros(nn)))
                     
                     
-                end
-
+                    end
                 @printf "Got Operators: %s s\n" ot
 
                 it = @elapsed begin
@@ -162,10 +162,48 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
             #quasi dynamic MMS
             else
 
-
-
+                year_seconds = 31556952
                 
+                ψ0 = ψe_2(metrics.facecoord[2][1], 0, B_p, RS, MMS)
+                u0 = h_e(x[:], y[:], 0, MMS)
+                δ0 = 2 * d_ops.L[1] * u0
+
+                #=
+                for t in 0:year_seconds: 100 * year_seconds
+                    contour(x[:, 1], y[1, :],
+                            h_e(x[:], y[:], t, MMS),
+                            fill=true,
+                            yflip=true)
+                    sleep(.1)
+                    gui()
+                end
+                =#
+                
+                ψδ = [ψ0 ; δ0]
+                vars = (Δτ = zeros(nn),
+                        τ = zeros(nn),
+                        u = u0,
+                        ge = zeros(nn^2),
+                        vf = zeros(nn))
+                static_params = (reject_step = [false],
+                                 Lw = Lw,
+                                 nn = nn,
+                                 vars = vars,
+                                 ops = d_ops,
+                                 metrics = metrics,
+                                 RS = RS,
+                                 b = b,
+                                 MMS = MMS,
+                                 B_p = B_p)
+
+                t_span = (0.0, 50 * year_seconds)
+                prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, static_params)
+                sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=1,
+                            atol = 1e-12, rtol = 1e-12, save_everystep=true,
+                            internalnorm=(x, _)->norm(x, Inf))
             end
+        
+        
         end
     end
 end

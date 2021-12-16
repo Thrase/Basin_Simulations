@@ -35,7 +35,9 @@ let
           bmin = 0.0,
           Dc = 10e6,
           f0 = .6,
-          V0 = 1e-6)
+          V0 = 1e-6,
+          τ_inf = 24.82,
+          Vp = 10e-9)
 
     
     # MMS params
