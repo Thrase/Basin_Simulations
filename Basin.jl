@@ -158,6 +158,8 @@ let
                       b = CuArray(RS.b),
                       τ̃f = CuArray(zeros(nn)),
                       v̂= CuArray(zeros(nn)),
+                      nf_v2 = CuArray(zeros(nn)),
+                      nf_v3 = CuArray(zeros(nn)),
                       fc = metrics.facecoord[2][1],
                       Lw = Lw,
                       io = io,
@@ -197,7 +199,9 @@ let
 
         q = Array(q)
         q[1:nn^2] .= static_params.vars.u[:]
-        q[nn^2 + 1 : 2nn^2] .= (static_params.vars.u - static_params.vars.u_prev)/(sol.t[end] - static_params.vars.t_prev[1])
+        
+        q[nn^2 + 1 : 2nn^2] .=
+            (static_params.vars.u -static_params.vars.u_prev) / (sol.t[end] - static_params.vars.t_prev[1])
         
         for i in 1:4
             q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
@@ -212,6 +216,15 @@ let
         flush(stdout)
         co_time = @elapsed begin
             q = CuArray(q)
+
+            # getting source terms for non-reflecting boundaries
+            nf_source2 .= CuArray(ops.Z̃f[2]) .*
+                (CuSparseMatrixCSC(ops.L[2]) * q[nn^2 + 1 : 2nn^2]) -
+                
+            
+            nf_source3 .= CuArray(ops.Z̃f[3]) .*
+            (CuSparseMatrixCSC(ops.L[3]) * q[nn^2 + 1 : 2nn^2]) -
+            
             t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
         end
         @printf "Coseismic period took %s seconds. \n" co_time
