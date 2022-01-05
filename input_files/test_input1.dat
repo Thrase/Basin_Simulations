@@ -3,14 +3,14 @@
 #
 P=4
 Total_time=300.0
-Number_nodes=400
+Number_nodes=300
 Domain_length=24
 r_hat=0.70
 l=.05
 b_depth=4
 dynamic_flag=1
-d_to_s=0.00001
+d_to_s=0.0
 dt=.5
 initial_con=None
 inital_t=None
-Dc=.016
+Dc=.032

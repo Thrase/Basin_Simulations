@@ -139,7 +139,7 @@ function STOPFUN_Q(ψδ,t,i)
               xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
               legend=false)
             
-        plt2 = plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+        plt2 = plot(τ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
                     xlabel="Slip", linecolor=:blue, linewidth=.1,
                     legend=false)
         plot(plt1, plt2, layout=2)
@@ -570,7 +570,10 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     io = p.io
     v̂ = p.v̂
     d_to_s = p.d_to_s
+    RS = p.RS_cpu
     vf = @view q[nn^2 + 1: nn : 2nn^2]
+    v = @view q[nn^2 + 1 : 2nn^2]
+    u = @view q[1 : nn^2]
     uf = @view q[1 : nn : nn^2]
     ψ = @view q[2nn^2 + 4nn + 1 : 2nn^2 + 5*nn]
     
@@ -626,11 +629,17 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             @printf "nan from dynamic rootfinder"
             exit()
         end
+        
+        τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
 
-        write_out(Array(2uf),
+        δ = Array(2uf)
+
+        ψ_cpu = Array(ψ)
+        
+        write_out(δ,
                   2v̂_cpu,
-                  Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
-                  Array(ψ),
+                  τ̂,
+                  ψ_cpu,
                   t,
                   fc,
                   Lw,
@@ -640,28 +649,33 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         
         #if step == ceil(Int, pf[2]/dt)
 
-        δ = Array(2uf)
         
         
         plt1 = plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
                     xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
                     legend=false)
-        plt2 = plot(δ, fc, yflip = true, ylabel="Depth",
+        plt2 = plot(τ̂, fc, yflip = true, ylabel="Depth",
                     xlabel="Slip", linecolor=:red, linewidth=.1,
                     legend=false)
+
         plot(plt1, plt2, layout=2)
         #sleep(.)
         gui()
         
         write_out_ss(δ,
                      2v̂_cpu,
-                     Array(-τ̃f ./ sJ .- Z̃f .* (v̂ .- vf) ./ sJ),
-                     Array(ψ),
+                     τ̂,
+                     ψ_cpu,
                      t,
                      io.slip_file,
                      io.stress_file,
                      io.slip_rate_file,
                      io.state_file)
+
+        write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
+        
+
+        
         #pf[2] += .5
         #end
 

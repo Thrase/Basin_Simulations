@@ -83,7 +83,7 @@ let
     stress_file,
     state_file = make_ss(fc, δNp, ARGS[1])
     station_names = make_stations(dir_name)
-    u_file, v_file = make_uv_files(dir_name, x[1:2:δNp, 1], y[1, 1:2:δNp])
+    u_file, v_file = make_uv_files(dir_name, x[1:2:nn, 1], y[1, 1:2:nn])
     @printf "set-up io\n"
     flush(stdout)
 
@@ -117,7 +117,9 @@ let
           stress_file = stress_file,
           state_file = state_file,
           station_names = station_names,
-          pf = [0, 0.0, 0.0])
+          pf = [0, 0.0, 0.0],
+          u_file = u_file,
+          v_file = v_file)
     
     vars = (u_prev = zeros(nn^2),
             t_prev = [0.0, 0.0],
@@ -159,13 +161,15 @@ let
                       fc = metrics.facecoord[2][1],
                       Lw = Lw,
                       io = io,
-                      d_to_s = d_to_s)
+                      d_to_s = d_to_s,
+                      RS_cpu = RS)
 
         
     @printf "Approximately %f Gib to GPU\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
-    
+    @show dts
+    quit()
     cycles = 1
     plot()
     while t_now < T * year_seconds
