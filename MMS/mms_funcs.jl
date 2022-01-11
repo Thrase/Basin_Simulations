@@ -183,19 +183,29 @@ function fault_force(x, y, t, b, B_p, RS, MMS)
 
 end
 
-Pe(x, y, MMS) = sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y)
+Pe(x, y, t, MMS) = sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y) .* sin.(π/MMS.Lw .* t)
 
-Pe_y(x, y, MMS) = - π/MMS.Lw .* sin.(π/MMS.Lw * x) .* sin.(π/MMS.Lw * y)
+Pe_y(x, y, t, MMS) = - π/MMS.Lw .* sin.(π/MMS.Lw * x) .* sin.(π/MMS.Lw * y) .* sin.(π/MMS.Lw .* t)
 
-Pe_yy(x, y, MMS) = - π^2/MMS.Lw^2 .* sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y)
+Pe_yy(x, y, t, MMS) = - π^2/MMS.Lw^2 .* sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y) .* sin.(π/MMS.Lw .* t)
 
-Pe_x(x, y, MMS) = π/MMS.Lw * cos.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y)
+Pe_x(x, y, t, MMS) = π/MMS.Lw * cos.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y) .* sin.(π/MMS.Lw .* t)
 
-Pe_xx(x, y, MMS) = - π^2/MMS.Lw^2 * sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y)
+Pe_xx(x, y, t, MMS) = - π^2/MMS.Lw^2 * sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y) .* sin.(π/MMS.Lw .* t)
 
-P_FORCE(x, y, B_p, MMS) = - (μ_x(x, y, B_p) .* Pe_x(x, y, MMS) .+ μ(x, y, B_p) .* Pe_xx(x, y, MMS) .+
-    μ_y(x, y, B_p) .* Pe_y(x, y, MMS) .+ μ(x, y, B_p) .* Pe_yy(x, y, MMS))
+Pe_t(x, y, t, MMS) = π/MMS.Lw .* sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y) .* cos.(π/MMS.Lw .* t)
 
-P_face3(x, y, B_p, MMS) = - μ(x, y, B_p) .* Pe_y(x, y, MMS)
+Pe_tt(x, y, t, MMS) = - π^2/MMS.Lw^2 .* sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y) .* sin.(π/MMS.Lw .* t)
 
-P_face4(x, y, B_p, MMS) = μ(x, y, B_p) .* Pe_y(x, y, MMS)
+P_FORCE(x, y, t, B_p, MMS) = - (μ_x(x, y, B_p) .* Pe_x(x, y, t, MMS) .+
+    μ(x, y, B_p) .* Pe_xx(x, y, t, MMS) .+
+    μ_y(x, y, B_p) .* Pe_y(x, y, t, MMS) .+
+    μ(x, y, B_p) .* Pe_yy(x, y, t, MMS))
+
+P_face3(x, y, t, B_p, MMS) = - μ(x, y, B_p) .* Pe_y(x, y, t, MMS)
+
+P_face4(x, y, t, B_p, MMS) = μ(x, y, B_p) .* Pe_y(x, y, t, MMS)
+
+P_face2(x, y, t, MMS) = Pe(x, y, t, MMS) .- t
+
+P_face1(x, y, t, MMS) = Pe(x, y, t, MMS) .- 1/2 * t^2

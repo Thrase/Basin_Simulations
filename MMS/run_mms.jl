@@ -12,7 +12,7 @@ let
     t_span = (0, .001)
     
     # mesh refinement
-    ns = 8 * 2 .^ (2:6)
+    ns = 2 * 2 .^ (2:6)
     @show ns
     # order of operators
     p = [2]

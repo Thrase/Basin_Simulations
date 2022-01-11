@@ -16,7 +16,7 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function poisson_data_mms!(ge, K, H̃, vf, MMS, B_p, metrics)
+function poisson_data_mms!(u1, ge, K, H̃, vf, MMS, B_p, metrics, t)
 
     coord = metrics.coord
     (xf, yf) = metrics.facecoord
@@ -26,18 +26,18 @@ function poisson_data_mms!(ge, K, H̃, vf, MMS, B_p, metrics)
     
     for i in 1:4
         if i == 1
-            vf .= Pe(xf[1], yf[1], MMS)
+            vf .= u1 + P_face1(xf[1], yf[1], t, MMS)
         elseif i == 2
-            vf .= Pe(xf[2], yf[2], MMS)
+            vf .= t .+ P_face2(xf[2], yf[2], t, MMS)
         elseif i == 3
-            vf .= sJ[3] .* P_face3(xf[3], yf[3], B_p, MMS)
+            vf .= sJ[3] .* P_face3(xf[3], yf[3], t, B_p, MMS)
         else
-            vf .= sJ[4] .*  P_face4(xf[4], yf[4], B_p, MMS)
+            vf .= sJ[4] .*  P_face4(xf[4], yf[4], t, B_p, MMS)
         end
         ge .-= K[i] * vf
     end
     
-    ge .-= H̃ * P_FORCE(coord[1][:], coord[2][:], B_p, MMS)
+    ge .-= H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
     
     

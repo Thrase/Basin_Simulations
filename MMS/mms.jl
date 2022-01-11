@@ -206,27 +206,49 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 u = zeros(nn^2)
                 ge = zeros(nn^2)
                 vf = zeros(nn)
-                
-                POISSON_MMS!(u, ge, vf, d_ops.M̃, d_ops.K, d_ops.H̃, MMS, B_p, metrics)
 
-                diff = u[:] .- Pe(x[:], y[:], MMS)
+                params = (u = u,
+                          ge = ge,
+                          vf = vf,
+                          M = d_ops.M̃,
+                          K = d_ops.K,
+                          H̃ = d_ops.H̃,
+                          MMS = MMS,
+                          B_p = B_p,
+                          metrics = metrics)
+                
+                u1 = Pe(metrics.facecoord[1][1],
+                        metrics.facecoord[2][1],
+                        0,
+                        MMS)
+
+                t_span = (0, 100.5)
+                
+                prob = ODEProblem(POISSON_MMS!, u1, t_span, params)
+                sol = solve(prob, Tsit5();
+                            atol = 1e-12,
+                            rtol = 1e-12,
+                            internalnorm=(x,_)->norm(x, Inf))
+                
+                
+                diff =  params.u[:] .- Pe(x[:], y[:], t_span[2], MMS)
 
                 err[iter] = sqrt(diff' * d_ops.JH * diff)
 
-                #=
+                
                 plt1 = contour(x[:, 1], y[1, :],
-                               (reshape(u, (nn, nn)) .- Pe(x, y, MMS))',
+                               (reshape(u, (nn, nn)) .- Pe(x, y, t_span[2], MMS))',
                                title = "error", fill=true)
                 plt2 = contour(x[:, 1], y[1, :], title = "exact",
-                               Pe(x, y, MMS)' , fill = true)
+                               Pe(x, y, t_span[2], MMS)' , fill = true)
                 plt3 = contour(x[:, 1], y[1, :], title = "forcing",
-                               P_FORCE(x, y, B_p, MMS)', fill=true)
+                               P_FORCE(x, y, t_span[2], B_p, MMS)', fill=true)
                 plt4 = contour(x[:, 1], y[1, :], title = "numerical",
                                reshape(u, (nn,nn))', fill=true)
                 
                 plot(plt1, plt2, plt3, plt4, layout=4)
                 gui()
-                =#
+                
                 @printf "\n\nerror with manufactured solution: %e\n\n" err[iter]
                 if iter > 1
                     @printf "rate: %f\n\n" log(2, err[iter - 1]/err[iter])

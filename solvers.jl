@@ -85,11 +85,24 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
 end
 
 
-function POISSON_MMS!(u, ge, vf, M, K, JI, MMS, B_p, metrics)
+function POISSON_MMS!(du1, u1, p, t)
 
-    poisson_data_mms!(ge, K, JI, vf, MMS, B_p, metrics)
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.M
+    K = p.K
+    H̃ = p.H̃
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+
+    poisson_data_mms!(u1, ge, K, H̃, vf, MMS, B_p, metrics, t)
 
     u[:] = M \ ge
+
+    du1 .= t
+    
 end
 
 function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
