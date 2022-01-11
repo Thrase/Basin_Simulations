@@ -2,7 +2,7 @@
 using CUDA
 using CUDA.CUSPARSE
 using Printf
-using BenchmarkTools
+#using BenchmarkTools
 
 CUDA.allowscalar(false)
 
@@ -12,13 +12,13 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
     nn = p.nn
     Δτ = p.vars.Δτ
     τ = p.vars.τ
-    M = p.ops.M̃
+    M̃ = p.ops.M̃
+    H̃I = p.ops.H̃I
     u = p.vars.u
     ge = p.vars.ge
     RS = p.RS
     η = p.metrics.η
     μf2 = p.metrics.μf2
-    fc = p.metrics.facecoord[2][1]
     Lw = p.Lw
     vf = p.vf
 
@@ -32,15 +32,11 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
     dψ = @view dψV[1:nn]
     V = @view dψV[nn .+ (1:nn)]
     
+    mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
+
+    u[:] = M̃ \ ge
     
-    #bc_Dirichlet = (lf, x, y) -> (2-lf)*(δ ./ 2) + (lf-1) .* ((RS.τ_inf*Lw) ./ μf2 .+ t * RS.Vp/2)
-    #bc_Neumann   = (lf, x, y) -> zeros(size(x))
-    
-    locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
-    
-    u[:] = M \ ge
-    
-    Δτ .= - computetraction_mod(p, 1, u, δ)
+    Δτ .= - traction(p, 1, u, δ)
 
     # solve for velocity point by point and set state derivative
     for n = 1:nn
@@ -85,7 +81,102 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
             return
         end
     end
+    nothing
+end
+
+
+function POISSON_MMS!(u, ge, vf, M, K, JI, MMS, B_p, metrics)
+
+    poisson_data_mms!(ge, K, JI, vf, MMS, B_p, metrics)
+
+    u[:] = M \ ge
+end
+
+function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
+
+    nn = p.nn
+    Δτ = p.vars.Δτ
+    τ = p.vars.τ
+    M̃ = p.ops.M̃
+    H̃I = p.ops.H̃I
+    u = p.vars.u
+    ge = p.vars.ge
+    RS = p.RS
+    η = p.metrics.η
+    μf2 = p.metrics.μf2
+    Lw = p.Lw
+    vf = p.vf
+
+    RS = p.RS
+    B_p = p.B_p
+    MMS = p.MMS
+
+    xf1 = p.metrics.facecoord[1][1]
+    yf1 = p.metrics.facecoord[2][1] 
+        
+    reject_step = p.reject_step
+    if reject_step[1]
+        return
+    end
     
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn .+ (1:nn)]
+    dψ = @view dψV[1:nn]
+    V = @view dψV[nn .+ (1:nn)]
+    
+    mod_data_mms!(ge, vf, δ, ops, RS, t, μf2, Lw, data)
+
+    ge .= H̃I * ge
+    
+    u[:] = M̃ \ ge
+    
+    Δτ .= - traction(p, 1, u, δ)
+
+    # solve for velocity point by point and set state derivative
+    for n = 1:nn
+
+        ψn = ψ[n]
+        bn = RS.b[n]
+        τn = Δτ[n]
+        τ[n] = τn
+        ηn = η[n]
+
+        if isnan(τn) || !isfinite(τn)
+            #println("τ reject")
+            reject_step[1] = true
+            return
+        end
+
+        VR = abs(τn / ηn)
+        VL = -VR
+        Vn = V[n]
+        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
+                                 atolx = 1e-12, rtolx = 1e-12)
+        
+        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+            #println("V reject")
+            reject_step[1] = true
+            return
+        end
+
+        V[n] = Vn
+        
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+        else
+            dψ[n] = 0
+        end
+
+        dψ[:] += fault_force(xf1, yf1, t, RS.b, B_p, RS, MMS)
+        
+        if !isfinite(dψ[n]) || isnan(dψ[n])
+            #println("ψ reject")
+            dψ[n] = 0
+            reject_step[1] = true
+            return
+        end
+    end
     nothing
 end
 
@@ -765,88 +856,4 @@ function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
     dgdV = σn .* dfdV + ηn
     (g, dgdV)
 end
-
-
-function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
-
-    nn = p.nn
-    Δτ = p.vars.Δτ
-    τ = p.vars.τ
-    M = p.ops.M̃
-    u = p.vars.u
-    ge = p.vars.ge
-    RS = p.RS
-    η = p.metrics.η
-    μf2 = p.metrics.μf2
-    fc = p.metrics.facecoord[2][1]
-    Lw = p.Lw
-    vf = p.vars.vf
-    b = p.b
-    MMS = p.MMS
-    B_p = p.B_p
-
-    reject_step = p.reject_step
-    if reject_step[1]
-        return
-    end
-    
-    ψ  = @view ψδ[1:nn]
-    δ =  @view ψδ[nn .+ (1:nn)]
-    dψ = @view dψV[1:nn]
-    V = @view dψV[nn .+ (1:nn)]
-    
-    
-    locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
-    
-    u[:] = M \ ge
-    
-    Δτ .= - computetraction_mod(p, 1, u, δ)
-
-    # solve for velocity point by point and set state derivative
-    for n = 1:nn
-
-        ψn = ψ[n]
-        bn = b[n]
-        τn = Δτ[n]
-        τ[n] = τn
-        ηn = η[n]
-
-        if isnan(τn) || !isfinite(τn)
-            #println("τ reject")
-            reject_step[1] = true
-            return
-        end
-
-        VR = abs(τn / ηn)
-        VL = -VR
-        Vn = V[n]
-        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
-        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
-                                 atolx = 1e-12, rtolx = 1e-12)
-        
-        if isnan(Vn) || iter < 0 || !isfinite(Vn)
-            #println("V reject")
-            reject_step[1] = true
-            return
-        end
-
-        V[n] = Vn
-        
-        if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0) #+ fault_force(fc[n], t, bn, B_p, RS, MMS)
-        else
-            dψ[n] = 0
-        end
-        
-        if !isfinite(dψ[n]) || isnan(dψ[n])
-            #println("ψ reject")
-            dψ[n] = 0
-            reject_step[1] = true
-            return
-        end
-    end
-    
-    nothing
-end
-
 

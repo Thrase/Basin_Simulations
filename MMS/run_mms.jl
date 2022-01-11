@@ -12,7 +12,7 @@ let
     t_span = (0, .001)
     
     # mesh refinement
-    ns = 8 * 2 .^ (4:4)
+    ns = 8 * 2 .^ (2:6)
     @show ns
     # order of operators
     p = [2]
@@ -41,7 +41,8 @@ let
 
     
     # MMS params
-    MMS = (wl = Lw/2,
+    MMS = (Lw = Lw,
+           wl = Lw/2,
            amp = .5,
            ϵ = .01,
            t̄ = 35,

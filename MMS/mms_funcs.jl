@@ -118,55 +118,84 @@ K_t(t, MMS) = MMS.t_w./(π .* (MMS.t̄.^2 .- 2 .* MMS.t̄.*t .+ MMS.t_w.^2 .+ t.
                   
 K_tt(t, MMS) = 2 .* MMS.t_w.*(MMS.t̄ .- t)./(π .* (MMS.t̄.^2 .- 2MMS.t̄.*t .+ MMS.t_w.^2 .+ t.^2).^2)
 
-h_e(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp ./2 .* t .* (1 .- ϕ(x,y,MMS)) .+ MMS.τ∞ ./24 .*x
+he(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp ./2 .* t .* (1 .- ϕ(x,y,MMS)) .+ MMS.τ∞ ./24 .*x
 
-h_et(x, y, t, MMS) = MMS.δ_e ./2 .* K_t(t, MMS).*ϕ(x, y, MMS) .+ MMS.Vp./2(1 .- ϕ(x,y,MMS))
+he_t(x, y, t, MMS) = MMS.δ_e ./2 .* K_t(t, MMS).*ϕ(x, y, MMS) .+ MMS.Vp./2(1 .- ϕ(x,y,MMS))
 
-h_ett(x, y, t, MMS) = MMS.δ_e ./2 .* K_tt(t, MMS).*ϕ(x,y, MMS)
+he_tt(x, y, t, MMS) = MMS.δ_e ./2 .* K_tt(t, MMS).*ϕ(x,y, MMS)
 
-h_ex(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS).*ϕ_x(x,y, MMS) .- MMS.Vp ./2 .*t.*ϕ_x(x, y, MMS) .+ MMS.τ∞ ./24
+he_x(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS).*ϕ_x(x,y, MMS) .- MMS.Vp ./2 .*t.*ϕ_x(x, y, MMS) .+ MMS.τ∞ ./24
 
-h_ext(x, y, t, MMS) = MMS.δ_e ./2 .* K_t(t, MMS) .* ϕ_x(x,y, MMS) .- MMS.Vp ./2 .* ϕ_x(x, y, MMS)
+he_xt(x, y, t, MMS) = MMS.δ_e ./2 .* K_t(t, MMS) .* ϕ_x(x,y, MMS) .- MMS.Vp ./2 .* ϕ_x(x, y, MMS)
 
-h_exx(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS) .* ϕ_xx(x,y, MMS) .- MMS.Vp ./2 .* t .*ϕ_xx(x, y, MMS)
+he_xx(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS) .* ϕ_xx(x,y, MMS) .- MMS.Vp ./2 .* t .*ϕ_xx(x, y, MMS)
 
-h_ey(x , y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS).*ϕ_y(x, y, MMS) .- ϕ_y(x, y, MMS)
+he_y(x , y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS).*ϕ_y(x, y, MMS) .- ϕ_y(x, y, MMS)
 
-h_eyy(x , y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS).*ϕ_yy(x, y, MMS) .- ϕ_yy(x, y, MMS)
+he_yy(x , y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS).*ϕ_yy(x, y, MMS) .- ϕ_yy(x, y, MMS)
 
 
-h_FORCE(x, y, t, B_p, MMS) = (μ_x(x, y, B_p) .* ue_x(x, y, t, MMS) .+ μ(x, y, B_p) .* ue_xx(x, y, t, MMS) .+
-                       μ_y(x, y, B_p) .* ue_y(x, y, t, MMS) .+ μ(x, y, B_p) .* ue_yy(x, y, t, MMS))
+h_FORCE(x, y, t, B_p, MMS) = (μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+ μ(x, y, B_p) .* he_xx(x, y, t, MMS) .+
+    μ_y(x, y, B_p) .* he_y(x, y, t, MMS) .+ μ(x, y, B_p) .* he_yy(x, y, t, MMS))
 
-function ψe_2(y, t, B_p, RS, MMS)
 
-    τe = μ(0, y, B_p) .* h_ex(0, y, t, MMS)
-    Ve = 2 .* h_et(0, y, t, MMS)
+function τhe(fx, fy, t, fnum, B_p, MMS)
+
+    if fnum == 1
+        τ = -μ(fx, fy, B_p) .* he_x(fx, fy, t, MMS)
+    elseif fnum == 2
+        τ = μ(fx, fy, B_p) .* he_x(fx, fy, t, MMS)
+    elseif fnum == 3
+        τ = -μ(fx, fy, B_p) .* he_y(fx, fy, t, MMS)
+    elseif fnum == 4 
+        τ = μ(fx, fy, B_p) .* he_y(fx, fy, t, MMS)
+    end
+    return τ
+
+end
+
+function ψe_2(x, y, t, B_p, RS, MMS)
+
+    τe = μ(x, y, B_p) .* he_x(x, y, t, MMS)
+    Ve = 2 .* he_t(0, y, t, MMS)
 
     
     return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(τe ./ (RS.a .* RS.σn))) .- η(y, B_p) .* Ve
 end
 
-function ψe_2t(y, t, B_p, RS, MMS)
+function ψe_2t(x, y, t, B_p, RS, MMS)
 
-    τe = - μ(0, y, B_p) .* h_ex(0, y, t, MMS)
-    Ve = 2 * h_et(0, y, t, MMS)
-    Ve_t = 2 * h_ett(0, y, t, MMS)
-    τe_t = - μ(0, y, B_p) .* h_ext(0, y, t, MMS)
+    τe = - μ(0, y, B_p) .* he_x(0, y, t, MMS)
+    Ve = 2 * he_t(0, y, t, MMS)
+    Ve_t = 2 * he_tt(0, y, t, MMS)
+    τe_t = - μ(0, y, B_p) .* he_xt(0, y, t, MMS)
     
     return τe_t ./ RS.σn .* coth.(τe ./ (RS.σn .* RS.a)) .- RS.a .* Ve_t ./ Ve .- η(y, B_p) .* Ve_t
 end
 
-function fault_force(y, t, b, B_p, RS, MMS)
+function fault_force(x, y, t, b, B_p, RS, MMS)
 
-    ψe = ψe_2(y, t, B_p, RS, MMS)
-    Ve = 2 * h_et(0, y, t, MMS)
+    ψe = ψe_2(x, y, t, B_p, RS, MMS)
+    Ve = 2 * he_t(x, y, t, MMS)
     G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψe) ./ b) .- abs.(Ve) / RS.V0)
     
-    return ψe_2t(y, t, B_p, RS, MMS) .- G
+    return ψe_2t(x, y, t, B_p, RS, MMS) .- G
 
 end
 
+Pe(x, y, MMS) = sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y)
 
+Pe_y(x, y, MMS) = - π/MMS.Lw .* sin.(π/MMS.Lw * x) .* sin.(π/MMS.Lw * y)
 
+Pe_yy(x, y, MMS) = - π^2/MMS.Lw^2 .* sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y)
 
+Pe_x(x, y, MMS) = π/MMS.Lw * cos.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y)
+
+Pe_xx(x, y, MMS) = - π^2/MMS.Lw^2 * sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * y)
+
+P_FORCE(x, y, B_p, MMS) = - (μ_x(x, y, B_p) .* Pe_x(x, y, MMS) .+ μ(x, y, B_p) .* Pe_xx(x, y, MMS) .+
+    μ_y(x, y, B_p) .* Pe_y(x, y, MMS) .+ μ(x, y, B_p) .* Pe_yy(x, y, MMS))
+
+P_face3(x, y, B_p, MMS) = - μ(x, y, B_p) .* Pe_y(x, y, MMS)
+
+P_face4(x, y, B_p, MMS) = μ(x, y, B_p) .* Pe_y(x, y, MMS)
