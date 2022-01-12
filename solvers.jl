@@ -1,8 +1,8 @@
-#using Plots
+using Plots
 using CUDA
 using CUDA.CUSPARSE
 using Printf
-#using BenchmarkTools
+
 
 CUDA.allowscalar(false)
 
@@ -85,77 +85,66 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
 end
 
 
-function POISSON_MMS!(du1, u1, p, t)
+function POISSON_MMS!(dψδ, ψδ, p, t)
 
-    u = p.u
-    ge = p.ge
-    vf = p.vf
-    M = p.M
-    K = p.K
-    H̃ = p.H̃
-    MMS = p.MMS
-    B_p = p.B_p
-    metrics = p.metrics
-
-    poisson_data_mms!(u1, ge, K, H̃, vf, MMS, B_p, metrics, t)
-
-    u[:] = M \ ge
-
-    du1 .= t
-    
-end
-
-function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
-
-    nn = p.nn
-    Δτ = p.vars.Δτ
-    τ = p.vars.τ
-    M̃ = p.ops.M̃
-    H̃I = p.ops.H̃I
-    u = p.vars.u
-    ge = p.vars.ge
-    RS = p.RS
-    η = p.metrics.η
-    μf2 = p.metrics.μf2
-    Lw = p.Lw
-    vf = p.vf
-
-    RS = p.RS
-    B_p = p.B_p
-    MMS = p.MMS
-
-    xf1 = p.metrics.facecoord[1][1]
-    yf1 = p.metrics.facecoord[2][1] 
-        
     reject_step = p.reject_step
     if reject_step[1]
         return
     end
     
+    nn = p.nn
+    Δτ = p.Δτ
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.M
+    K = p.K
+    JI = p.JI
+    H̃ = p.H̃
+    RS = p.RS
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+    ops = p.ops
+    η = metrics.η
+    b = p.b
+    count = p.counter
+
+    xf1 = metrics.facecoord[1][1]
+    yf1 = metrics.facecoord[2][1] 
+
+    @printf "Counter: %d\n" count[1]
+    count[1] += 1
     ψ  = @view ψδ[1:nn]
-    δ =  @view ψδ[nn .+ (1:nn)]
-    dψ = @view dψV[1:nn]
-    V = @view dψV[nn .+ (1:nn)]
-    
-    mod_data_mms!(ge, vf, δ, ops, RS, t, μf2, Lw, data)
+    δ =  @view ψδ[nn + 1 : 2nn]
+    dψ = @view dψδ[1:nn]
+    V = @view dψδ[nn + 1 : 2nn]
 
-    ge .= H̃I * ge
+    ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
     
-    u[:] = M̃ \ ge
+    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, metrics, t)
+
+    u[:] = M \ ge
+
+    if any(isnan, ge)
+        @printf "nan in ge\n"
+    end
     
-    Δτ .= - traction(p, 1, u, δ)
-
-    # solve for velocity point by point and set state derivative
-    for n = 1:nn
-
+    Δτ .= - traction(ops, 1, u, δ/2)
+    
+    if any(isnan, Δτ)
+        @printf "nan in τ\n"
+    end
+    
+    for n in 1:nn
+        
         ψn = ψ[n]
-        bn = RS.b[n]
+        bn = b[n]
         τn = Δτ[n]
-        τ[n] = τn
         ηn = η[n]
 
         if isnan(τn) || !isfinite(τn)
-            #println("τ reject")
+            @printf "reject on τ calc. Index %d\n " n
             reject_step[1] = true
             return
         end
@@ -168,30 +157,42 @@ function Q_DYNAMIC_MMS!(dψV, ψδ, p, t)
                                  atolx = 1e-12, rtolx = 1e-12)
         
         if isnan(Vn) || iter < 0 || !isfinite(Vn)
-            #println("V reject")
+            println("reject on V rootfind")
             reject_step[1] = true
             return
         end
 
         V[n] = Vn
         
-        if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-        else
-            dψ[n] = 0
-        end
+        #if bn != 0
+            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            #dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+        #else
+        #    dψ[n] = 0
+        #end
 
-        dψ[:] += fault_force(xf1, yf1, t, RS.b, B_p, RS, MMS)
-        
         if !isfinite(dψ[n]) || isnan(dψ[n])
-            #println("ψ reject")
+            println("reject on dψ calc")
             dψ[n] = 0
             reject_step[1] = true
             return
+            
         end
+        
     end
+    
+    plt1 = plot(ψ, yf1, yflip=true, legend = false, title = "state")
+    plt2 = plot(V, yf1, yflip=true, legend = false, title = "slip-velocity")
+
+    plot(plt1, plt2, layout=2)
+    gui()
+    
+    sleep(2)
+        
     nothing
+    
 end
+
 
 
 # timestepping rejection function

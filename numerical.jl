@@ -35,11 +35,11 @@ function poisson_data_mms!(u1, ge, K, H̃, vf, MMS, B_p, metrics, t)
             vf .= sJ[4] .*  P_face4(xf[4], yf[4], t, B_p, MMS)
         end
         ge .-= K[i] * vf
+        
+
     end
     
     ge .-= H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
-    
-    
     
 end
 
@@ -63,30 +63,29 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
     
 end
 
-function mod_data_mms!(ge, vf, δ, p, RS, t, μf2, Lw)
+function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, metrics, t)
+
+    (xf, yf) = metrics.facecoord
+    coord = metrics.coord
+    sJ = metrics.sJ
     
-    K = p.ops.K
-    sJ = p.ops.sJ
-    coord = p.metrics.coord
-    (xf, yf) = p.metrics.facecoord
-    MMS = p.MMS
-    B_p = p.B_p
-    ge .= 0
     
     for i in 1:4
         if i == 1 
             vf .= δ./2
         elseif i == 2
-            vf .= t * RS.Vp/2 + he(xf[2], yf[2], t, MMS)
+            vf .= t * MMS.Vp/2 .+ h_face2(xf[2], yf[2], t, MMS)
         elseif i == 3 
             vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
         elseif i == 4
             vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
         end
+        
         ge .-= K[i] * vf
+        
     end
 
-    ge .+= h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .-= JI * H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 

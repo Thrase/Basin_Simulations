@@ -12,11 +12,11 @@ include("../solvers.jl")
 
 function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
     
-
+    year_seconds = 31556952
     #xt, yt = transforms_e(Lw, .1, .05)
     # expand to (0,Lw) × (0, Lw)
-    (x1, x2, x3, x4) = (-Lw, Lw, -Lw, Lw)
-    (y1, y2, y3, y4) = (-Lw, -Lw, Lw, Lw)
+    (x1, x2, x3, x4) = (0, 40, 0, 40)
+    (y1, y2, y3, y4) = (0, 0, 40, 40)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
     
     for p in ps
@@ -33,7 +33,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
             end
 
             @printf "Got metrics: %s s\n" mt
-       
+            facecoord = metrics.facecoord
             x = metrics.coord[1]
             y = metrics.coord[2]
 
@@ -207,35 +207,71 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 ge = zeros(nn^2)
                 vf = zeros(nn)
 
-                params = (u = u,
+                #=
+                for time in 0: 5 * year_seconds: 70 * year_seconds
+                    plot!(he(facecoord[1][1],
+                             facecoord[2][1],
+                             time,
+                             MMS),
+                          facecoord[2][1],
+                          yflip = true,
+                          legend = false,
+                          title="slip",
+                          color = :blue)
+                    gui()
+                end
+
+                quit()
+                =#
+                
+                params = (reject_step = [false],
+                          nn = nn,
+                          Δτ = zeros(nn),
+                          u = u,
                           ge = ge,
                           vf = vf,
                           M = d_ops.M̃,
                           K = d_ops.K,
                           H̃ = d_ops.H̃,
+                          JI = d_ops.JI,
+                          RS = RS,
                           MMS = MMS,
                           B_p = B_p,
-                          metrics = metrics)
+                          ops = d_ops,
+                          b = b,
+                          metrics = metrics,
+                          counter = [0])
                 
-                u1 = Pe(metrics.facecoord[1][1],
-                        metrics.facecoord[2][1],
-                        0,
-                        MMS)
+                δ = 2 * he(metrics.facecoord[1][1],
+                           metrics.facecoord[2][1],
+                           0,
+                           MMS)
 
-                t_span = (0, 100.5)
+                ψ = ψe_2(metrics.facecoord[1][1],
+                         metrics.facecoord[2][1],
+                         0,
+                         B_p,
+                         RS,
+                         MMS)
+
+                ψδ = [ψ ; δ]
+
+                t_span = (0, 70*year_seconds)
                 
-                prob = ODEProblem(POISSON_MMS!, u1, t_span, params)
+                prob = ODEProblem(POISSON_MMS!, ψδ, t_span, params)
                 sol = solve(prob, Tsit5();
+                            dt = .01,
+                            isoutofdomain=stepcheck,
                             atol = 1e-12,
                             rtol = 1e-12,
-                            internalnorm=(x,_)->norm(x, Inf))
+                            internalnorm=(x,_)->norm(x, Inf),)
                 
                 
                 diff =  params.u[:] .- Pe(x[:], y[:], t_span[2], MMS)
 
                 err[iter] = sqrt(diff' * d_ops.JH * diff)
 
-                
+                #=
                 plt1 = contour(x[:, 1], y[1, :],
                                (reshape(u, (nn, nn)) .- Pe(x, y, t_span[2], MMS))',
                                title = "error", fill=true)
@@ -248,7 +284,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 
                 plot(plt1, plt2, plt3, plt4, layout=4)
                 gui()
-                
+                =#
                 @printf "\n\nerror with manufactured solution: %e\n\n" err[iter]
                 if iter > 1
                     @printf "rate: %f\n\n" log(2, err[iter - 1]/err[iter])
