@@ -7,8 +7,10 @@ let
     test_type = 0
     # Domain length
     Lw = 40
+    # Basin width
+    W = 24
     # Basin Depth
-    D = .25
+    D = 6
     # simulation timespan
     t_span = (0, .001)
     
@@ -19,13 +21,13 @@ let
     p = [2]
 
     # Basin Params
-    B_p = (μ_out = 36.0,
-           ρ_out = 2.8,
-           μ_in = 8.0,
-           ρ_in = 2.0,
-           c = (Lw/2)/D,
-           r̄ = (Lw/2)^2,
-           r_w = 1 + (Lw/2)/D)
+    B_p = (μ_out = 24.0,
+           ρ_out = 3.0,
+           μ_in = 18.0,
+           ρ_in = 2.6,
+           c = (W/2)/D,
+           r̄ = (W/2)^2,
+           r_w = 20)
 
     # Rate-and-State Friction Params
     RS = (Hvw = 12,
@@ -34,7 +36,7 @@ let
           a = .015,
           b0 = .02,
           bmin = 0.0,
-          Dc = 1e6,
+          Dc = .2,
           f0 = .6,
           V0 = 1e-6,
           τ_inf = 24.82,
@@ -53,7 +55,7 @@ let
            Vp = 1e-9,
            H = 8,
            Vmin = 1e-12,
-           δ_e = 1e-9*(35*year_seconds)/2 -
+           δ_e = 1e-9*(35*year_seconds) -
                (1e-12*(35*year_seconds)))
 
     refine(p, ns, t_span, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS, test_type)

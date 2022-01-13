@@ -91,12 +91,16 @@ end
 
 
 function traction(ops, f, u, û)
+
     HI = ops.HI[f]
     G = ops.G[f]
     Γ = ops.Γ[f]
     L = ops.L[f]
+
+     @show norm(û - L*u)
     
     return HI * G * u + Γ * (û - L * u)
+    
 end
 
             

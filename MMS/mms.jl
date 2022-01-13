@@ -208,17 +208,19 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 vf = zeros(nn)
 
                 #=
-                for time in 0: 5 * year_seconds: 70 * year_seconds
-                    plot!(he(facecoord[1][1],
-                             facecoord[2][1],
-                             time,
-                             MMS),
+                for time in 0: year_seconds: 70 * year_seconds
+                    plot!(ψe_2(facecoord[1][1],
+                               facecoord[2][1],
+                               time,
+                               B_p,
+                               RS,
+                               MMS),
                           facecoord[2][1],
                           yflip = true,
                           legend = false,
-                          title="slip",
                           color = :blue)
                     gui()
+                    sleep(.01)
                 end
 
                 quit()

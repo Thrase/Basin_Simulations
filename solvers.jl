@@ -120,7 +120,7 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
-    ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
+    
     
     mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, metrics, t)
 
@@ -135,6 +135,8 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     if any(isnan, Δτ)
         @printf "nan in τ\n"
     end
+
+    ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
     
     for n in 1:nn
         
@@ -180,7 +182,8 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
         end
         
     end
-    
+
+    #=
     plt1 = plot(ψ, yf1, yflip=true, legend = false, title = "state")
     plt2 = plot(V, yf1, yflip=true, legend = false, title = "slip-velocity")
 
@@ -188,7 +191,8 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     gui()
     
     sleep(2)
-        
+    =#
+    
     nothing
     
 end

@@ -134,6 +134,7 @@ end
 
 
 function K(t, MMS)
+    
     t̄ = MMS.t̄
     tw = MMS.t_w
     δ = MMS.δ_e
@@ -143,6 +144,7 @@ function K(t, MMS)
 end
 
 function K_t(t, MMS)
+    
     t̄ = MMS.t̄
     tw = MMS.t_w
     δ = MMS.δ_e
@@ -152,6 +154,7 @@ function K_t(t, MMS)
 end
 
 function K_tt(t, MMS)
+    
     t̄ = MMS.t̄
     tw = MMS.t_w
     δ = MMS.δ_e

@@ -105,6 +105,7 @@ function fault_params(fc, Dc)
     
     
     function b_fun(y)
+        #=
         if 0 <= y < Hvw
             return b0
         end
@@ -115,12 +116,15 @@ function fault_params(fc, Dc)
             return bmin
         end
         return bmin
+        =#
+        return repeat([b0], length(y))
+        
     end
 
     
     RS = (σn = 50.0,
           a = a,
-          b = b_fun.(fc[1:δNp]),
+          b = b_fun.(fc[1:nn]),
           Dc = Dc,
           f0 = .6,
           V0 = 1e-6,
