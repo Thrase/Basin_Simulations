@@ -84,7 +84,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
 
                     #quit()
                     ot = @elapsed begin
-                                    
+                    #=
                     GPU_operators = (nn = nn,
                                      threads = threads,
                                      blocks = cld(nn, threads),
@@ -100,7 +100,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                                      b = CuArray(b),
                                      τ̃f = CuArray(zeros(nn)))
                     
-                    
+                    =#
                     end
                 #@printf "Got Operators: %s s\n" ot
 
@@ -115,7 +115,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                                      metrics.facecoord[2][1],
                                      0, B_p, RS, MMS))
 
-                    q3 = CuArray(deepcopy(q1))
+#                    q3 = CuArray(deepcopy(q1))
                     q4 = deepcopy(q1)
                     q5 = deepcopy(q1)
                     @assert length(q1) == 2nn^2 + 5nn
@@ -123,19 +123,19 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 end
                 
 
-                dt_scale = .0001
+                dt_scale = 1
                 dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-                t_span = (0, .001)
+                t_span = (0, .1)
 
                 #@printf "Got initial conditions: %s s\n" it
                 @printf "Running simulations with %s nodes...\n" nn
                 @printf "___________________________________\n"
                 
-                
+                #=
                 st3 = @elapsed begin
                     timestep!(q3, FAULT_GPU!, GPU_operators, dt, t_span)
                 end
-                
+                =#
 
                 #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
 
@@ -145,25 +145,25 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 
                 #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
                 
-                
+                #=
                 st5 = @elapsed begin
                     timestep!(q5, FAULT_CPU!, cpu_operators, dt, t_span)
                 end
-
+                =#
 
                 x = metrics.coord[1]
                 y = metrics.coord[2]
                 
                 u_end4 = @view q4[1:Nn]
-                diff_u4 = u_end4 - ue(x[:], y[:], t_span[2], MMS)
+                diff_u4 = u_end4 - he(x[:], y[:], t_span[2], MMS)
                 err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
   
 
                 #@printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
                 
                 
-                u_end3 = @view Array(q3)[1:Nn]
-                u_end5 = @view q5[1:Nn]
+                #u_end3 = @view Array(q3)[1:Nn]
+                #u_end5 = @view q5[1:Nn]
 
                 @printf "CPU error with MS: %e\n" err4[iter]
                 if iter > 1
@@ -171,7 +171,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 end
                 
 
-                @printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
+                #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
                 
 
                 @printf "___________________________________\n\n"
