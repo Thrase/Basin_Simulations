@@ -64,7 +64,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
             # Dynamic MMS
             if test_type == 1
 
-                @printf "Dynamic MMS"
+                @printf "Dynamic MMS\n"
                 
                     threads = 512
                     GS = 0.0
@@ -105,13 +105,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 #@printf "Got Operators: %s s\n" ot
 
                 it = @elapsed begin
-                    u0 = ue(x[:], y[:], 0.0, MMS)
-                    v0 = ue_t(x[:], y[:], 0.0, MMS)
+                    u0 = he(x[:], y[:], 0.0, MMS)
+                    v0 = he_t(x[:], y[:], 0.0, MMS)
                     q1 = [u0;v0]
                     for i in 1:4
                         q1 = vcat(q1, d_ops.L[i]*u0)
                     end
-                    q1 = vcat(q1, ψe(metrics.facecoord[1][1],
+                    q1 = vcat(q1, ψe_2(metrics.facecoord[1][1],
                                      metrics.facecoord[2][1],
                                      0, B_p, RS, MMS))
 
@@ -125,10 +125,11 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
 
                 dt_scale = .0001
                 dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
+                t_span = (0, .001)
 
                 #@printf "Got initial conditions: %s s\n" it
                 @printf "Running simulations with %s nodes...\n" nn
-                @printf "\n___________________________________\n"
+                @printf "___________________________________\n"
                 
                 
                 st3 = @elapsed begin
@@ -136,7 +137,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 end
                 
 
-                @printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
+                #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
 
                 st4 = @elapsed begin
                     timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
@@ -158,13 +159,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
   
 
-                @printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
+                #@printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
                 
                 
                 u_end3 = @view Array(q3)[1:Nn]
                 u_end5 = @view q5[1:Nn]
 
-                @printf "CPU error with manufactured solution: %e\n" err4[iter]
+                @printf "CPU error with MS: %e\n" err4[iter]
                 if iter > 1
                     @printf "CPU rate: %f\n" log(2, err4[iter - 1]/err4[iter])
                 end
@@ -183,7 +184,6 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
                 ge = zeros(nn^2)
                 vf = zeros(nn)
 
-                
                 params = (reject_step = [false],
                           nn = nn,
                           Δτ = zeros(nn),

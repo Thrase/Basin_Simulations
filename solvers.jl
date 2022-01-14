@@ -790,9 +790,7 @@ end
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
     T = eltype(q)
-    @show Base.summarysize(Δq)/1e9
-    @show Base.summarysize(Δq)/1e9
-
+    
     RKA = [
         T(0),
         T(-567301805773 // 1357537059087),
