@@ -214,9 +214,10 @@ function ψe_2t(x, y, t, B_p, RS, MMS)
     τe = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 * he_t(x, y, t, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
-    τe_t = - μ(x, y, B_p) .* he_xt(0, y, t, MMS)
-    
+    τe_t = - μ(x, y, B_p) * he_xt(x, y, t, MMS)
+
     return τe_t ./ RS.σn .* coth.(τe ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve .- η(y, B_p) .* Ve_t
+    
 end
 
 function fault_force(x, y, t, b, B_p, RS, MMS)
@@ -229,8 +230,9 @@ function fault_force(x, y, t, b, B_p, RS, MMS)
 
 end
 
-function h_face2(x, y, t, MMS)
-    return he(x, y, t, MMS) .- MMS.Vp/2 * t
+function h_face2(x, y, t, MMS, RS, μf2)
+    return he(x, y, t, MMS) .- (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2)
+                                
 end
 
 
@@ -246,7 +248,26 @@ Pe_xx(x, y, t, MMS) = - π^2/MMS.Lw^2 * sin.(π/MMS.Lw * x) .* cos.(π/MMS.Lw * 
 
 Pe_t(x, y, t, MMS) = π/MMS.Lw .* sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y) .* cos.(π/MMS.Lw .* t)
 
+Pe_tx(x, y, t, MMS) = π^2/MMS.Lw^2 .* cos.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y) .* cos.(π/MMS.Lw .* t)
+
+
 Pe_tt(x, y, t, MMS) = - π^2/MMS.Lw^2 .* sin.(π/MMS.Lw .* x) .* cos.(π/MMS.Lw .* y) .* sin.(π/MMS.Lw .* t)
+
+
+function τPe(fx, fy, t, fnum, B_p, MMS)
+
+    if fnum == 1
+        τ = -μ(fx, fy, B_p) .* Pe_x(fx, fy, t, MMS)
+    elseif fnum == 2
+        τ = μ(fx, fy, B_p) .* Pe_x(fx, fy, t, MMS)
+    elseif fnum == 3
+        τ = -μ(fx, fy, B_p) .* Pe_y(fx, fy, t, MMS)
+    elseif fnum == 4 
+        τ = μ(fx, fy, B_p) .* Pe_y(fx, fy, t, MMS)
+    end
+    return τ
+
+end
 
 P_FORCE(x, y, t, B_p, MMS) = - (μ_x(x, y, B_p) .* Pe_x(x, y, t, MMS) .+
     μ(x, y, B_p) .* Pe_xx(x, y, t, MMS) .+

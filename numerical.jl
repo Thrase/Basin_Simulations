@@ -16,7 +16,7 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function poisson_data_mms!(u1, ge, K, H̃, vf, MMS, B_p, metrics, t)
+function poisson_data_mms!(u1, ge, K, JI, H̃, vf, MMS, B_p, metrics, t)
 
     coord = metrics.coord
     (xf, yf) = metrics.facecoord
@@ -39,7 +39,7 @@ function poisson_data_mms!(u1, ge, K, H̃, vf, MMS, B_p, metrics, t)
 
     end
     
-    ge .-= H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .-= JI * H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
@@ -63,18 +63,23 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
     
 end
 
-function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, metrics, t)
+function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
 
     (xf, yf) = metrics.facecoord
     coord = metrics.coord
     sJ = metrics.sJ
+    μf2 = μ(xf[2], yf[2], B_p)
     
+    ge .= 0
     
     for i in 1:4
+        
         if i == 1 
-            vf .= δ./2
+            vf .= he(xf[1], yf[1], t, MMS)
         elseif i == 2
-            vf .= t * MMS.Vp/2 .+ h_face2(xf[2], yf[2], t, MMS)
+            vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
+                t * MMS.Vp/2 .+
+                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
         elseif i == 3 
             vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
         elseif i == 4
@@ -85,7 +90,7 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, metrics, t)
         
     end
 
-    ge .-= JI * H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .-= #=JI *=# H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
@@ -97,7 +102,6 @@ function traction(ops, f, u, û)
     Γ = ops.Γ[f]
     L = ops.L[f]
 
-     @show norm(û - L*u)
     
     return HI * G * u + Γ * (û - L * u)
     
@@ -185,7 +189,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         Ã = Ãrr + Ãss + Ãrs + Ãsr
     end
 
-    @printf "Got Ã in %f seconds\n" A_t
+    #@printf "Got Ã in %f seconds\n" A_t
 
     boundary_t = @elapsed begin
 
@@ -342,16 +346,14 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
              H[4] * (B[4][1] + B[4][2]))
     end
 
-    @printf "Got boundary ops in %f seconds\n" boundary_t
+    #@printf "Got boundary ops in %f seconds\n" boundary_t
 
 
     static_t = @elapsed begin
         
-        #display(Array(JI))
-        JIHI = JI * H̃inv
-       
-        K1 =  JI * (L[1]' * Γ[1] - G[1]')
-        K2 =  JI * (L[2]' * Γ[2] - G[2]')
+               
+        K1 = JI * (L[1]' * Γ[1] - G[1]')
+        K2 = JI * (L[2]' * Γ[2] - G[2]')
         K3 = JI * (L[3]' * H[3])
         K4 = JI * (L[4]' * H[4])
         
@@ -365,7 +367,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         
         M̃ = JI * M̃
     end
-    @printf "Got quasi-dynamic ops in %f seconds\n" static_t
+    #@printf "Got quasi-dynamic ops in %f seconds\n" static_t
     # accleration blocks
 
 
@@ -434,7 +436,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         nBBCΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
     end
 
-    @printf "Got Λ and friends in %f seconds\n" Λ_t
+    #@printf "Got Λ and friends in %f seconds\n" Λ_t
 
  
     (Λ = Λ,

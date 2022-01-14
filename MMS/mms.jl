@@ -10,13 +10,13 @@ include("../domain.jl")
 include("../numerical.jl")
 include("../solvers.jl")
 
-function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
+function refine(ps, ns, Lw, D, B_p, RS, R, MMS, test_type)
     
     year_seconds = 31556952
     #xt, yt = transforms_e(Lw, .1, .05)
     # expand to (0,Lw) × (0, Lw)
-    (x1, x2, x3, x4) = (0, 40, 0, 40)
-    (y1, y2, y3, y4) = (0, 0, 40, 40)
+    (x1, x2, x3, x4) = (0, Lw, 0, Lw)
+    (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
     
     for p in ps
@@ -32,13 +32,13 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 metrics = create_metrics(N, N, B_p, μ, ρ, xt, yt)
             end
 
-            @printf "Got metrics: %s s\n" mt
+            #@printf "Got metrics: %s s\n" mt
             facecoord = metrics.facecoord
             x = metrics.coord[1]
             y = metrics.coord[2]
 
                 faces_fault = [0 2 3 4]
-                @time d_ops = operators(p, N, N, μ, ρ, R, B_p, faces_fault, metrics)
+                d_ops = operators(p, N, N, μ, ρ, R, B_p, faces_fault, metrics)
                 
                 b = repeat([.02], nn)
                 τ̃f = Array{Float64, 1}(undef, nn)
@@ -64,6 +64,8 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
             # Dynamic MMS
             if test_type == 1
 
+                @printf "Dynamic MMS"
+                
                     threads = 512
                     GS = 0.0
                     GS += (length(d_ops.Λ.nzval) * 8)/1e9
@@ -100,7 +102,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                     
                     
                     end
-                @printf "Got Operators: %s s\n" ot
+                #@printf "Got Operators: %s s\n" ot
 
                 it = @elapsed begin
                     u0 = ue(x[:], y[:], 0.0, MMS)
@@ -124,7 +126,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                 dt_scale = .0001
                 dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
 
-                @printf "Got initial conditions: %s s\n" it
+                #@printf "Got initial conditions: %s s\n" it
                 @printf "Running simulations with %s nodes...\n" nn
                 @printf "\n___________________________________\n"
                 
@@ -147,12 +149,26 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                     timestep!(q5, FAULT_CPU!, cpu_operators, dt, t_span)
                 end
 
+
+                x = metrics.coord[1]
+                y = metrics.coord[2]
+                
+                u_end4 = @view q4[1:Nn]
+                diff_u4 = u_end4 - ue(x[:], y[:], t_span[2], MMS)
+                err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
+  
+
                 @printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
                 
                 
                 u_end3 = @view Array(q3)[1:Nn]
                 u_end5 = @view q5[1:Nn]
 
+                @printf "CPU error with manufactured solution: %e\n" err4[iter]
+                if iter > 1
+                    @printf "CPU rate: %f\n" log(2, err4[iter - 1]/err4[iter])
+                end
+                
 
                 @printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
                 
@@ -161,70 +177,12 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
 
             #quasi dynamic MMS
             else
-                #=
-                year_seconds = 31556952
+
                 
-                ψ0 = ψe_2(metrics.facecoord[2][1], 0, B_p, RS, MMS)
-                u0 = h_e(x[:], y[:], 0, MMS)
-                δ0 = 2 * d_ops.L[1] * u0
-
-                #=
-                for t in 0:year_seconds: 100 * year_seconds
-                    contour(x[:, 1], y[1, :],
-                            h_e(x[:], y[:], t, MMS),
-                            fill=true,
-                            yflip=true)
-                    sleep(.1)
-                    gui()
-                end
-                =#
-                
-                ψδ = [ψ0 ; δ0]
-                vars = (Δτ = zeros(nn),
-                        τ = zeros(nn),
-                        u = u0,
-                        ge = zeros(nn^2),
-                        vf = zeros(nn))
-                static_params = (reject_step = [false],
-                                 Lw = Lw,
-                                 nn = nn,
-                                 vars = vars,
-                                 ops = d_ops,
-                                 metrics = metrics,
-                                 RS = RS,
-                                 b = b,
-                                 MMS = MMS,
-                                 B_p = B_p)
-
-                t_span = (0.0, 50 * year_seconds)
-                prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, static_params)
-                sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=1,
-                            atol = 1e-12, rtol = 1e-12, save_everystep=true,
-                            internalnorm=(x, _)->norm(x, Inf))
-                =#
-
                 u = zeros(nn^2)
                 ge = zeros(nn^2)
                 vf = zeros(nn)
 
-                #=
-                for time in 0: year_seconds: 70 * year_seconds
-                    plot!(ψe_2(facecoord[1][1],
-                               facecoord[2][1],
-                               time,
-                               B_p,
-                               RS,
-                               MMS),
-                          facecoord[2][1],
-                          yflip = true,
-                          legend = false,
-                          color = :blue)
-                    gui()
-                    sleep(.01)
-                end
-
-                quit()
-                =#
                 
                 params = (reject_step = [false],
                           nn = nn,
@@ -258,7 +216,7 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
 
                 ψδ = [ψ ; δ]
 
-                t_span = (0, 70*year_seconds)
+                t_span = (0, 10)
                 
                 prob = ODEProblem(POISSON_MMS!, ψδ, t_span, params)
                 sol = solve(prob, Tsit5();
@@ -269,27 +227,15 @@ function refine(ps, ns, t_span, Lw, D, B_p, RS, R, MMS, test_type)
                             internalnorm=(x,_)->norm(x, Inf),)
                 
                 
-                diff =  params.u[:] .- Pe(x[:], y[:], t_span[2], MMS)
+                diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
                 err[iter] = sqrt(diff' * d_ops.JH * diff)
 
-                #=
-                plt1 = contour(x[:, 1], y[1, :],
-                               (reshape(u, (nn, nn)) .- Pe(x, y, t_span[2], MMS))',
-                               title = "error", fill=true)
-                plt2 = contour(x[:, 1], y[1, :], title = "exact",
-                               Pe(x, y, t_span[2], MMS)' , fill = true)
-                plt3 = contour(x[:, 1], y[1, :], title = "forcing",
-                               P_FORCE(x, y, t_span[2], B_p, MMS)', fill=true)
-                plt4 = contour(x[:, 1], y[1, :], title = "numerical",
-                               reshape(u, (nn,nn))', fill=true)
                 
-                plot(plt1, plt2, plt3, plt4, layout=4)
-                gui()
-                =#
-                @printf "\n\nerror with manufactured solution: %e\n\n" err[iter]
+                @printf "\nnodes per dim: %d\n" nn
+                @printf "error with manufactured solution: %e\n" err[iter]
                 if iter > 1
-                    @printf "rate: %f\n\n" log(2, err[iter - 1]/err[iter])
+                    @printf "rate: %f\n" log(2, err[iter - 1]/err[iter])
                 end
 
             end

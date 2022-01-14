@@ -4,7 +4,7 @@ let
 
     year_seconds = 31556952
     # 1 is dynamic 0 is static
-    test_type = 0
+    test_type = 1
     # Domain length
     Lw = 40
     # Basin width
@@ -12,10 +12,10 @@ let
     # Basin Depth
     D = 6
     # simulation timespan
-    t_span = (0, .001)
+    #t_span = (0, .001)
     
     # mesh refinement
-    ns = 2 * 2 .^ (6:6)
+    ns = 2 .^ (6:10)
     @show ns
     # order of operators
     p = [2]
@@ -36,7 +36,7 @@ let
           a = .015,
           b0 = .02,
           bmin = 0.0,
-          Dc = .2,
+          Dc = 1e9,
           f0 = .6,
           V0 = 1e-6,
           τ_inf = 24.82,
@@ -58,6 +58,6 @@ let
            δ_e = 1e-9*(35*year_seconds) -
                (1e-12*(35*year_seconds)))
 
-    refine(p, ns, t_span, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS, test_type)
+    refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS, test_type)
 
 end

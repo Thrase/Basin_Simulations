@@ -113,31 +113,20 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
 
-    @printf "Counter: %d\n" count[1]
-    count[1] += 1
+    #@printf "Counter: %d\n" count[1]
+    #count[1] += 1
+    #@show t
+
     ψ  = @view ψδ[1:nn]
     δ =  @view ψδ[nn + 1 : 2nn]
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
     
-    
-    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, metrics, t)
+    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
 
-    if any(isnan, ge)
-        @printf "nan in ge\n"
-    end
-    
-    Δτ .= - traction(ops, 1, u, δ/2)
-    
-    if any(isnan, Δτ)
-        @printf "nan in τ\n"
-    end
-
-    ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
-    
     for n in 1:nn
         
         ψn = ψ[n]
@@ -146,7 +135,7 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
         ηn = η[n]
 
         if isnan(τn) || !isfinite(τn)
-            @printf "reject on τ calc. Index %d\n " n
+            #@printf "reject on τ calc. Index %d\n " n
             reject_step[1] = true
             return
         end
@@ -159,22 +148,22 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
                                  atolx = 1e-12, rtolx = 1e-12)
         
         if isnan(Vn) || iter < 0 || !isfinite(Vn)
-            println("reject on V rootfind")
+            #println("reject on V rootfind")
             reject_step[1] = true
             return
         end
 
         V[n] = Vn
         
-        #if bn != 0
-            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            #dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
-        #else
-        #    dψ[n] = 0
-        #end
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+        else
+            dψ[n] = 0
+        end
 
         if !isfinite(dψ[n]) || isnan(dψ[n])
-            println("reject on dψ calc")
+            #println("reject on dψ calc")
             dψ[n] = 0
             reject_step[1] = true
             return
@@ -192,7 +181,6 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     
     sleep(2)
     =#
-    
     nothing
     
 end
