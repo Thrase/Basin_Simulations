@@ -3,8 +3,7 @@ include("mms.jl")
 let
 
     year_seconds = 31556952
-    # 1 is dynamic 0 is static
-    test_type = 1
+    
     # Domain length
     Lw = 40
     # Basin width
@@ -15,10 +14,10 @@ let
     
     
     # mesh refinement
-    ns = 2 .^ (6:10)
-    @show ns
+    ns = 2 .^ (6:8)
+    
     # order of operators
-    p = [2]
+    p = [2, 4, 6]
 
     # Basin Params
     B_p = (μ_out = 24.0,
@@ -29,7 +28,7 @@ let
            r̄ = (W/2)^2,
            r_w = 20)
 
-    # Rate-and-State Friction Params
+    # Rate-and-State Friction Params`
     RS = (Hvw = 12,
           Ht = 6,
           σn = 50.0,
@@ -58,6 +57,6 @@ let
            δ_e = 1e-9*(35*year_seconds) -
                (1e-12*(35*year_seconds)))
 
-    refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS, test_type)
+    refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS)
 
 end

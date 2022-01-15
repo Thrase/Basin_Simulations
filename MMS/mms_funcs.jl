@@ -35,7 +35,6 @@ function ϕ_yy(x, y, MMS)
         ((h .+ x).^2 .+ y.^2).^3
 end
 
-
 function K(t, MMS)
     
     t̄ = MMS.t̄
@@ -66,7 +65,6 @@ function K_tt(t, MMS)
     return (2 * tw * (t̄ -t)) / (π * (t̄ - 2t̄ + t̄^2 + t^2)^2)
 end
 
-
 he(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp ./2 .* t .* (1 .- ϕ(x,y,MMS)) .+
     MMS.τ∞/36 .* x
 
@@ -81,12 +79,10 @@ he_yy(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_yy(x, y, MMS) .- MMS.Vp/2 .* 
 
 he_xt(x, y, t, MMS) = MMS.δ_e .* K_t(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* ϕ_x(x, y, MMS)
 
-
 h_FORCE(x, y, t, B_p, MMS) = -(μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+
     μ(x, y, B_p) .* he_xx(x, y, t, MMS) .+
     μ_y(x, y, B_p) .* he_y(x, y, t, MMS) .+
     μ(x, y, B_p) .* he_yy(x, y, t, MMS))
-
 
 function τhe(fx, fy, t, fnum, B_p, MMS)
 
@@ -138,8 +134,6 @@ function h_face2(x, y, t, MMS, RS, μf2)
                                 
 end
 
-
-
 function Forcing(x, y, t, B_p, MMS)
         
     Force = ρ(x, y, B_p) .* he_tt(x, y, t, MMS) .-
@@ -157,7 +151,6 @@ function S_c(fx, fy, t, fnum, R, B_p, MMS)
 
     return Z .* v .+ τ .- R .* (Z .* v .- τ)
 end
-
 
 function S_rs(fx, fy, b, t, B_p, RS, MMS)
     

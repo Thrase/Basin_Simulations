@@ -97,10 +97,10 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     u = p.u
     ge = p.ge
     vf = p.vf
-    M = p.M
-    K = p.K
-    JI = p.JI
-    H̃ = p.H̃
+    M = p.ops.M̃
+    K = p.ops.K
+    H̃ = p.ops.H̃
+    JI = p.ops.JI
     RS = p.RS
     MMS = p.MMS
     B_p = p.B_p
