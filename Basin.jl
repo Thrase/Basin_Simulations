@@ -171,10 +171,10 @@ let
     flush(stdout)
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
     @show dts
-    quit()
     cycles = 1
-    plot()
+
     while t_now < T * year_seconds
+
         static_params.cycles[1] = cycles
         @printf "On cycle %d\n" cycles
         
@@ -191,6 +191,7 @@ let
         
         @printf "Interseismic period took %s seconds. \n" inter_time
         flush(stdout)
+    #=
         # dynamic inital conditions
         t_now = sol.t[end]
         t_span = (t_now,  sim_seconds)
@@ -242,8 +243,9 @@ let
         static_params.io.pf[1] = 0
         static_params.io.pf[2] = 0
         cycles += 1
+        =#
     end
-
+    
 end
 
 

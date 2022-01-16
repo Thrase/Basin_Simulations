@@ -1,58 +1,58 @@
-#using Plots
+using Plots
 using CUDA
 using CUDA.CUSPARSE
 using Printf
-using BenchmarkTools
+
 
 CUDA.allowscalar(false)
 
-
-function Q_DYNAMIC!(dψV, ψδ, p, t)
-
-    nn = p.nn
-    Δτ = p.vars.Δτ
-    τ = p.vars.τ
-    M = p.ops.M̃
-    u = p.vars.u
-    ge = p.vars.ge
-    RS = p.RS
-    η = p.metrics.η
-    μf2 = p.metrics.μf2
-    fc = p.metrics.facecoord[2][1]
-    Lw = p.Lw
-    vf = p.vf
+function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
     reject_step = p.reject_step
     if reject_step[1]
         return
     end
     
+    nn = p.nn
+    Δτ = p.Δτ
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.ops.M̃
+    K = p.ops.K
+    H̃ = p.ops.H̃
+    JI = p.ops.JI
+    RS = p.RS
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+    ops = p.ops
+    η = metrics.η
+    b = p.b
+    count = p.counter
+
+    xf1 = metrics.facecoord[1][1]
+    yf1 = metrics.facecoord[2][1] 
+
+
     ψ  = @view ψδ[1:nn]
-    δ =  @view ψδ[nn .+ (1:nn)]
-    dψ = @view dψV[1:nn]
-    V = @view dψV[nn .+ (1:nn)]
+    δ =  @view ψδ[nn + 1 : 2nn]
+    dψ = @view dψδ[1:nn]
+    V = @view dψδ[nn + 1 : 2nn]
+
     
-    
-    #bc_Dirichlet = (lf, x, y) -> (2-lf)*(δ ./ 2) + (lf-1) .* ((RS.τ_inf*Lw) ./ μf2 .+ t * RS.Vp/2)
-    #bc_Neumann   = (lf, x, y) -> zeros(size(x))
-    
-    locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
-    
+    mod_data!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+
     u[:] = M \ ge
-    
-    Δτ .= - computetraction_mod(p, 1, u, δ)
 
-    # solve for velocity point by point and set state derivative
-    for n = 1:nn
-
+    for n in 1:nn
+        
         ψn = ψ[n]
-        bn = RS.b[n]
+        bn = b[n]
         τn = Δτ[n]
-        τ[n] = τn
         ηn = η[n]
 
         if isnan(τn) || !isfinite(τn)
-            #println("τ reject")
             reject_step[1] = true
             return
         end
@@ -65,7 +65,6 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
                                  atolx = 1e-12, rtolx = 1e-12)
         
         if isnan(Vn) || iter < 0 || !isfinite(Vn)
-            #println("V reject")
             reject_step[1] = true
             return
         end
@@ -77,17 +76,106 @@ function Q_DYNAMIC!(dψV, ψδ, p, t)
         else
             dψ[n] = 0
         end
-        
+
         if !isfinite(dψ[n]) || isnan(dψ[n])
-            #println("ψ reject")
             dψ[n] = 0
             reject_step[1] = true
             return
+            
         end
+        
+    end
+
+    nothing
+    
+end
+
+
+function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
+
+    reject_step = p.reject_step
+    if reject_step[1]
+        return
     end
     
+    nn = p.nn
+    Δτ = p.Δτ
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.ops.M̃
+    K = p.ops.K
+    H̃ = p.ops.H̃
+    JI = p.ops.JI
+    RS = p.RS
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+    ops = p.ops
+    η = metrics.η
+    b = p.b
+    count = p.counter
+
+    xf1 = metrics.facecoord[1][1]
+    yf1 = metrics.facecoord[2][1] 
+
+
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn + 1 : 2nn]
+    dψ = @view dψδ[1:nn]
+    V = @view dψδ[nn + 1 : 2nn]
+
+    
+    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+
+    u[:] = M \ ge
+
+    for n in 1:nn
+        
+        ψn = ψ[n]
+        bn = b[n]
+        τn = Δτ[n]
+        ηn = η[n]
+
+        if isnan(τn) || !isfinite(τn)
+            reject_step[1] = true
+            return
+        end
+
+        VR = abs(τn / ηn)
+        VL = -VR
+        Vn = V[n]
+        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
+                                 atolx = 1e-12, rtolx = 1e-12)
+        
+        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+            reject_step[1] = true
+            return
+        end
+
+        V[n] = Vn
+        
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+        else
+            dψ[n] = 0
+        end
+
+        if !isfinite(dψ[n]) || isnan(dψ[n])
+            dψ[n] = 0
+            reject_step[1] = true
+            return
+            
+        end
+        
+    end
+
     nothing
+    
 end
+
 
 
 # timestepping rejection function
@@ -132,26 +220,32 @@ function STOPFUN_Q(ψδ,t,i)
                   η)
         
         
-        #if pf[1] % 30 == 0
+        if pf[1] % 30 == 0
+
+            #=    
+            plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
+            legend=false)
+            
+            
+            plt2 = plot(τ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            xlabel="Slip", linecolor=:blue, linewidth=.1,
+            legend=false)
+            plot(plt1, plt2, layout=2)
+            gui()
 
             
-        plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-              xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
-              legend=false)
-            
-        plt2 = plot(τ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-                    xlabel="Slip", linecolor=:blue, linewidth=.1,
-                    legend=false)
-        plot(plt1, plt2, layout=2)
-        gui()
-            
-        write_out_ss(δ, V, τ, ψ, t,
-                     io.slip_file,
-                     io.stress_file,
-                     io.slip_rate_file,
-                     io.state_file)
-        
-        #end
+            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            xlabel="Slip", linecolor=:blue, linewidth=.1,
+            legend=false)
+            gui()
+
+            write_out_ss(δ, V, τ, ψ, t,
+                         io.slip_file,
+                         io.stress_file,
+                         io.slip_rate_file,
+                         io.state_file)
+        end
         
         #=
         if cycles == 2
@@ -699,9 +793,7 @@ end
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
     T = eltype(q)
-    @show Base.summarysize(Δq)/1e9
-    @show Base.summarysize(Δq)/1e9
-
+    
     RKA = [
         T(0),
         T(-567301805773 // 1357537059087),

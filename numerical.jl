@@ -16,31 +16,79 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function locbcarray_mod!(ge, vf, δ, p, RS, t, μf2, Lw)
-    F = p.ops.F
-    (xf, yf) = p.metrics.facecoord
-    sJ = p.metrics.sJ
-    τ = p.ops.τQ
+
+
+function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
+    
+    (xf, yf) = metrics.facecoord
+    coord = metrics.coord
+    sJ = metrics.sJ
+    μf2 = μ(xf[2], yf[2], B_p)
+    
     ge .= 0
     
     for i in 1:4
+        
         if i == 1 
-            vf .= δ./2
+            vf .= δ/2
         elseif i == 2
-            vf .= (RS.τ_inf * Lw) ./ μf2 .+ t * RS.Vp/2
-        elseif i == 3 || i == 4
-            vf .= 0
+            vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
+                t * MMS.Vp/2 .+
+                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
+        elseif i == 3 
+            vf .= sJ[3] * 0
+        elseif i == 4
+            vf .= sJ[4] .* 0
         end
-        ge .-= F[i] * vf
+        
+        ge .-= K[i] * vf
+        
     end
+
+end
+
+function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+
+    (xf, yf) = metrics.facecoord
+    coord = metrics.coord
+    sJ = metrics.sJ
+    μf2 = μ(xf[2], yf[2], B_p)
+    
+    ge .= 0
+    
+    for i in 1:4
+        
+        if i == 1 
+            vf .= δ/2
+        elseif i == 2
+            vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
+                t * MMS.Vp/2 .+
+                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
+        elseif i == 3 
+            vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
+        elseif i == 4
+            vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
+        end
+        
+        ge .-= K[i] * vf
+        
+    end
+
+    ge .-= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
-function computetraction_mod(p, f, u, δ)
-    HIFT = p.ops.HIFT[f]
-    τf = p.ops.τQ[f]
-    sJ = p.metrics.sJ[f]
-    return (HIFT * u + τf .* (δ .- δ / 2)) ./ sJ
+
+function traction(ops, f, u, û)
+
+    HI = ops.HI[f]
+    G = ops.G[f]
+    Γ = ops.Γ[f]
+    L = ops.L[f]
+
+    
+    return HI * G * u + Γ * (û - L * u)
+    
 end
 
             
@@ -125,7 +173,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         Ã = Ãrr + Ãss + Ãrs + Ãsr
     end
 
-    @printf "Got Ã in %f seconds\n" A_t
+    #@printf "Got Ã in %f seconds\n" A_t
 
     boundary_t = @elapsed begin
 
@@ -247,17 +295,6 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
             ψ4 = min.(ψ4, ψmin_s[:, Nsp+1-k])
         end
         
-        τs1 = (2τscale / hr) * (crr[  1, :].^2 / β + crs[  1, :].^2 / α) ./ ψ1
-        τs2 = (2τscale / hr) * (crr[Nrp, :].^2 / β + crs[Nrp, :].^2 / α) ./ ψ2
-        τs3 = (2τscale / hs) * (css[:,   1].^2 / β + crs[:,   1].^2 / α) ./ ψ3
-        τs4 = (2τscale / hs) * (css[:, Nsp].^2 / β + crs[:, Nsp].^2 / α) ./ ψ4
-        
-        
-        τs = (sparse(1:Nsp, 1:Nsp, τs1),
-              sparse(1:Nsp, 1:Nsp, τs2),
-              sparse(1:Nrp, 1:Nrp, τs3),
-              sparse(1:Nrp, 1:Nrp, τs4))
-
         τR1 = (1/(θ_R*hr))*Is
         τR2 = (1/(θ_R*hr))*Is
         τR3 = (1/(θ_R*hs))*Ir
@@ -273,50 +310,48 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         P3 = sparse(1:Nrp, 1:Nrp, p3)
         P4 = sparse(1:Nrp, 1:Nrp, p4)
 
+        #Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4))
         # dynamic penalty matrices
-        Γ = ((2/(α*hr))*Is + τR1 * P1,
-             (2/(α*hr))*Is + τR2 * P2,
-             (2/(α*hs))*Ir + τR3 * P3,
-             (2/(α*hs))*Ir + τR4 * P4)
+        Γ = (Crr1 * ((2/(α*hr))*Is + τR1 * P1),
+             Crr2 * ((2/(α*hr))*Is + τR2 * P2),
+             Css3 * ((2/(α*hs))*Ir + τR3 * P3),
+             Css4 * ((2/(α*hs))*Ir + τR4 * P4))
 
         JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
         
         JIHP = JI * H̃inv * P̃inv
         
-        Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4))
+        
         B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r))
         nl = (-1, 1, -1, 1)
+        G = (-H[1] * (B[1][1] + B[1][2]),
+             H[2] * (B[2][1] + B[2][2]),
+             -H[3] * (B[3][1] + B[3][2]),
+             H[4] * (B[4][1] + B[4][2]))
     end
 
-    @printf "Got boundary ops in %f seconds\n" boundary_t
+    #@printf "Got boundary ops in %f seconds\n" boundary_t
 
 
     static_t = @elapsed begin
-
-        F = ((nl[1] * H[1] * (B[1][1] + B[1][2]))' - L[1]'*H[1]*τs[1],
-             (nl[2] * H[2] * (B[2][1] + B[2][2]))' - L[2]'*H[2]*τs[2],
-             (nl[3] * H[3] * (B[3][1] + B[3][2]))' - L[3]'*H[3]*τs[3],
-             (nl[4] * H[4] * (B[4][1] + B[4][2]))' - L[4]'*H[4]*τs[4])
-
-        HIFT = ((nl[1] * (B[1][1] + B[1][2])) - (τs[1] ⊗ sparse(er0')),
-                (nl[2] * (B[2][1] + B[2][2])) - (τs[2] ⊗ sparse(er0')),
-                (nl[3] * (B[3][1] + B[3][2])) - (τs[3] ⊗ sparse(er0')),
-                (nl[4] * (B[4][1] + B[4][2])) - (τs[4] ⊗ sparse(er0')))
         
-        M̃ = copy(Ã)
-        #M̃ = Ã
-        for i in 1:4
-            M̃ .+= -L[i]' * (nl[i] * H[i] * (B[i][1] + B[i][2])) -
-                (nl[i] * H[i] * (B[i][1] + B[i][2]))' * L[i] +
-                L[i]'*H[i]*τs[i]*L[i]
-            
-            if i == 3 || i == 4
-                M̃ -= F[i] * (Diagonal(1 ./ (diag(τs[i]))) * HI[i]) * F[i]'
-            end
-        end  
-    end
+               
+        K1 = JI * (L[1]' * Γ[1] - G[1]')
+        K2 = JI * (L[2]' * Γ[2] - G[2]')
+        K3 = JI * (L[3]' * H[3])
+        K4 = JI * (L[4]' * H[4])
+        
+        M̃ = -copy(Ã)
+        M̃ -= L[1]' * G[1]
+        M̃ += L[2]' * G[2]
+        M̃ -= L[1]' * Γ[1] * L[1]
+        M̃ -= L[2]' * Γ[2] * L[2]
+        M̃ += G[1]' * L[1] + G[2]' * L[2]
 
-    @printf "Got quasi-dynamic ops in %f seconds\n" static_t
+        
+        M̃ = JI * M̃
+    end
+    #@printf "Got quasi-dynamic ops in %f seconds\n" static_t
     # accleration blocks
 
 
@@ -326,10 +361,10 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         
         for i in 1:4
             if faces[i] == 0
-                dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])) +
+                dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Γ[i] * L[i])) +
                     nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
             else
-                dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
+                dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Γ[i] * L[i]))) +
                     nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
             end
         end
@@ -350,16 +385,16 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         for i in 1:4
             if faces[i] == 0
                 dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                    (L[i]' * H[i] * Cf[i][1] * Γ[i]) -
+                    (L[i]' * H[i] * Γ[i]) -
                     nl[i] * (B[i][1]' + B[i][2]') * H[i]
             else
                 dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                    (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
+                    (L[i]' * H[i] * ((1 - R[i])/2 .* Γ[i])) -
                     nl[i] * (B[i][1]' + B[i][2]') * H[i]
                 
                 dû_u[(i-1) * nn + 1 : i * nn , : ] .=
                     -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) -
-                                      Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
+                                      Γ[i] * L[i])./Z̃f[i]
                 
                 dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
             end
@@ -369,7 +404,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         dû_û = spzeros(4nn, 4nn)
         for i in 1:4
             if faces[i] != 0
-                dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
+                dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Γ[i])./Z̃f[i]
             end
         end
 
@@ -385,18 +420,17 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         nBBCΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
     end
 
-    @printf "Got Λ and friends in %f seconds\n" Λ_t
+    #@printf "Got Λ and friends in %f seconds\n" Λ_t
 
  
     (Λ = Λ,
-     M̃ = cholesky(Symmetric(M̃)),
-     F = F,
-     HIFT = HIFT,
-     τQ = (diag(τs[1]),
-           diag(τs[2]),
-           diag(τs[3]),
-           diag(τs[4])),
+     M̃ = Symmetric(M̃),
+     K = (K1, K2, K3, K4),
+     G = G,
+     Γ = Γ,
+     HI = HI,
      P̃I = P̃inv,
+     H̃ = H̃,
      H̃I = H̃inv,
      JI = JI,
      JIHP = JIHP,
