@@ -16,51 +16,35 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function poisson_data_mms!(u1, ge, K, JI, H̃, vf, MMS, B_p, metrics, t)
-
-    coord = metrics.coord
-    (xf, yf) = metrics.facecoord
-    sJ = metrics.sJ
-    ge .= 0
-
-    
-    for i in 1:4
-        if i == 1
-            vf .= u1 + P_face1(xf[1], yf[1], t, MMS)
-        elseif i == 2
-            vf .= t .+ P_face2(xf[2], yf[2], t, MMS)
-        elseif i == 3
-            vf .= sJ[3] .* P_face3(xf[3], yf[3], t, B_p, MMS)
-        else
-            vf .= sJ[4] .*  P_face4(xf[4], yf[4], t, B_p, MMS)
-        end
-        ge .-= K[i] * vf
-        
-
-    end
-    
-    ge .-= JI * H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
-    
-end
 
 
 function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
     
-    K = ops.K
+    (xf, yf) = metrics.facecoord
+    coord = metrics.coord
+    sJ = metrics.sJ
+    μf2 = μ(xf[2], yf[2], B_p)
+    
     ge .= 0
     
     for i in 1:4
+        
         if i == 1 
-            vf .= δ./2
+            vf .= δ/2
         elseif i == 2
-            vf .= (RS.τ_inf * Lw) ./ μf2 .+ t * RS.Vp/2
-        elseif i == 3 || i == 4
-            vf .= 0
+            vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
+                t * MMS.Vp/2 .+
+                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
+        elseif i == 3 
+            vf .= sJ[3] * 0
+        elseif i == 4
+            vf .= sJ[4] .* 0
         end
+        
         ge .-= K[i] * vf
+        
     end
 
-    
 end
 
 function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
@@ -75,7 +59,7 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
     for i in 1:4
         
         if i == 1 
-            vf .= he(xf[1], yf[1], t, MMS)
+            vf .= δ/2
         elseif i == 2
             vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
                 t * MMS.Vp/2 .+
@@ -90,7 +74,7 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
         
     end
 
-    ge .-= #=JI *=# H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .-= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 

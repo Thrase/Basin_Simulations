@@ -6,86 +6,7 @@ using Printf
 
 CUDA.allowscalar(false)
 
-
-function Q_DYNAMIC!(dψV, ψδ, p, t)
-
-    nn = p.nn
-    Δτ = p.vars.Δτ
-    τ = p.vars.τ
-    M̃ = p.ops.M̃
-    H̃I = p.ops.H̃I
-    u = p.vars.u
-    ge = p.vars.ge
-    RS = p.RS
-    η = p.metrics.η
-    μf2 = p.metrics.μf2
-    Lw = p.Lw
-    vf = p.vf
-
-    reject_step = p.reject_step
-    if reject_step[1]
-        return
-    end
-    
-    ψ  = @view ψδ[1:nn]
-    δ =  @view ψδ[nn .+ (1:nn)]
-    dψ = @view dψV[1:nn]
-    V = @view dψV[nn .+ (1:nn)]
-    
-    mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
-
-    u[:] = M̃ \ ge
-    
-    Δτ .= - traction(p, 1, u, δ)
-
-    # solve for velocity point by point and set state derivative
-    for n = 1:nn
-
-        ψn = ψ[n]
-        bn = RS.b[n]
-        τn = Δτ[n]
-        τ[n] = τn
-        ηn = η[n]
-
-        if isnan(τn) || !isfinite(τn)
-            #println("τ reject")
-            reject_step[1] = true
-            return
-        end
-
-        VR = abs(τn / ηn)
-        VL = -VR
-        Vn = V[n]
-        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
-        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
-                                 atolx = 1e-12, rtolx = 1e-12)
-        
-        if isnan(Vn) || iter < 0 || !isfinite(Vn)
-            #println("V reject")
-            reject_step[1] = true
-            return
-        end
-
-        V[n] = Vn
-        
-        if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-        else
-            dψ[n] = 0
-        end
-        
-        if !isfinite(dψ[n]) || isnan(dψ[n])
-            #println("ψ reject")
-            dψ[n] = 0
-            reject_step[1] = true
-            return
-        end
-    end
-    nothing
-end
-
-
-function POISSON_MMS!(dψδ, ψδ, p, t)
+function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
     reject_step = p.reject_step
     if reject_step[1]
@@ -113,9 +34,91 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
 
-    #@printf "Counter: %d\n" count[1]
-    #count[1] += 1
-    #@show t
+
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn + 1 : 2nn]
+    dψ = @view dψδ[1:nn]
+    V = @view dψδ[nn + 1 : 2nn]
+
+    
+    mod_data!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+
+    u[:] = M \ ge
+
+    for n in 1:nn
+        
+        ψn = ψ[n]
+        bn = b[n]
+        τn = Δτ[n]
+        ηn = η[n]
+
+        if isnan(τn) || !isfinite(τn)
+            reject_step[1] = true
+            return
+        end
+
+        VR = abs(τn / ηn)
+        VL = -VR
+        Vn = V[n]
+        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
+                                 atolx = 1e-12, rtolx = 1e-12)
+        
+        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+            reject_step[1] = true
+            return
+        end
+
+        V[n] = Vn
+        
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+        else
+            dψ[n] = 0
+        end
+
+        if !isfinite(dψ[n]) || isnan(dψ[n])
+            dψ[n] = 0
+            reject_step[1] = true
+            return
+            
+        end
+        
+    end
+
+    nothing
+    
+end
+
+
+function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
+
+    reject_step = p.reject_step
+    if reject_step[1]
+        return
+    end
+    
+    nn = p.nn
+    Δτ = p.Δτ
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.ops.M̃
+    K = p.ops.K
+    H̃ = p.ops.H̃
+    JI = p.ops.JI
+    RS = p.RS
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+    ops = p.ops
+    η = metrics.η
+    b = p.b
+    count = p.counter
+
+    xf1 = metrics.facecoord[1][1]
+    yf1 = metrics.facecoord[2][1] 
+
 
     ψ  = @view ψδ[1:nn]
     δ =  @view ψδ[nn + 1 : 2nn]
@@ -135,7 +138,6 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
         ηn = η[n]
 
         if isnan(τn) || !isfinite(τn)
-            #@printf "reject on τ calc. Index %d\n " n
             reject_step[1] = true
             return
         end
@@ -148,7 +150,6 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
                                  atolx = 1e-12, rtolx = 1e-12)
         
         if isnan(Vn) || iter < 0 || !isfinite(Vn)
-            #println("reject on V rootfind")
             reject_step[1] = true
             return
         end
@@ -163,7 +164,6 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
         end
 
         if !isfinite(dψ[n]) || isnan(dψ[n])
-            #println("reject on dψ calc")
             dψ[n] = 0
             reject_step[1] = true
             return
@@ -172,15 +172,6 @@ function POISSON_MMS!(dψδ, ψδ, p, t)
         
     end
 
-    #=
-    plt1 = plot(ψ, yf1, yflip=true, legend = false, title = "state")
-    plt2 = plot(V, yf1, yflip=true, legend = false, title = "slip-velocity")
-
-    plot(plt1, plt2, layout=2)
-    gui()
-    
-    sleep(2)
-    =#
     nothing
     
 end

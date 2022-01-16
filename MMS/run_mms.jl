@@ -14,10 +14,10 @@ let
     
     
     # mesh refinement
-    ns = 2 .^ (6:8)
+    ns = 2 .^ (5:9)
     
     # order of operators
-    p = [2, 4, 6]
+    p = [2]
 
     # Basin Params
     B_p = (μ_out = 24.0,

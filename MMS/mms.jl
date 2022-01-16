@@ -210,7 +210,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             t_span = (0, 10)
             
-            prob = ODEProblem(POISSON_MMS!, ψδ, t_span, params)
+            prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             sol = solve(prob, Tsit5();
                         dt = .01,
                         isoutofdomain=stepcheck,
