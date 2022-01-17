@@ -116,6 +116,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     b = p.b
     count = p.counter
 
+    L1 = ops.L[1]
+    
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
 
@@ -125,10 +127,13 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
-    
     mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
+    #=
+    ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
+    
+    #Δτ .= - traction(ops, 1, u, δ./2)
 
     for n in 1:nn
         
@@ -137,6 +142,10 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         τn = Δτ[n]
         ηn = η[n]
 
+        #if τn < 0
+        #    @printf "τ_tangent is negative"
+        #end
+        
         if isnan(τn) || !isfinite(τn)
             reject_step[1] = true
             return
@@ -156,13 +165,15 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         V[n] = Vn
         
+        #=
         if bn != 0
             dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
             dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
-
+        =#
+        
         if !isfinite(dψ[n]) || isnan(dψ[n])
             dψ[n] = 0
             reject_step[1] = true
@@ -170,12 +181,12 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             
         end
         
+        
     end
-
+    =#
     nothing
     
 end
-
 
 
 # timestepping rejection function
@@ -239,7 +250,7 @@ function STOPFUN_Q(ψδ,t,i)
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-
+            =#
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
                          io.stress_file,
@@ -856,10 +867,11 @@ end
 
 # Quasi-Dynamic rootfinding problem on the fault
 function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
+    
     Y = (1 ./ (2 .* V0)) .* exp.(ψ ./ a)
     f = a .* asinh.(V .* Y)
     dfdV  = a .* (1 ./ sqrt.(1 + (V .* Y).^2)) .* Y
-    g    = σn .* f + ηn .* V - τn
+    g = σn .* f + ηn .* V - τn
     dgdV = σn .* dfdV + ηn
     (g, dgdV)
 end

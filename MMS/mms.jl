@@ -208,7 +208,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             ψδ = [ψ ; δ]
 
-            t_span = (0, 10)
+            t_span = (0, year_seconds)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             sol = solve(prob, Tsit5();
@@ -218,12 +218,44 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         rtol = 1e-12,
                         internalnorm=(x,_)->norm(x, Inf),)
             
+
+            xf1 = metrics.facecoord[1][1]
+            yf1 = metrics.facecoord[2][1]
             
             diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
-
             
+            plt1 = contour(x[:, 1], y[1, :],
+                           (reshape(u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
+                           title = "error", fill=true, yflip=true)
+            plt2 = contour(x[:, 1], y[1, :],
+                           he(x, y, t_span[2], MMS)',
+                           fill = true, yflip=true, title = "exact")
+            plt3 = contour(x[:, 1], y[1, :], 
+                           h_FORCE(x, y, t_span[2], B_p, MMS)',
+                           fill=true, yflip=true, title = "forcing")
+            plt4 = contour(x[:, 1], y[1, :], 
+                           reshape(u, (nn,nn))',
+                           fill=true, yflip=true, title = "numerical")
+            
+            plot(plt1, plt2, plt3, plt4, layout=4)
+            gui()
+            
+            #=
+            plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, t_span[2], MMS)), yf1,
+                        yflip = true, title = "face 1 error", legend=false)
+            
+            plt6 = plot(he(xf1, yf1, t_span[2], MMS), yf1,
+                        yflip = true, title = "face 1 exact", legend=false)
+            
+            plt7 = plot(d_ops.L[1] * u, yf1,
+                        yflip = true, title = "face 1 numerical", legend=false)
+
+            plot(plt5, plt6, plt7, layout=3)
+            gui()
+
+            =#
             @printf "\t\tquasi-dynamic error with MS: %e\n" err[iter]
             if iter > 1
                 @printf "\t\tquasi-dynamic rate: %f\n" log(2, err[iter - 1]/err[iter])

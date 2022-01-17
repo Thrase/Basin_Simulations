@@ -55,11 +55,11 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
     μf2 = μ(xf[2], yf[2], B_p)
     
     ge .= 0
-    
+
     for i in 1:4
         
         if i == 1 
-            vf .= δ/2
+            vf .= he(xf[1], yf[1], t, MMS) #δ/2
         elseif i == 2
             vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
                 t * MMS.Vp/2 .+
@@ -90,14 +90,12 @@ function traction(ops, f, u, û)
     return HI * G * u + Γ * (û - L * u)
     
 end
-
             
 function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics, 
                      τscale = 2,
                      crr = metrics.crr,
                      css = metrics.css,
                      crs = metrics.crs)
-
 
     
     csr = crs
