@@ -187,6 +187,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
 
             =#
+            xf1 = metrics.facecoord[1][1]
+            yf1 = metrics.facecoord[2][1]
+            
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
@@ -205,13 +208,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                       metrics = metrics,
                       counter = [0])
             
-            δ = 2 * he(metrics.facecoord[1][1],
-                       metrics.facecoord[2][1],
+            δ = 2 * he(xf1,
+                       yf1,
                        0,
                        MMS)
 
-            ψ = ψe_2(metrics.facecoord[1][1],
-                     metrics.facecoord[2][1],
+            ψ = ψe_2(xf1,
+                     yf1,
                      0,
                      B_p,
                      RS,
@@ -219,9 +222,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             ψδ = [ψ ; δ]
 
-            #=
-            t_span = (0, 100.1)
-            #t_span = (0, year_seconds)
+            
+            #t_span = (0, 100.1)
+            t_span = (0, year_seconds)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             sol = solve(prob, Tsit5();
@@ -230,21 +233,15 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         atol = 1e-12,
                         rtol = 1e-12,
                         internalnorm=(x,_)->norm(x, Inf),)
-            =#
-            Q_STATIC_MMS!(params)
             
-            
-            face_view = 1
-            xb = metrics.facecoord[1][face_view]
-            yb = metrics.facecoord[2][face_view]
-
-            time = 3.3
-            diff = params.u[:] .- Pe(x[:], y[:], time, MMS)
-            #diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
+                        
+            #diff = params.u[:] .- Pe(x[:], y[:], t_span[2], MMS)
+            diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
 
-            #=
+
+            
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                            title = "error", fill=true, yflip=true)
@@ -261,7 +258,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             plot(plt1, plt2, plt3, plt4, layout=4)
             
             gui()
-            =#
+            
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, t_span[2], MMS)), yf1,
@@ -278,13 +275,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             #=
             plt1 = contour(x[:, 1], y[1, :],
-                           (reshape(u, (nn, nn)) .- Pe(x, y, time, MMS))',
+                           (reshape(u, (nn, nn)) .- Pe(x, y, t_span[2], MMS))',
                            title = "error", fill=true, yflip=true)
             plt2 = contour(x[:, 1], y[1, :],
-                           Pe(x, y, time, MMS)',
+                           Pe(x, y, t_span[2], MMS)',
                            fill = true, yflip=true, title = "exact")
             plt3 = contour(x[:, 1], y[1, :], 
-                           P_FORCE(x, y, time, B_p, MMS)',
+                           P_FORCE(x, y, t_span[2], B_p, MMS)',
                            fill=true, yflip=true, title = "forcing")
             plt4 = contour(x[:, 1], y[1, :], 
                            reshape(u, (nn,nn))',

@@ -71,11 +71,12 @@ he(x, y, t, MMS) = MMS.δ_e ./2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp ./2 .* t
 he_t(x, y, t, MMS) = MMS.δ_e ./2 .* K_t(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp ./2 .* (1 .- ϕ(x,y,MMS))
 he_tt(x, y, t, MMS) = MMS.δ_e ./2 .* K_tt(t, MMS) .* ϕ(x, y, MMS)
 
-he_x(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* ϕ_x(x, y, MMS) .+ MMS.τ∞/24
-he_xx(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_xx(x, y, MMS) .- MMS.Vp/2 .* ϕ_xx(x, y, MMS)
+he_x(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* t .* ϕ_x(x, y, MMS) .+ MMS.τ∞/24
 
-he_y(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_y(x, y, MMS) .- MMS.Vp/2 .* ϕ_y(x, y, MMS)
-he_yy(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_yy(x, y, MMS) .- MMS.Vp/2 .* ϕ_yy(x, y, MMS)
+he_xx(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_xx(x, y, MMS) .- MMS.Vp/2 .* t .* ϕ_xx(x, y, MMS)
+
+he_y(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_y(x, y, MMS) .- MMS.Vp/2 .* t .* ϕ_y(x, y, MMS)
+he_yy(x, y, t, MMS) =  MMS.δ_e .* K(t, MMS) .* ϕ_yy(x, y, MMS) .- MMS.Vp/2 .* t .* ϕ_yy(x, y, MMS)
 
 he_xt(x, y, t, MMS) = MMS.δ_e .* K_t(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* ϕ_x(x, y, MMS)
 
@@ -163,7 +164,7 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
 end
 
 
-Pe(x, y, t, MMS) = sin.(2/MMS.Lw .* x) .* cos.(2/MMS.Lw .* y) .* sin.(2/MMS.Lw .* t) .+ 2 .* x .+ 2 .* y
+Pe(x, y, t, MMS) = sin.(2/MMS.Lw .* x) .* cos.(2/MMS.Lw .* y) .* sin.(2/MMS.Lw .* t) .+ 2 .* x  .+ 2 .* y 
 
 Pe_y(x, y, t, MMS) = - 2/MMS.Lw .* sin.(2/MMS.Lw * x) .* sin.(2/MMS.Lw * y) .* sin.(2/MMS.Lw .* t) .+ 2
 

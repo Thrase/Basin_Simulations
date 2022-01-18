@@ -142,12 +142,10 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     b = p.b
     
 
-    L1 = ops.L[1]
-    
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
 
-
+    
     ψ  = @view ψδ[1:nn]
     δ =  @view ψδ[nn + 1 : 2nn]
     dψ = @view dψδ[1:nn]
@@ -157,13 +155,9 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     u[:] = M \ ge
 
-    V .= 2 * Pe_t(xf1, yf1, t, MMS)
-
+    #ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
     
-    #=
-    ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
-    
-    #Δτ .= - traction(ops, 1, u, δ./2)
+    Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS) #traction(ops, 1, u, δ./2)
 
     for n in 1:nn
         
@@ -195,14 +189,14 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         V[n] = Vn
         
-        #=
+        
         if bn != 0
             dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
             dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
-        =#
+        
         
         if !isfinite(dψ[n]) || isnan(dψ[n])
             dψ[n] = 0
@@ -213,7 +207,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         
         
     end
-    =#
+    
     nothing
     
 end
