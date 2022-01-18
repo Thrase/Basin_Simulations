@@ -41,7 +41,18 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             facecoord = metrics.facecoord
             x = metrics.coord[1]
             y = metrics.coord[2]
-
+            #=
+            for time in 0:.1:3
+            #@show minimum(Pe(x,v y, 1.1, MMS))
+                contour(x[:, 1], y[1, :],
+                        Pe(x, y, time, MMS),
+                        fill = true, yflip=true, title = "μ")
+                gui()
+                sleep(.1)
+            end
+            
+            quit()
+            =#
             faces_fault = [0 2 3 4]
             d_ops = operators(p, N, N, μ, ρ, R, B_p, faces_fault, metrics)
             
@@ -104,7 +115,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                 =#
             end
             #@printf "Got Operators: %s s\n" ot
-
+            #=
             it = @elapsed begin
                 u0 = he(x[:], y[:], 0.0, MMS)
                 v0 = he_t(x[:], y[:], 0.0, MMS)
@@ -139,7 +150,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             =#
 
             #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
-
+            
             st4 = @elapsed begin
                 timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
             end
@@ -175,7 +186,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
             
 
-            
+            =#
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
@@ -208,7 +219,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             ψδ = [ψ ; δ]
 
-            t_span = (0, year_seconds)
+            #=
+            t_span = (0, 100.1)
+            #t_span = (0, year_seconds)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             sol = solve(prob, Tsit5();
@@ -217,15 +230,21 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         atol = 1e-12,
                         rtol = 1e-12,
                         internalnorm=(x,_)->norm(x, Inf),)
+            =#
+            Q_STATIC_MMS!(params)
             
+            
+            face_view = 1
+            xb = metrics.facecoord[1][face_view]
+            yb = metrics.facecoord[2][face_view]
 
-            xf1 = metrics.facecoord[1][1]
-            yf1 = metrics.facecoord[2][1]
-            
-            diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
+            time = 3.3
+            diff = params.u[:] .- Pe(x[:], y[:], time, MMS)
+            #diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
-            
+
+            #=
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                            title = "error", fill=true, yflip=true)
@@ -240,7 +259,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             
             plot(plt1, plt2, plt3, plt4, layout=4)
+            
             gui()
+            =#
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, t_span[2], MMS)), yf1,
@@ -251,11 +272,43 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             plt7 = plot(d_ops.L[1] * u, yf1,
                         yflip = true, title = "face 1 numerical", legend=false)
+            plot(plt5, plt6, plt7, layout=3)
+            gui()
+            =#
+
+            #=
+            plt1 = contour(x[:, 1], y[1, :],
+                           (reshape(u, (nn, nn)) .- Pe(x, y, time, MMS))',
+                           title = "error", fill=true, yflip=true)
+            plt2 = contour(x[:, 1], y[1, :],
+                           Pe(x, y, time, MMS)',
+                           fill = true, yflip=true, title = "exact")
+            plt3 = contour(x[:, 1], y[1, :], 
+                           P_FORCE(x, y, time, B_p, MMS)',
+                           fill=true, yflip=true, title = "forcing")
+            plt4 = contour(x[:, 1], y[1, :], 
+                           reshape(u, (nn,nn))',
+                           fill=true, yflip=true, title = "numerical")
+            
+            plot(plt1, plt2, plt3, plt4, layout=4)
+            gui()
+            =#
+
+            
+            #=
+            plt5 = plot((d_ops.L[face_view] * u - Pe(xb, yb, time, MMS)), yb,
+                        yflip = false, title = string("face", face_view,"  error"), legend=false)
+            
+            plt6 = plot(xb, Pe(xb, yb, time, MMS),
+                        yflip = false,  title = string("face", face_view,"  exact"), legend=false)
+            
+            plt7 = plot(xb, d_ops.L[face_view] * u,
+                        yflip = false, title = string("face", face_view,"  numerical"), legend=false)
 
             plot(plt5, plt6, plt7, layout=3)
             gui()
-
             =#
+            
             @printf "\t\tquasi-dynamic error with MS: %e\n" err[iter]
             if iter > 1
                 @printf "\t\tquasi-dynamic rate: %f\n" log(2, err[iter - 1]/err[iter])

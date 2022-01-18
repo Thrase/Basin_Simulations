@@ -90,6 +90,32 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     
 end
 
+function Q_STATIC_MMS!(p)
+
+    nn = p.nn
+    Δτ = p.Δτ
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.ops.M̃
+    K = p.ops.K
+    H̃ = p.ops.H̃
+    JI = p.ops.JI
+    RS = p.RS
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+    ops = p.ops
+    η = metrics.η
+    b = p.b
+    δ = 0
+    
+    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, 3.3)
+
+    u[:] = M \ ge
+    
+
+end
 
 function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
@@ -114,7 +140,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     ops = p.ops
     η = metrics.η
     b = p.b
-    count = p.counter
+    
 
     L1 = ops.L[1]
     
@@ -130,6 +156,10 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
+
+    V .= 2 * Pe_t(xf1, yf1, t, MMS)
+
+    
     #=
     ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
     

@@ -5,19 +5,19 @@ let
     year_seconds = 31556952
     
     # Domain length
-    Lw = 40
+    Lw = 1
     # Basin width
-    W = 24
+    W = 24/40
     # Basin Depth
-    D = 6
+    D = 6/40
     # simulation timespan
     
     
     # mesh refinement
-    ns = 2 .^ (7:7)
+    ns = 2 .^ (4:7)
     
     # order of operators
-    p = [2]
+    p = [4]
 
     # Basin Params
     B_p = (μ_out = 24.0,
@@ -26,15 +26,12 @@ let
            ρ_in = 2.6,
            c = (W/2)/D,
            r̄ = (W/2)^2,
-           r_w = 20)
+           r_w = .01)
 
     # Rate-and-State Friction Params`
-    RS = (Hvw = 12,
-          Ht = 6,
-          σn = 50.0,
+    RS = (σn = 50.0,
           a = .015,
           b0 = .02,
-          bmin = 0.0,
           Dc = 1e9,
           f0 = .6,
           V0 = 1e-6,
@@ -44,15 +41,12 @@ let
     
     # MMS params
     MMS = (Lw = Lw,
-           wl = Lw/2,
-           amp = .5,
-           ϵ = .01,
            t̄ = 35*year_seconds,
            t_w = 10,
            t_f = 70*year_seconds,
            τ∞ = 31.73,
            Vp = 1e-9,
-           H = 8,
+           H = 8/40,
            Vmin = 1e-12,
            δ_e = 1e-9*(35*year_seconds) -
                (1e-12*(35*year_seconds)))

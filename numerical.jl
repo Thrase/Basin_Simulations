@@ -55,26 +55,24 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
     μf2 = μ(xf[2], yf[2], B_p)
     
     ge .= 0
-
+    
     for i in 1:4
         
-        if i == 1 
-            vf .= he(xf[1], yf[1], t, MMS) #δ/2
+        if i == 1
+            vf .= Pe(xf[1], yf[1], 3.3, MMS) 
         elseif i == 2
-            vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
-                t * MMS.Vp/2 .+
-                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
-        elseif i == 3 
-            vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
+            vf .= t .+  P_face2(xf[2], yf[2], 3.3, MMS)
+        elseif i == 3
+            vf .= sJ[3] .* P_face3(xf[3], yf[3], 3.3, B_p, MMS)
         elseif i == 4
-            vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
+            vf .= sJ[4] .* P_face4(xf[4], yf[4], 3.3, B_p, MMS)
         end
         
         ge .-= K[i] * vf
         
     end
 
-    ge .-= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .-= H̃ * P_FORCE(coord[1][:], coord[2][:], 3.3, B_p, MMS)
     
 end
 
