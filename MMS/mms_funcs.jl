@@ -113,7 +113,7 @@ end
 
 function ψe_t(x, y, t, B_p, RS, MMS)
 
-    τe = - τhe(x, y, t, 1, B_p, MMS)
+    τe = -τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 * he_t(x, y, t, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
     τe_t = μ(x, y, B_p) .* he_xt(x, y, t, MMS)

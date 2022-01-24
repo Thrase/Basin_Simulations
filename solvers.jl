@@ -178,7 +178,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     #ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
 
-    #println("Hello")
+    
     for n in 1:nn
         
         ψn = ψ[n]
@@ -208,11 +208,11 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         end
 
         V[n] = Vn
-        
-        
+
         if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            dψ[n] += ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            #fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
@@ -226,8 +226,10 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             return
             
         end
+
         
     end
+    
     
     nothing
     
@@ -247,14 +249,14 @@ function PLOTFACE(ψδ,t,i)
 
     if isdefined(i,:fsallast)
         #@show t
+        year_seconds = i.p.year_seconds
         yf1 = i.p.metrics.facecoord[2][1]
         xf1 = i.p.metrics.facecoord[1][1]
         MMS = i.p.MMS
         nn = i.p.nn
         dψV = i.fsallast
         V = @view dψV[nn .+ (1:nn)]
-        plot(Pe_t(yf1, xf1, t, MMS), yf1, yflip=true, legend=false)
-        plot(V, yf1, yflip=true, legend=false)
+        scatter!([t/year_seconds], [V[1]], legend=false, color =:blue)
         gui()
     end
 
