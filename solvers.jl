@@ -8,6 +8,8 @@ CUDA.allowscalar(false)
 
 function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
+    
+    
     reject_step = p.reject_step
     if reject_step[1]
         return
@@ -92,6 +94,8 @@ end
 
 function Q_STATIC_MMS!(p)
 
+
+    
     nn = p.nn
     Δτ = p.Δτ
     u = p.u
@@ -119,6 +123,9 @@ end
 
 function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
+
+    @printf "\r\t%f" t/p.year_seconds
+    
     reject_step = p.reject_step
     if reject_step[1]
         return
@@ -146,8 +153,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     yf1 = metrics.facecoord[2][1] 
 
     
-    ψ  = @view ψδ[1:nn]
-    δ =  @view ψδ[nn + 1 : 2nn]
+    δ  = @view ψδ[1:nn]
+    ψ =  @view ψδ[nn + 1 : 2nn]
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
@@ -155,22 +162,33 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     u[:] = M \ ge
 
-    #ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
-    
-    Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS) #traction(ops, 1, u, δ./2)
+    #V .= 2 .* he_t(xf1, yf1, t, MMS)
 
+    #plot(V, yf1, yflip=true, legend=false)
+    #gui()
+    
+    HI = ops.HI[1]
+    G = ops.G[1]
+    Γ = ops.Γ[1]
+    L = ops.L[1]
+    sJ = metrics.sJ[1]
+    
+    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
+    Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
+
+    #ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
+
+    #println("Hello")
     for n in 1:nn
         
         ψn = ψ[n]
         bn = b[n]
         τn = Δτ[n]
         ηn = η[n]
-
-        #if τn < 0
-        #    @printf "τ_tangent is negative"
-        #end
         
-        if isnan(τn) || !isfinite(τn)
+        if !isfinite(τn)
+            @printf "Reject τ"
+            flush(stdout)
             reject_step[1] = true
             return
         end
@@ -181,8 +199,10 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
         (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
                                  atolx = 1e-12, rtolx = 1e-12)
-        
-        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+
+        if !isfinite(Vn)
+            @printf "Reject V"
+            flush(stdout)
             reject_step[1] = true
             return
         end
@@ -198,13 +218,14 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         end
         
         
-        if !isfinite(dψ[n]) || isnan(dψ[n])
+        if !isfinite(dψ[n])
+            @printf "Reject dψ"
+            flush(stdout)
             dψ[n] = 0
             reject_step[1] = true
             return
             
         end
-        
         
     end
     
@@ -221,6 +242,26 @@ function stepcheck(_, p, _)
     end
     return false
 end
+
+function PLOTFACE(ψδ,t,i)
+
+    if isdefined(i,:fsallast)
+        #@show t
+        yf1 = i.p.metrics.facecoord[2][1]
+        xf1 = i.p.metrics.facecoord[1][1]
+        MMS = i.p.MMS
+        nn = i.p.nn
+        dψV = i.fsallast
+        V = @view dψV[nn .+ (1:nn)]
+        plot(Pe_t(yf1, xf1, t, MMS), yf1, yflip=true, legend=false)
+        plot(V, yf1, yflip=true, legend=false)
+        gui()
+    end
+
+    return false
+    
+end
+
 
 # function for every accepted timstep with integrator stopping condition
 function STOPFUN_Q(ψδ,t,i)
@@ -242,8 +283,8 @@ function STOPFUN_Q(ψδ,t,i)
         cycles = i.p.cycles[1]
         
         dψV = i.fsallast
-        ψ = ψδ[(1:nn)]
-        δ = ψδ[nn .+ (1:nn)]
+        ψ = @view ψδ[(1:nn)]
+        δ = @view ψδ[nn .+ (1:nn)]
         V = @view dψV[nn .+ (1:nn)]
         Vmax = maximum(abs.(V))
         

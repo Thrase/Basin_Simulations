@@ -29,7 +29,7 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
     
     for i in 1:4
         
-        if i == 1 
+        if i == 1
             vf .= δ ./ 2
         elseif i == 2
             vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
@@ -59,34 +59,73 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
     for i in 1:4
         
         if i == 1
+            #vf .= sJ[1] .* τhe(xf[1], yf[1], t, 1, B_p, MMS)
+            
             vf .=  δ ./ 2
+
+            #vf .= he(xf[1], yf[1], t, MMS)
+            
         elseif i == 2
+            # neumann h
+            #vf .= sJ[2] .* τhe(xf[2], yf[2], t, 1, B_p, MMS)
+            
+            # dirichlet h
             vf .= (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2) .+
                 h_face2(xf[2], yf[2], t, MMS, RS, μf2)
+
+            # dirichlet P
+            #vf .= t .+
+            #    P_face2(xf[2], yf[2], t, MMS)
+            
+            # dirichlet p
+            #vf .= Pe(xf[2], yf[2], t, MMS)
+            
         elseif i == 3
+            # neumann h
             vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
+
+            #vf .= sJ[3] .* τPe(xf[3], yf[3], t, 3, B_p, MMS)
+            
+            # dirichlet h
+            #vf .= he(xf[3], yf[3], t, MMS)
+
+            # dirichlet p
+            #vf .= Pe(xf[3], yf[3], t, MMS)
+            
         elseif i == 4
+            # neumann h
             vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
+
+            #vf .= sJ[4] .* τPe(xf[4], yf[4], t, 4, B_p, MMS)
+            
+            # dirichlet h 
+            #vf .= he(xf[4], yf[4], t, MMS)
+
+            # dirichlet p
+            #vf .= Pe(xf[4], yf[4], t, MMS)
+            
         end
         
-        ge .-= K[i] * vf
+        ge .+= K[i] * vf
         
     end
 
-    ge .-= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .+= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    #ge .+= H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
 
-function traction(ops, f, u, û)
+function traction(ops, f, u, û, metrics)
 
     HI = ops.HI[f]
     G = ops.G[f]
     Γ = ops.Γ[f]
     L = ops.L[f]
-
+    sJ = metrics.sJ[f]
     
-    return HI * G * u + Γ * (û - L * u)
+    
+    return (HI * G * u + Γ * (û - L * u)) ./ sJ
     
 end
             
@@ -333,36 +372,28 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
 
         K1 = JI * (L[1]' * H[1] * Γ[1] - G[1]')
         K2 = JI * (L[2]' * H[2] * Γ[2] - G[2]')
+        #K3 = JI * (L[3]' * H[3] * Γ[3] - G[3]')
+        #K4 = JI * (L[4]' * H[4] * Γ[4] - G[4]')
+        
+        #K1 = JI * L[1]' * H2]
+        #K2 = JI * L[2]' * H[2]
         K3 = JI * L[3]' * H[3]
         K4 = JI * L[4]' * H[4]
-        #K1 = JI * (L[1]' * Γ[1] - G[1]')
-        #K2 = JI * (L[2]' * Γ[2] - G[2]')
-        #K3 = JI * (L[3]' * H[3])
-        #K4 = JI * (L[4]' * H[4])
+
+        M̃ = copy(Ã)
         
-        M̃ = -copy(Ã)
-
         for f in 1:2
-            
-            M̃ += L[f]' * G[f]
-            M̃ -= L[f]' * H[f] * Γ[f] * L[f]
-            M̃ += G[f]' * L[f]
-            
+            M̃ -= L[f]' * G[f]
+            M̃ += L[f]' * H[f] * Γ[f] * L[f]
+            M̃ -= G[f]' * L[f]
         end
-        #M̃ -= L[1]' * G[1]
-        #M̃ += L[2]' * G[2]
-        #M̃ -= L[1]' * H[1] * Γ[1] * L[1]
-        #M̃ -= L[2]' * H[2] * Γ[2] * L[2]
-        #M̃ += G[1]' * L[1] + G[2]' * L[2]
-
         
         M̃ = JI * M̃
+        
     end
+    
     #@printf "Got quasi-dynamic ops in %f seconds\n" static_t
     # accleration blocks
-
-
-
     Λ_t = @elapsed begin
         dv_u = -Ã
         
@@ -431,7 +462,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
 
  
     (Λ = Λ,
-     M̃ = Symmetric(M̃),
+     M̃ = cholesky(Symmetric(M̃)),
      K = (K1, K2, K3, K4),
      G = G,
      Γ = Γ,

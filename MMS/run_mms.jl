@@ -14,7 +14,7 @@ let
     
     
     # mesh refinement
-    ns = 2 .^ (7:7)
+    ns = 2 .^ (6:10)
     
     # order of operators
     p = [2]
@@ -49,7 +49,8 @@ let
            H = 8/40,
            Vmin = 1e-12,
            δ_e = 1e-9*(35*year_seconds) -
-               (1e-12*(35*year_seconds)))
+               (1e-12*(35*year_seconds)),
+           ϵ = 2.0)
 
     refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS)
 

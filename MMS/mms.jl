@@ -187,14 +187,52 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
 
             =#
+
+            
+          
+            
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
+
+            #=
+            for time in 0:year_seconds:34*year_seconds
+                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                gui()
+                @show time/year_seconds
+            end
+            for time in 34*year_seconds:86400:34.99999*year_seconds
+                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                gui()
+                @show time/year_seconds
+            end
+            for time in 34.99999*year_seconds:1:35*year_seconds + 100
+                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                gui()
+                @show time/year_seconds
+            end
+            for time in 35*year_seconds + 100:86400:37 * year_seconds
+                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                gui()
+                @show time/year_seconds
+            end
+            for time in 37 * year_seconds:year_seconds:70 * year_seconds
+                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                gui()
+                @show time/year_seconds
+            end
+            =#
+            
+            #@show minimum(τPe(xf1, yf1, 0, 1, B_p, MMS))
             
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            params = (reject_step = [false],
+            t_final = 50 * year_seconds
+            t_begin = 30 * year_seconds
+            params = (t_final = t_final,
+                      year_seconds = year_seconds,
+                      reject_step = [false],
                       nn = nn,
                       Δτ = zeros(nn),
                       u = u,
@@ -210,12 +248,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             δ = 2 * he(xf1,
                        yf1,
-                       0,
+                       t_begin,
                        MMS)
 
-            ψ = ψe_2(xf1,
+            ψ = ψe(xf1,
                      yf1,
-                     0,
+                     t_begin,
                      B_p,
                      RS,
                      MMS)
@@ -223,25 +261,24 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ψδ = [ψ ; δ]
 
             
-            #t_span = (0, 100.1)
-            t_span = (0, year_seconds)
+            t_span = (t_begin, t_final)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
+            plotter = DiscreteCallback(PLOTFACE, terminate!)
             sol = solve(prob, Tsit5();
-                        dt = .01,
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
-                        internalnorm=(x,_)->norm(x, Inf),)
+                        #internalnorm=(x,_)->norm(x, Inf),
+                        callback=plotter)
             
                         
-            #diff = params.u[:] .- Pe(x[:], y[:], t_span[2], MMS)
-            diff =  params.u[:] .- he(x[:], y[:], t_span[2], MMS)
+            diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
 
 
-            
+            #=
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                            title = "error", fill=true, yflip=true)
@@ -258,7 +295,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             plot(plt1, plt2, plt3, plt4, layout=4)
             
             gui()
-            
+            =#
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, t_span[2], MMS)), yf1,
@@ -306,7 +343,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             gui()
             =#
             
-            @printf "\t\tquasi-dynamic error with MS: %e\n" err[iter]
+            @printf "\n\t\tquasi-dynamic error with MS: %e\n" err[iter]
             if iter > 1
                 @printf "\t\tquasi-dynamic rate: %f\n" log(2, err[iter - 1]/err[iter])
             end
