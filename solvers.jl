@@ -211,7 +211,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         if bn != 0
             #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            dψ[n] += ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
             #fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
@@ -256,7 +256,7 @@ function PLOTFACE(ψδ,t,i)
         nn = i.p.nn
         dψV = i.fsallast
         V = @view dψV[nn .+ (1:nn)]
-        scatter!([t/year_seconds], [V[1]], legend=false, color =:blue)
+        plot(V, yf1, legend=false, color =:blue, yflip=true)
         gui()
     end
 
