@@ -107,7 +107,7 @@ function ψe(x, y, t, B_p, RS, MMS)
     τe = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 .* he_t(x, y, t, MMS)
 
-    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τe ./ (RS.a .* RS.σn))) .- η(y, B_p) .* Ve
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τe .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
     
 end
 
@@ -118,7 +118,7 @@ function ψe_t(x, y, t, B_p, RS, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
     τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
-    return τe_t ./ RS.σn .* coth.(τe ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve .- η(y, B_p) .* Ve_t
+    return (τe_t + η(y, B_p) .* Ve_t) * coth((τe + η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn - RS.a .* Ve_t ./ Ve
     
 end
 

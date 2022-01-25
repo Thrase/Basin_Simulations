@@ -153,8 +153,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     yf1 = metrics.facecoord[2][1] 
 
     
-    δ  = @view ψδ[1:nn]
-    ψ =  @view ψδ[nn + 1 : 2nn]
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn + 1 : 2nn]
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
@@ -162,8 +162,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     u[:] = M \ ge
 
-    #V .= 2 .* he_t(xf1, yf1, t, MMS)
-
+    V .= 2 .* he_t(xf1, yf1, t, MMS)
+    
     #plot(V, yf1, yflip=true, legend=false)
     #gui()
     
@@ -208,11 +208,11 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         end
 
         V[n] = Vn
-
+        
         if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            #dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
-            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            #dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
