@@ -210,9 +210,9 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         V[n] = Vn
 
         if bn != 0
-            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
-            #fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            #dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
@@ -227,7 +227,6 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             
         end
 
-        
     end
     
     

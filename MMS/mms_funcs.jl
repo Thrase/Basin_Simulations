@@ -62,7 +62,7 @@ function K_tt(t, MMS)
     δ = MMS.δ_e
     Vm = MMS.Vmin
 
-    return (2 * tw * (t̄ - t)) / (π * (t̄^2 - 2t̄*t + t̄^2 + t^2)^2)
+    return (2 * tw * (t̄ - t)) / (π * (t̄^2 - 2t̄*t + tw^2 + t^2)^2)
 end
 
 he(x, y, t, MMS) = MMS.δ_e/2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp/2 .* t .* (1 .- ϕ(x,y,MMS)) .+
@@ -104,21 +104,22 @@ end
 
 function ψe(x, y, t, B_p, RS, MMS)
 
-    τe = -τhe(x, y, t, 1, B_p, MMS)
+    τe = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 .* he_t(x, y, t, MMS)
 
-    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((τe .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τe ./ (RS.a .* RS.σn))) .- η(y, B_p) .* Ve
     
 end
 
 function ψe_t(x, y, t, B_p, RS, MMS)
 
-    τe = -τhe(x, y, t, 1, B_p, MMS)
+    τe = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 * he_t(x, y, t, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
-    τe_t = μ(x, y, B_p) .* he_xt(x, y, t, MMS)
+    τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
-    return (τe_t .- η(y, B_p) .* Ve_t) ./ RS.σn .* coth.((τe .- η(y, B_p) .* Ve) ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve
+    return τe_t ./ RS.σn .* coth.(τe ./ (RS.σn .* RS.a)) - RS.a .* Ve_t ./ Ve .- η(y, B_p) .* Ve_t
+    
 end
 
 function fault_force(x, y, t, b, B_p, RS, MMS)
@@ -126,7 +127,7 @@ function fault_force(x, y, t, b, B_p, RS, MMS)
     ψ = ψe(x, y, t, B_p, RS, MMS)
     Ve = 2 * he_t(x, y, t, MMS)
     G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(Ve) / RS.V0)
-
+    
     return ψe_t(x, y, t, B_p, RS, MMS) .- G
 
 end
