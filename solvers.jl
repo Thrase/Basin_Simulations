@@ -124,6 +124,7 @@ end
 function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
 
+    #@printf "%f\n" t
     @printf "\r\t%f" t/p.year_seconds
     
     reject_step = p.reject_step
@@ -162,10 +163,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     u[:] = M \ ge
 
-    V .= 2 .* he_t(xf1, yf1, t, MMS)
-    
-    #plot(V, yf1, yflip=true, legend=false)
-    #gui()
+    #V .= 2 .* he_t(xf1, yf1, t, MMS)
     
     HI = ops.HI[1]
     G = ops.G[1]
@@ -187,7 +185,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         ηn = η[n]
         
         if !isfinite(τn)
-            @printf "Reject τ"
+            @printf "Reject τ\n"
             flush(stdout)
             reject_step[1] = true
             return
@@ -201,7 +199,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
                                  atolx = 1e-12, rtolx = 1e-12)
 
         if !isfinite(Vn)
-            @printf "Reject V"
+            @printf "Reject V\n"
             flush(stdout)
             reject_step[1] = true
             return
@@ -219,7 +217,11 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         
         
         if !isfinite(dψ[n])
-            @printf "Reject dψ"
+            @printf "Reject dψ\n"
+            plot(dψ, yf1, yflip=true, label="numerical state")
+            plot!(ψe_t(xf1, yf1, t, B_p, RS, MMS), yf1, yflip=true, label="exact state")
+            gui()
+            @printf "%d, %f\n" n dψ[n]
             flush(stdout)
             dψ[n] = 0
             reject_step[1] = true
@@ -228,7 +230,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         end
 
     end
-    
+    #@show maximum(abs.(dψ))
     
     nothing
     

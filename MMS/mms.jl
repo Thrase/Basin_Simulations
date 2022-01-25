@@ -3,6 +3,7 @@ using Printf
 using CUDA
 using CUDA.CUSPARSE
 using OrdinaryDiffEq
+using ODE
 
 include("../physical_params.jl")
 include("mms_funcs.jl")
@@ -194,34 +195,38 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
 
+            
             #=
-            for time in 0:year_seconds:34*year_seconds
-                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+            #for time in 0:year_seconds:34*year_seconds
+                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
                 gui()
                 @show time/year_seconds
-            end
-            for time in 34*year_seconds:86400:34.99999*year_seconds
-                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+            #end
+            #for time in 34*year_seconds:86400:34.99999*year_seconds
+                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
                 gui()
                 @show time/year_seconds
-            end
+            #end
+            
             for time in 34.99999*year_seconds:1:35*year_seconds + 100
-                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
                 gui()
+                sleep(.1)
                 @show time/year_seconds
             end
+            #=
             for time in 35*year_seconds + 100:86400:37 * year_seconds
-                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
                 gui()
                 @show time/year_seconds
             end
             for time in 37 * year_seconds:year_seconds:70 * year_seconds
-                plot(2 .* he_t(xf1, yf1, time, MMS), yf1, yflip=true, legend=false)
+                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
                 gui()
                 @show time/year_seconds
             end
             =#
-            
+            =#
             #@show minimum(τPe(xf1, yf1, 0, 1, B_p, MMS))
             
             u = zeros(nn^2)
@@ -265,7 +270,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, Tsit5();
+            sol = solve(prob, RK4();
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,

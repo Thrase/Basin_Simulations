@@ -51,8 +51,8 @@ function K_t(t, MMS)
     tw = MMS.t_w
     δ = MMS.δ_e
     Vm = MMS.Vmin
-
-    return tw / (π * (t̄^2 - 2t̄ * t + tw^2 + t^2)) + Vm/δ
+    
+    return tw / (π * ((t̄^2 - 2t̄ * t + t^2) + tw^2)) + Vm/δ
 end
 
 function K_tt(t, MMS)
@@ -62,7 +62,7 @@ function K_tt(t, MMS)
     δ = MMS.δ_e
     Vm = MMS.Vmin
 
-    return (2 * tw * (t̄ - t)) / (π * (t̄^2 - 2t̄*t + tw^2 + t^2)^2)
+    return (2 * tw * (t̄ - t)) / (π * ((t̄^2 - 2t̄ * t + t^2) + tw^2)^2)
 end
 
 he(x, y, t, MMS) = MMS.δ_e/2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp/2 .* t .* (1 .- ϕ(x,y,MMS)) .+
@@ -118,9 +118,46 @@ function ψe_t(x, y, t, B_p, RS, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
     τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
-    return (τe_t + η(y, B_p) .* Ve_t) * coth((τe + η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn - RS.a .* Ve_t ./ Ve
+    ψ_t = (τe_t .+ η(y, B_p) .* Ve_t) .* coth.((τe .+ η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
+    #=
+    if any(isnan, ψ_t)
+        k_test = findNanInf(K_t(t, MMS))
+        h_t_test = findNanInf(he_t(x, y, t, MMS))
+        @show k_test
+        @show h_t_test
+        @show t
+
+        t̄ = MMS.t̄
+        tw = MMS.t_w
+        @show tw
+        @show π * (t̄^2 - 2t̄ * t + tw^2 + t^2)
+        @show π * ((t̄^2 - 2t̄ * t + t^2) + tw^2)
+    end
+    =#
+    return ψ_t
+
+end
+
+
+function findNanInf(a)
+
+    for i in 1:length(a)
+        
+        if isnan(a[i])
+            return true, 1, i
+        end
+
+        if isinf(a[i])
+            return true, 2, i
+        end
+
+    end
+
+    return false, 0, 0
     
 end
+
+
 
 function fault_force(x, y, t, b, B_p, RS, MMS)
 
