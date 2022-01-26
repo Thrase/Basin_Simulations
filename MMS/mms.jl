@@ -270,7 +270,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, RK4();
+            sol = solve(prob, OwrenZen5();
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
@@ -307,10 +307,10 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         yflip = true, title = "face 1 error", legend=false)
             
             plt6 = plot(he(xf1, yf1, t_span[2], MMS), yf1,
-                        yflip = true, title = "face 1 exact", legend=false)
+                        yflip = true, title = "face 1 exact", legend=false, xlims=(0, 1.1))
             
-            plt7 = plot(d_ops.L[1] * u, yf1,
-                        yflip = true, title = "face 1 numerical", legend=false)
+            plt6 = plot!(d_ops.L[1] * u, yf1,
+                        yflip = true, title = "face 1 numerical", legend=false, xlims=(0, 1.1))
             plot(plt5, plt6, plt7, layout=3)
             gui()
             =#

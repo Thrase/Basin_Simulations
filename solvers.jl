@@ -217,16 +217,29 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         
         
         if !isfinite(dψ[n])
-            @printf "Reject dψ\n"
+            @printf "\nReject dψ\n"
+            @printf "%d, %f\n\n" n dψ[n]
+            ψ_test = findNanInf(ψe(xf1, yf1, t, B_p, RS, MMS))
+            V_test = findNanInf(he_t(xf1, yf1, t, MMS))
+            ψ_t_test = findNanInf(ψe_t(xf1, yf1, t, B_p, RS, MMS))
+            s_rs_test = findNanInf(fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS))
+            dψ_test = findNanInf((bn * RS.V0 / RS.Dc) *
+                (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0))
+            @show ψ_test
+            @show V_test
+            @show ψ_t_test
+            @show s_rs_test
+            @show dψ_test
+            @show ψ[1]
+            @show exp((RS.f0 - ψ[1])/bn)
             plot(dψ, yf1, yflip=true, label="numerical state")
             plot!(ψe_t(xf1, yf1, t, B_p, RS, MMS), yf1, yflip=true, label="exact state")
             gui()
-            @printf "%d, %f\n" n dψ[n]
+            
             flush(stdout)
             dψ[n] = 0
             reject_step[1] = true
             return
-            
         end
 
     end

@@ -119,21 +119,7 @@ function ψe_t(x, y, t, B_p, RS, MMS)
     τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
     ψ_t = (τe_t .+ η(y, B_p) .* Ve_t) .* coth.((τe .+ η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
-    #=
-    if any(isnan, ψ_t)
-        k_test = findNanInf(K_t(t, MMS))
-        h_t_test = findNanInf(he_t(x, y, t, MMS))
-        @show k_test
-        @show h_t_test
-        @show t
 
-        t̄ = MMS.t̄
-        tw = MMS.t_w
-        @show tw
-        @show π * (t̄^2 - 2t̄ * t + tw^2 + t^2)
-        @show π * ((t̄^2 - 2t̄ * t + t^2) + tw^2)
-    end
-    =#
     return ψ_t
 
 end
@@ -164,8 +150,24 @@ function fault_force(x, y, t, b, B_p, RS, MMS)
     ψ = ψe(x, y, t, B_p, RS, MMS)
     Ve = 2 * he_t(x, y, t, MMS)
     G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(Ve) / RS.V0)
+
+
+    s_rs = ψe_t(x, y, t, B_p, RS, MMS) .- G
+    #=
+    if any(!isfinite, s_rs)
+
+        ψ_test = findNanInf(ψ)
+        V_test = findNanInf(Ve)
+        G_test = findNanInf(G)
+        
+        @show ψ_test
+        @show V_test
+        @show G_test
+
+    end
+    =#
     
-    return ψe_t(x, y, t, B_p, RS, MMS) .- G
+    return s_rs
 
 end
 
