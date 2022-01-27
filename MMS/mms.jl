@@ -73,6 +73,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                              b = b,
                              sJ = metrics.sJ,
                              τ̃f = τ̃f,
+                             v̂ = zeros(nn),
                              CHAR_SOURCE = S_c,
                              STATE_SOURCE = S_rs,
                              FORCE = Forcing)
@@ -89,7 +90,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             GS += length(d_ops.H[1].nzval) * 8/1e9
             GS += length(d_ops.JIHP.nzval) * 8/1e9
             GS += length(d_ops.nCnΓ1.nzval) * 8/1e9
-            GS += length(d_ops.nBBCΓL1.nzval) * 8/1e9
+            GS += length(d_ops.HIGΓL1.nzval) * 8/1e9
             
             
 
@@ -116,33 +117,47 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                 =#
             end
             #@printf "Got Operators: %s s\n" ot
+
+            xf1 = metrics.facecoord[1][1]
+            yf1 = metrics.facecoord[2][1]
+
+            t_begin = 35 * year_seconds - 1
+            t_end =  35 * year_seconds + 1
+
             #=
-            it = @elapsed begin
-                u0 = he(x[:], y[:], 0.0, MMS)
-                v0 = he_t(x[:], y[:], 0.0, MMS)
-                q1 = [u0;v0]
-                for i in 1:4
-                    q1 = vcat(q1, d_ops.L[i]*u0)
-                end
-                q1 = vcat(q1, ψe_2(metrics.facecoord[1][1],
-                                   metrics.facecoord[2][1],
-                                   0, B_p, RS, MMS))
+            for time in t_begin:.1:t_end
+            plot(he_t(xf1, yf1, time, MMS),
+                 yf1, legend=false, color =:red,
+                 yflip=true, xlims=(0,.025))
 
-                #                    q3 = CuArray(deepcopy(q1))
-                q4 = deepcopy(q1)
-                q5 = deepcopy(q1)
-                @assert length(q1) == 2nn^2 + 5nn
-
+                @show time, ((MMS.t̄^2 - 2MMS.t̄ * time + time^2) + MMS.t_w^2)
+                
+                gui()
             end
+            quit()
+            =#
             
+            u0 = he(x[:], y[:], t_begin, MMS)
+            v0 = he_t(x[:], y[:], t_begin, MMS)
+            q1 = [u0;v0]
+            for i in 1:4
+                q1 = vcat(q1, d_ops.L[i]*u0)
+            end
+            q1 = vcat(q1, ψe_d(metrics.facecoord[1][1],
+                               metrics.facecoord[2][1],
+                               t_begin, B_p, RS, MMS))
 
-            dt_scale = 1
+            # q3 = CuArray(deepcopy(q1))
+            q4 = deepcopy(q1)
+            q5 = deepcopy(q1)
+            @assert length(q1) == 2nn^2 + 5nn
+
+            
+            dt_scale = .01
             dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-            t_span = (0, .1)
+            t_span = (t_begin, t_end)
 
             #@printf "Got initial conditions: %s s\n" it
-            
-            
             
             #=
             st3 = @elapsed begin
@@ -153,7 +168,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
             
             st4 = @elapsed begin
-                timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
+                t_end = timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
             end
             
             #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
@@ -168,17 +183,40 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             y = metrics.coord[2]
             
             u_end4 = @view q4[1:Nn]
-            diff_u4 = u_end4 - he(x[:], y[:], t_span[2], MMS)
+            diff_u4 = u_end4 - he(x[:], y[:], t_end, MMS)
             err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
             
-
-            #@printf "Ran CPU to time %s in: %s s \n\n" t_span[2] st5
             
-            
+            #=
+            plt1 = contour(x[:, 1], y[1, :],
+                           (reshape(u_end4, (nn, nn)) .- he(x, y, t_span[2], MMS))',
+                           title = "error", fill=true, yflip=true)
+            plt2 = contour(x[:, 1], y[1, :],
+                           he(x, y, t_span[2], MMS)',
+                           fill = true, yflip=true, title = "exact")
+            plt3 = contour(x[:, 1], y[1, :], 
+                           Forcing(x, y, t_span[2], B_p, MMS)',
+                           fill=true, yflip=true, title = "forcing")
+            plt4 = contour(x[:, 1], y[1, :], 
+                           reshape(u_end4, (nn,nn))',
+                           fill=true, yflip=true, title = "numerical")
+            plot(plt1, plt2, plt3, plt4, layout=4)
+            gui()
+            =#
+            #=
+            plt5 = plot((d_ops.L[1] * u_end4 - he(xf1, yf1, t_span[2], MMS)), yf1,
+                        yflip = true, title = "face 1 error", legend=false)
+            plt6 = plot(he(xf1, yf1, t_span[2], MMS), yf1,
+                        yflip = true, title = "face 1 exact", legend=false, xlims=(0, 1.1))
+            plt7 = plot(d_ops.L[1] * u_end4, yf1,
+                        yflip = true, title = "face 1 numerical", legend=false, xlims=(0, 1.1))
+            plot(plt5, plt6, plt7, layout=3)
+            gui()
+            =#
             #u_end3 = @view Array(q3)[1:Nn]
             #u_end5 = @view q5[1:Nn]
 
-            @printf "\t\tdynamic error with MS: %e\n" err4[iter]
+            @printf "\n\t\tdynamic error with MS: %e\n" err4[iter]
             if iter > 1
                 @printf "\t\tdynamic rate: %f\n" log(2, err4[iter - 1]/err4[iter])
             end
@@ -186,48 +224,10 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
             
-
-            =#
-
-            
-          
             
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
-
             
-            #=
-            #for time in 0:year_seconds:34*year_seconds
-                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
-                gui()
-                @show time/year_seconds
-            #end
-            #for time in 34*year_seconds:86400:34.99999*year_seconds
-                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
-                gui()
-                @show time/year_seconds
-            #end
-            
-            for time in 34.99999*year_seconds:1:35*year_seconds + 100
-                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
-                gui()
-                sleep(.1)
-                @show time/year_seconds
-            end
-            #=
-            for time in 35*year_seconds + 100:86400:37 * year_seconds
-                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
-                gui()
-                @show time/year_seconds
-            end
-            for time in 37 * year_seconds:year_seconds:70 * year_seconds
-                plot(ψe_t(xf1, yf1, time, B_p, RS, MMS), yf1, yflip=true, legend=false)
-                gui()
-                @show time/year_seconds
-            end
-            =#
-            =#
-            #@show minimum(τPe(xf1, yf1, 0, 1, B_p, MMS))
             
             u = zeros(nn^2)
             ge = zeros(nn^2)
@@ -277,32 +277,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         internalnorm=(x,_)->norm(x, Inf))
             #callback=plotter)
             
-            #@show sol.t[end]
+            
             diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
-
-
+            
             #=
-            plt1 = contour(x[:, 1], y[1, :],
-                           (reshape(u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
-                           title = "error", fill=true, yflip=true)
-            plt2 = contour(x[:, 1], y[1, :],
-                           he(x, y, t_span[2], MMS)',
-                           fill = true, yflip=true, title = "exact")
-            plt3 = contour(x[:, 1], y[1, :], 
-                           h_FORCE(x, y, t_span[2], B_p, MMS)',
-                           fill=true, yflip=true, title = "forcing")
-            plt4 = contour(x[:, 1], y[1, :], 
-                           reshape(u, (nn,nn))',
-                           fill=true, yflip=true, title = "numerical")
-            
-            plot(plt1, plt2, plt3, plt4, layout=4)
-            
-            gui()
-            =#
-            
-            
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,
                         yflip = true, title = "face 1 error", legend=false)
             
@@ -313,40 +293,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         yflip = true, title = "face 1 numerical", legend=false, xlims=(0, 1.1))
             plot(plt5, plt6, plt7, layout=3)
             gui()
-            
-
-            #=
-            plt1 = contour(x[:, 1], y[1, :],
-                           (reshape(u, (nn, nn)) .- Pe(x, y, t_span[2], MMS))',
-                           title = "error", fill=true, yflip=true)
-            plt2 = contour(x[:, 1], y[1, :],
-                           Pe(x, y, t_span[2], MMS)',
-                           fill = true, yflip=true, title = "exact")
-            plt3 = contour(x[:, 1], y[1, :], 
-                           P_FORCE(x, y, t_span[2], B_p, MMS)',
-                           fill=true, yflip=true, title = "forcing")
-            plt4 = contour(x[:, 1], y[1, :], 
-                           reshape(u, (nn,nn))',
-                           fill=true, yflip=true, title = "numerical")
-            
-            plot(plt1, plt2, plt3, plt4, layout=4)
-            gui()
             =#
 
-            
-            #=
-            plt5 = plot((d_ops.L[face_view] * u - Pe(xb, yb, time, MMS)), yb,
-                        yflip = false, title = string("face", face_view,"  error"), legend=false)
-            
-            plt6 = plot(xb, Pe(xb, yb, time, MMS),
-                        yflip = false,  title = string("face", face_view,"  exact"), legend=false)
-            
-            plt7 = plot(xb, d_ops.L[face_view] * u,
-                        yflip = false, title = string("face", face_view,"  numerical"), legend=false)
-
-            plot(plt5, plt6, plt7, layout=3)
-            gui()
-            =#
             
             @printf "\n\t\tquasi-dynamic error with MS: %e\n" err[iter]
             if iter > 1
@@ -355,7 +303,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
 
             @printf "\t___________________________________\n\n"
-            
+            =#
         end
     end
 end

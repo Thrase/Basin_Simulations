@@ -454,8 +454,8 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
               spzeros(nn, 2Nn + 5nn) ]
 
 
-        nCnΓ1 = Crr1 * Γ[1]
-        nBBCΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
+        nCnΓ1 = Γ[1]
+        HIGΓL1 = HI[1] * G[1] - nCnΓ1 * L[1]
     end
 
     #@printf "Got Λ and friends in %f seconds\n" Λ_t
@@ -473,7 +473,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
      JI = JI,
      JIHP = JIHP,
      nCnΓ1 = nCnΓ1,
-     nBBCΓL1 = nBBCΓL1,
+     HIGΓL1 = HIGΓL1,
      hmin = hmin,
      cmax = cmax,
      JH = JH,
