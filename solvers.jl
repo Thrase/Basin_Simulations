@@ -208,16 +208,18 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         V[n] = Vn
         
         if bn != 0
-            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
-            #dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            #dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
         
         
         if !isfinite(dψ[n])
+            
             @printf "\nReject dψ\n"
+            #=
             @printf "%d, %f\n\n" n dψ[n]
             ψ_test = findNanInf(ψe(xf1, yf1, t, B_p, RS, MMS))
             V_test = findNanInf(he_t(xf1, yf1, t, MMS))
@@ -232,13 +234,13 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             @show dψ_test
             @show ψ[1]
             @show exp((RS.f0 - ψ[1])/bn)
-            plot(dψ, yf1, yflip=true, label="numerical state")
-            plot!(ψe_t(xf1, yf1, t, B_p, RS, MMS), yf1, yflip=true, label="exact state")
-            gui()
-            
+            #plot(dψ, yf1, yflip=true, label="numerical state")
+            #plot!(ψe_t(xf1, yf1, t, B_p, RS, MMS), yf1, yflip=true, label="exact state")
+            #gui()
             flush(stdout)
             dψ[n] = 0
             reject_step[1] = true
+            =#
             return
         end
 
@@ -267,11 +269,16 @@ function PLOTFACE(ψδ,t,i)
         yf1 = i.p.metrics.facecoord[2][1]
         xf1 = i.p.metrics.facecoord[1][1]
         MMS = i.p.MMS
+        B_p = i.p.B_p
         nn = i.p.nn
         dψV = i.fsallast
         V = @view dψV[nn .+ (1:nn)]
         plot(V, yf1, legend=false, color =:blue, yflip=true)
+        plot!(he_t(xf1, yf1, t, MMS), yf1, legend=false, color =:red, yflip=true)
+        plot!(-τhe(xf1, yf1, t, 1, B_p, MMS) .- η(yf1, B_p) .* 2 .* he_t(xf1, yf1, t, MMS), yf1,
+              legend=false, color =:green, yflip=true)
         gui()
+        #sleep(1)
     end
 
     return false

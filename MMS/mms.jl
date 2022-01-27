@@ -233,7 +233,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 70 * year_seconds
+            t_final = 40 * year_seconds
             t_begin = 0#30 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -270,7 +270,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, OwrenZen5();
+            sol = solve(prob, RK4();
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
