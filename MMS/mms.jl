@@ -270,7 +270,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, RK4();
+            sol = solve(prob, BS5();
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
