@@ -208,9 +208,9 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         V[n] = Vn
         
         if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            #dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
-            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            #dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
@@ -274,9 +274,7 @@ function PLOTFACE(ψδ,t,i)
         dψV = i.fsallast
         V = @view dψV[nn .+ (1:nn)]
         plot(V, yf1, legend=false, color =:blue, yflip=true)
-        plot!(he_t(xf1, yf1, t, MMS), yf1, legend=false, color =:red, yflip=true)
-        plot!(-τhe(xf1, yf1, t, 1, B_p, MMS) .- η(yf1, B_p) .* 2 .* he_t(xf1, yf1, t, MMS), yf1,
-              legend=false, color =:green, yflip=true)
+        plot!(2 * he_t(xf1, yf1, t, MMS), yf1, legend=false, color =:red, yflip=true)
         gui()
         #sleep(1)
     end

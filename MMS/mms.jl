@@ -274,11 +274,11 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
-                        internalnorm=(x,_)->norm(x, Inf),
-                        callback=plotter)
+                        internalnorm=(x,_)->norm(x, Inf))
+            #callback=plotter)
             
-                        
-            diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
+            #@show sol.t[end]
+            diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
 
@@ -302,18 +302,18 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             gui()
             =#
             
-            #=
-            plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, t_span[2], MMS)), yf1,
+            
+            plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,
                         yflip = true, title = "face 1 error", legend=false)
             
-            plt6 = plot(he(xf1, yf1, t_span[2], MMS), yf1,
+            plt6 = plot(he(xf1, yf1, sol.t[end], MMS), yf1,
                         yflip = true, title = "face 1 exact", legend=false, xlims=(0, 1.1))
             
-            plt6 = plot!(d_ops.L[1] * u, yf1,
+            plt7 = plot(d_ops.L[1] * u, yf1,
                         yflip = true, title = "face 1 numerical", legend=false, xlims=(0, 1.1))
             plot(plt5, plt6, plt7, layout=3)
             gui()
-            =#
+            
 
             #=
             plt1 = contour(x[:, 1], y[1, :],

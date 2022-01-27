@@ -62,7 +62,7 @@ function K_tt(t, MMS)
     δ = MMS.δ_e
     Vm = MMS.Vmin
 
-    return (2 * tw * (t̄ - t)) / (π * ((t - t̄)^2 + tw^2)^2)
+    return -(2 * tw * (t - t̄)) / (π * ((t - t̄)^2 + tw^2)^2)
 end
 
 he(x, y, t, MMS) = MMS.δ_e/2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp/2 .* t .* (1 .- ϕ(x,y,MMS)) .+
@@ -128,7 +128,7 @@ function ψe_t(x, y, t, B_p, RS, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
     τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
-    ψ_t = (τe_t .+ η(y, B_p) .* Ve_t) .* coth.((τe .+ η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
+    ψ_t = (-τe_t .- η(y, B_p) .* Ve_t) .* coth.((-τe .- η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
 
     return ψ_t
 
