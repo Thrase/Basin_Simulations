@@ -14,7 +14,7 @@ let
     
     
     # mesh refinement
-    ns = 2 .^ (5:5)
+    ns = 2 .^ (5:8)
     
     # order of operators
     p = [2]

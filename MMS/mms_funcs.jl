@@ -52,7 +52,7 @@ function K_t(t, MMS)
     δ = MMS.δ_e
     Vm = MMS.Vmin
     
-    return tw / (π * ((t̄^2 - 2t̄ * t + t^2) + tw^2)) + Vm/δ
+    return tw / (π * ((t - t̄)^2 + tw^2)) + Vm/δ
 end
 
 function K_tt(t, MMS)
@@ -62,7 +62,7 @@ function K_tt(t, MMS)
     δ = MMS.δ_e
     Vm = MMS.Vmin
 
-    return (2 * tw * (t̄ - t)) / (π * ((t̄^2 - 2t̄ * t + t^2) + tw^2)^2)
+    return (2 * tw * (t̄ - t)) / (π * ((t - t̄)^2 + tw^2)^2)
 end
 
 he(x, y, t, MMS) = MMS.δ_e/2 .* K(t, MMS) .* ϕ(x, y, MMS) .+ MMS.Vp/2 .* t .* (1 .- ϕ(x,y,MMS)) .+
@@ -102,6 +102,31 @@ function τhe(fx, fy, t, fnum, B_p, MMS)
 
 end
 
+
+function ψe_d(x, y, t, B_p, RS, MMS)
+    
+    τe = τhe(x, y, t, 1, B_p, MMS)
+    Ve = 2 .* he_t(x, y, t, MMS)
+
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τe .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
+end
+
+
+function ψe_td(x, y, t, B_p, RS, MMS)
+
+    τe = τhe(x, y, t, 1, B_p, MMS)
+    Ve = 2 * he_t(x, y, t, MMS)
+    Ve_t = 2 * he_tt(x, y, t, MMS)
+    τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
+
+    ψ_t = τe_t .* coth.(τe ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
+
+    return ψ_t
+
+end
+
+
+    
 function ψe(x, y, t, B_p, RS, MMS)
 
     τe = τhe(x, y, t, 1, B_p, MMS)
@@ -196,10 +221,10 @@ end
 
 function S_rs(fx, fy, b, t, B_p, RS, MMS)
     
-    ψ = ψe_2(fx, fy, t, B_p, RS, MMS)
+    ψ = ψe_d(fx, fy, t, B_p, RS, MMS)
     V = 2*he_t(fx, fy, t, MMS)
     G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(V) / RS.V0)
-    ψ_t = ψe_2t(fx, fy, t, B_p, RS, MMS)
+    ψ_t = ψe_td(fx, fy, t, B_p, RS, MMS)
     return  ψ_t .- G
 
 end

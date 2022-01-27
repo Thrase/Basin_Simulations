@@ -413,6 +413,8 @@ end
 
 function MMS_FAULT_CPU!(dq, q, p, t)
 
+    @printf "\r\t%f" t
+    
     nn = p.nn
     R = p.R
     fc = p.fc
@@ -429,7 +431,7 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     P̃I = p.d_ops.P̃I
     JIHP = p.d_ops.JIHP
     nCnΓ1 = p.d_ops.nCnΓ1
-    nBBCΓL1 = p.d_ops.nBBCΓL1
+    HIGΓL1 = p.d_ops.HIGΓL1
     CHAR_SOURCE = p.CHAR_SOURCE
     STATE_SOURCE = p.STATE_SOURCE
     FORCE = p.FORCE
@@ -445,11 +447,12 @@ function MMS_FAULT_CPU!(dq, q, p, t)
 
     # compute all temporal derivatives
     dq .= Λ * q
-    # get velocity on fault
-    #vf .= q[nn^2 + 1: nn : 2nn^2]
+    
     # compute numerical traction on face 1
-    τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
-
+    #τ̃f .= sJ[1] .* τhe(fc[1][1], fc[2][1], t, 1, B_p, MMS)
+    τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
+    #ψ .= ψe(fc[1][1], fc[2][1], t, B_p, RS, MMS)
+    
     # Root find for RS friction
     for n in 1:nn
         
@@ -485,7 +488,7 @@ function MMS_FAULT_CPU!(dq, q, p, t)
         dv[1 + (n - 1)*nn] +=  H[1][n, n] * (Z̃f[1][n] * v̂n)
         dψ[n] = (b[n] .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ[n]) ./ b[n]) .- abs.(2 .* v̂n) ./ RS.V0)
     end
-                 
+
 
     # Non-fault Source injection
     for i in 2:4
@@ -498,7 +501,7 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 
     # psi source
-    dψ[:] .+= STATE_SOURCE(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
+    dψ .+= STATE_SOURCE(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
 
 end
 
@@ -884,6 +887,12 @@ end
 
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
+
+    fc = p.fc
+    nn = p.nn
+    v̂ = p.v̂
+    MMS = p.MMS
+    
     T = eltype(q)
     
     RKA = [
@@ -920,13 +929,21 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
         t = t0 + (step - 1) * dt
         for s in 1:length(RKA)
             f!(Δq2, q, p, t + RKC[s] * dt)
+            v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
             Δq .+= Δq2
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
+        #=
+        plot(v̂, fc[2][1], legend=false, color =:blue, yflip=true, xlims=(0,.025))
+        plot!(he_t(fc[1][1], fc[2][1], t, MMS),
+              fc[2][1], legend=false, color =:red,
+              yflip=true, xlims=(0,.025))
+        gui()
+        =#
     end
 
-    nothing
+    return t0 + (nstep - 1) * dt
 
 end
 
