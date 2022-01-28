@@ -13,6 +13,8 @@ using CUDA.CUSPARSE
 using Plots
 
 let
+
+    ### input parameters
     p,
     T,
     N,
@@ -28,9 +30,10 @@ let
     Dc = read_params(ARGS[1])
     
     @show d_to_s
+    
     nn = N + 1
 
-    # get simulation time
+    ### get simulation time
     year_seconds = 31556952
     sim_seconds = T * year_seconds
     t_now = 0.0
@@ -42,7 +45,7 @@ let
         t_span = (0.0, sim_seconds)
     end
 
-    # Basin Params
+    ### basin Params
     B_p = (μ_out = 36.0,
            ρ_out = 2.8,
            μ_in = 8.0,
@@ -52,7 +55,7 @@ let
            r_w = 1 + (Lw/2)/D)
     
     
-    # Get grid
+    ### get grid
     grid_t = @elapsed begin
         xt, yt = transforms_e(Lw, r̂, l)
         metrics = create_metrics(N, N, B_p, μ, ρ, xt, yt)
@@ -61,13 +64,12 @@ let
     @printf "got grid in %f seconds\n" grid_t
     flush(stdout)
 
-    # fault Params
+    ### get fault params
     fc = metrics.facecoord[2][1]
     (x, y) = metrics.coord
     for i in 2:length(fc)
         @show fc[i], fc[i] - fc[i-1]
     end
-    #quit()
 
     η = metrics.η
 
@@ -76,7 +78,7 @@ let
     VWp, 
     RS = fault_params(fc, Dc)
 
-    # io stuffs
+    ### setup io
     dir_name,
     slip_file,
     slip_rate_file,
@@ -87,7 +89,7 @@ let
     @printf "set-up io\n"
     flush(stdout)
 
-    # getting discrete operators
+    ### get discrete operators
     faces = [0 2 3 4]
     R = [-1 0 1 0]
     opt_t = @elapsed begin
@@ -95,7 +97,9 @@ let
     end
     @printf "Got operators\n"
     flush(stdout)
-    # getting initial condtions
+
+
+    ### get initial condtions
     if ic_file != "None"
         ψδ = readdlm(ic_file)
     else
@@ -110,7 +114,8 @@ let
 
     @printf "Got initial conditions\n"
     flush(stdout)
-    # getting everything together for solvers
+
+    ### parameter orginzation
     io = (dir_name = dir_name,
           slip_file = slip_file,
           slip_rate_file = slip_rate_file,
@@ -129,7 +134,6 @@ let
             u = zeros(nn^2),
             ge = zeros(nn^2))
 
-    
     static_params = (reject_step = [false],
                      Lw = Lw,
                      nn = nn,
@@ -153,33 +157,37 @@ let
                       H = CuArray(diag(ops.H[1])),
                       JIHP = CuSparseMatrixCSC(ops.JIHP),
                       nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
-                      nBBCΓL1 = CuSparseMatrixCSC(ops.nBBCΓL1),
+                      HIGΓL1 = CuSparseMatrixCSC(ops.HIGΓL1),
                       RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, nn]),
                       b = CuArray(RS.b),
                       τ̃f = CuArray(zeros(nn)),
                       v̂= CuArray(zeros(nn)),
-                      nf_v2 = CuArray(zeros(nn)),
-                      nf_v3 = CuArray(zeros(nn)),
+                      source2 = CuArray(zeros(nn)),
+                      source3 = CuArray(zeros(nn)),
                       fc = metrics.facecoord[2][1],
                       Lw = Lw,
                       io = io,
                       d_to_s = d_to_s,
                       RS_cpu = RS)
 
-        
     @printf "Approximately %f Gib to GPU\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
+
+    ### set dynamic timestep
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
     @show dts
-    cycles = 1
+    
 
+    ### begin cycles
+    cycles = 1
     while t_now < T * year_seconds
 
         static_params.cycles[1] = cycles
         @printf "On cycle %d\n" cycles
-        
         @printf "Begining Inter-seismic period...\n"
         flush(stdout)
+
+        ### run inter-seismic period
         static_params.reject_step[1] = false
         stopper = DiscreteCallback(STOPFUN_Q, terminate!)
         prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
@@ -191,8 +199,8 @@ let
         
         @printf "Interseismic period took %s seconds. \n" inter_time
         flush(stdout)
-    #=
-        # dynamic inital conditions
+    
+        ### get dynamic inital conditions
         t_now = sol.t[end]
         t_span = (t_now,  sim_seconds)
 
@@ -200,7 +208,6 @@ let
 
         q = Array(q)
         q[1:nn^2] .= static_params.vars.u[:]
-        
         q[nn^2 + 1 : 2nn^2] .=
             (static_params.vars.u -static_params.vars.u_prev) / (sol.t[end] - static_params.vars.t_prev[1])
         
@@ -209,27 +216,42 @@ let
         end
         q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
         
+
+        ### write break to output file
         temp_io = open(io.slip_file, "a")
         writedlm(temp_io, ["BREAK"])
         close(temp_io)
 
+
         @printf "Begining Co-sesimic period...\n"
         flush(stdout)
+
         co_time = @elapsed begin
+            
+
+            ### getting source terms for non-reflecting boundaries
+            
+            source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
+                ops.L[2] * q[nn^2 + 1 : 2nn^2] -
+                traction(ops, 2, q[1:nn^2],
+                         f2_data(RS, metrics.μf2, Lw, t))))
+
+            source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
+            ops.L[3] * q[nn^2 + 1 : 2nn^2] -
+            traction(static_params.ops, 3, q[1:nn^2],
+                     ops.L[3] * q[1:nn^2])))
+            
             q = CuArray(q)
 
-            # getting source terms for non-reflecting boundaries
-            nf_source2 .= CuArray(ops.Z̃f[2]) .*
-                (CuSparseMatrixCSC(ops.L[2]) * q[nn^2 + 1 : 2nn^2]) -
-                
-            
-            nf_source3 .= CuArray(ops.Z̃f[3]) .*
-            (CuSparseMatrixCSC(ops.L[3]) * q[nn^2 + 1 : 2nn^2]) -
-            
+            ### run inter-seismic solver
             t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
         end
+
         @printf "Coseismic period took %s seconds. \n" co_time
         flush(stdout)
+
+        ### get inter-seismic so
+
         ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
         ψδ[nn + 1: 2nn] .= Array(2 * q[1 : nn : nn^2])
         static_params.vars.t_prev[2] = t_now/year_seconds
@@ -243,7 +265,7 @@ let
         static_params.io.pf[1] = 0
         static_params.io.pf[2] = 0
         cycles += 1
-        =#
+        
     end
     
 end
