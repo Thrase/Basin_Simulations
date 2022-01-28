@@ -8,7 +8,7 @@ CUDA.allowscalar(false)
 
 function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
-    
+    @printf "\r\t%f" t/p.year_seconds
     
     reject_step = p.reject_step
     if reject_step[1]
@@ -31,21 +31,28 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     ops = p.ops
     η = metrics.η
     b = p.b
-    count = p.counter
+    
 
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
 
-
+    
     ψ  = @view ψδ[1:nn]
     δ =  @view ψδ[nn + 1 : 2nn]
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
-    
     mod_data!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
+
+    HI = ops.HI[1]
+    G = ops.G[1]
+    Γ = ops.Γ[1]
+    L = ops.L[1]
+    sJ = metrics.sJ[1]
+    
+    Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
 
     for n in 1:nn
         
@@ -54,19 +61,18 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         τn = Δτ[n]
         ηn = η[n]
 
-        if isnan(τn) || !isfinite(τn)
-            reject_step[1] = true
-            return
-        end
-
+        
         VR = abs(τn / ηn)
         VL = -VR
         Vn = V[n]
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
         (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
                                  atolx = 1e-12, rtolx = 1e-12)
-        
-        if isnan(Vn) || iter < 0 || !isfinite(Vn)
+
+        if !isfinite(Vn)
+            @printf "Reject V\n"
+            @show Vn
+            flush(stdout)
             reject_step[1] = true
             return
         end
@@ -78,16 +84,16 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         else
             dψ[n] = 0
         end
-
-        if !isfinite(dψ[n]) || isnan(dψ[n])
-            dψ[n] = 0
+        
+        if !isfinite(dψ[n])
+            @printf "\nReject dψ\n"
+            dψ .= 0
             reject_step[1] = true
             return
-            
         end
-        
-    end
 
+    end
+    
     nothing
     
 end
@@ -163,34 +169,22 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     u[:] = M \ ge
 
-    #V .= 2 .* he_t(xf1, yf1, t, MMS)
-    
     HI = ops.HI[1]
     G = ops.G[1]
     Γ = ops.Γ[1]
     L = ops.L[1]
     sJ = metrics.sJ[1]
     
-    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
     Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
 
-    #ψ .= ψe_2(xf1, yf1, t, B_p, RS, MMS)
-
-    
     for n in 1:nn
         
         ψn = ψ[n]
         bn = b[n]
         τn = Δτ[n]
         ηn = η[n]
-        
-        if !isfinite(τn)
-            @printf "Reject τ\n"
-            flush(stdout)
-            reject_step[1] = true
-            return
-        end
 
+        
         VR = abs(τn / ηn)
         VL = -VR
         Vn = V[n]
@@ -200,6 +194,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         if !isfinite(Vn)
             @printf "Reject V\n"
+            @show Vn
             flush(stdout)
             reject_step[1] = true
             return
@@ -207,45 +202,24 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         V[n] = Vn
         
+
         if bn != 0
-            #dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
-            #dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            #dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
+            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
         
         
         if !isfinite(dψ[n])
-            
             @printf "\nReject dψ\n"
-            #=
-            @printf "%d, %f\n\n" n dψ[n]
-            ψ_test = findNanInf(ψe(xf1, yf1, t, B_p, RS, MMS))
-            V_test = findNanInf(he_t(xf1, yf1, t, MMS))
-            ψ_t_test = findNanInf(ψe_t(xf1, yf1, t, B_p, RS, MMS))
-            s_rs_test = findNanInf(fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS))
-            dψ_test = findNanInf((bn * RS.V0 / RS.Dc) *
-                (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0))
-            @show ψ_test
-            @show V_test
-            @show ψ_t_test
-            @show s_rs_test
-            @show dψ_test
-            @show ψ[1]
-            @show exp((RS.f0 - ψ[1])/bn)
-            #plot(dψ, yf1, yflip=true, label="numerical state")
-            #plot!(ψe_t(xf1, yf1, t, B_p, RS, MMS), yf1, yflip=true, label="exact state")
-            #gui()
-            flush(stdout)
-            dψ[n] = 0
+            dψ .= 0
             reject_step[1] = true
-            =#
             return
         end
 
     end
-    #@show maximum(abs.(dψ))
     
     nothing
     
@@ -256,6 +230,7 @@ end
 function stepcheck(_, p, _)
     if p.reject_step[1]
         p.reject_step[1] = false
+        println("hellllo!")
         return true
     end
     return false
@@ -276,7 +251,6 @@ function PLOTFACE(ψδ,t,i)
         plot(V, yf1, legend=false, color =:blue, yflip=true)
         plot!(2 * he_t(xf1, yf1, t, MMS), yf1, legend=false, color =:red, yflip=true)
         gui()
-        #sleep(1)
     end
 
     return false
@@ -355,12 +329,12 @@ function STOPFUN_Q(ψδ,t,i)
         =#
 
         year_count = t/year_seconds
-
-        #@show Vmax, cycles
+        
+        #=
         if Vmax >= 1e-2 #&& year_count > (t_prev[2] + 20)
             return true
         end
-        
+        =#
         pf[1] += 1
         u_prev .= u
         t_prev[1] = t

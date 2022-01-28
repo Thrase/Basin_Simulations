@@ -122,7 +122,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             yf1 = metrics.facecoord[2][1]
 
             t_begin = 35 * year_seconds - 1
-            t_end =  35 * year_seconds + 1
+            t_final =  35 * year_seconds + 1
 
             #=
             for time in t_begin:.1:t_end
@@ -136,7 +136,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             end
             quit()
             =#
-            
+            #=
             u0 = he(x[:], y[:], t_begin, MMS)
             v0 = he_t(x[:], y[:], t_begin, MMS)
             q1 = [u0;v0]
@@ -155,7 +155,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             dt_scale = .01
             dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-            t_span = (t_begin, t_end)
+            t_span = (t_begin, t_final)
 
             #@printf "Got initial conditions: %s s\n" it
             
@@ -168,7 +168,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
             
             st4 = @elapsed begin
-                t_end = timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
+                t_final = timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
             end
             
             #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
@@ -183,7 +183,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             y = metrics.coord[2]
             
             u_end4 = @view q4[1:Nn]
-            diff_u4 = u_end4 - he(x[:], y[:], t_end, MMS)
+            diff_u4 = u_end4 - he(x[:], y[:], t_final, MMS)
             err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
             
             
@@ -223,17 +223,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
 
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
-            
-            
-            xf1 = metrics.facecoord[1][1]
-            yf1 = metrics.facecoord[2][1]
-            
-            
+
+            =#
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 40 * year_seconds
+            t_final = 20 * year_seconds
             t_begin = 0#30 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -270,12 +266,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, BS5();
+            sol = solve(prob, RK4();
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
-                        internalnorm=(x,_)->norm(x, Inf))
-            #callback=plotter)
+                        internalnorm=(x,_)->norm(x, Inf),
+                        callback=plotter)
             
             
             diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
@@ -303,7 +299,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
 
             @printf "\t___________________________________\n\n"
-            =#
+            
         end
     end
 end

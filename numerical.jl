@@ -28,21 +28,20 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
     ge .= 0
     
     for i in 1:4
-        
         if i == 1
-            vf .= δ ./ 2
+            vf .=  δ ./ 2
         elseif i == 2
-            vf .= (RS.τ_inf * MMS.Lw) ./ μf2 .+
-                t * MMS.Vp/2 .+
-                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
-        elseif i == 3 
-            vf .= sJ[3] * 0
+            # dirichlet h
+            vf .= (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2)
+        elseif i == 3
+            # neumann h
+            vf .= 0
         elseif i == 4
-            vf .= sJ[4] .* 0
+            # neumann h
+            vf .= 0
         end
         
-        ge .-= K[i] * vf
-        
+        ge .+= K[i] * vf
     end
 
 end
@@ -57,61 +56,24 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
     ge .= 0
     
     for i in 1:4
-        
         if i == 1
-            #vf .= sJ[1] .* τhe(xf[1], yf[1], t, 1, B_p, MMS)
-            
             vf .=  δ ./ 2
-
-            #vf .= he(xf[1], yf[1], t, MMS)
-            
         elseif i == 2
-            # neumann h
-            #vf .= sJ[2] .* τhe(xf[2], yf[2], t, 1, B_p, MMS)
-            
             # dirichlet h
             vf .= (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2) .+
                 h_face2(xf[2], yf[2], t, MMS, RS, μf2)
-
-            # dirichlet P
-            #vf .= t .+
-            #    P_face2(xf[2], yf[2], t, MMS)
-            
-            # dirichlet p
-            #vf .= Pe(xf[2], yf[2], t, MMS)
-            
         elseif i == 3
             # neumann h
             vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
-
-            #vf .= sJ[3] .* τPe(xf[3], yf[3], t, 3, B_p, MMS)
-            
-            # dirichlet h
-            #vf .= he(xf[3], yf[3], t, MMS)
-
-            # dirichlet p
-            #vf .= Pe(xf[3], yf[3], t, MMS)
-            
         elseif i == 4
             # neumann h
             vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
-
-            #vf .= sJ[4] .* τPe(xf[4], yf[4], t, 4, B_p, MMS)
-            
-            # dirichlet h 
-            #vf .= he(xf[4], yf[4], t, MMS)
-
-            # dirichlet p
-            #vf .= Pe(xf[4], yf[4], t, MMS)
-            
         end
         
         ge .+= K[i] * vf
-        
     end
 
     ge .+= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
-    #ge .+= H̃ * P_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
