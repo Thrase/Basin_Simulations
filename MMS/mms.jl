@@ -124,18 +124,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             t_begin = 35 * year_seconds - 1
             t_final =  35 * year_seconds + 1
 
-            #=
-            for time in t_begin:.1:t_end
-            plot(he_t(xf1, yf1, time, MMS),
-                 yf1, legend=false, color =:red,
-                 yflip=true, xlims=(0,.025))
-
-                @show time, ((MMS.t̄^2 - 2MMS.t̄ * time + time^2) + MMS.t_w^2)
-                
-                gui()
-            end
-            quit()
-            =#
+            
             #=
             u0 = he(x[:], y[:], t_begin, MMS)
             v0 = he_t(x[:], y[:], t_begin, MMS)
@@ -229,8 +218,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 20 * year_seconds
-            t_begin = 0#30 * year_seconds
+            t_final = 40 * year_seconds
+            t_begin = 30 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
                       reject_step = [false],
@@ -263,20 +252,42 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             
             t_span = (t_begin, t_final)
+
+            #Q_STATIC_MMS!(params)
             
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
             sol = solve(prob, RK4();
                         isoutofdomain=stepcheck,
-                        atol = 1e-12,
-                        rtol = 1e-12,
+                        atol = 1e-14,
+                        rtol = 1e-14,
                         internalnorm=(x,_)->norm(x, Inf),
                         callback=plotter)
             
-            
-            diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
+
+            #diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
+
+
+            #=
+            plt1 = contour(x[:, 1], y[1, :],
+                           (reshape(params.u, (nn, nn)) .- he(x, y, sol.t[end], MMS))',
+                            title = "error", fill=true, yflip=true)
+                           
+            plt2 = contour(x[:, 1], y[1, :],
+                           he(x, y, sol.t[end], MMS)',
+                           fill = true, yflip=true, title = "exact")
+                           
+            plt3 = contour(x[:, 1], y[1, :], 
+                           Forcing(x, y, sol.t[end], B_p, MMS)',
+                           fill=true, yflip=true, title = "forcing")
+            plt4 = contour(x[:, 1], y[1, :], 
+                           reshape(params.u, (nn,nn))',
+                           fill=true, yflip=true, title = "numerical")
+            plot(plt1, plt2, plt3, plt4, layout=4)
+            gui()
+            =#
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,

@@ -100,8 +100,6 @@ end
 
 function Q_STATIC_MMS!(p)
 
-
-    
     nn = p.nn
     Δτ = p.Δτ
     u = p.u
@@ -109,8 +107,7 @@ function Q_STATIC_MMS!(p)
     vf = p.vf
     M = p.ops.M̃
     K = p.ops.K
-    H̃ = p.ops.H̃
-    JI = p.ops.JI
+    JH = p.ops.JH
     RS = p.RS
     MMS = p.MMS
     B_p = p.B_p
@@ -119,8 +116,9 @@ function Q_STATIC_MMS!(p)
     η = metrics.η
     b = p.b
     δ = 0
+    ys = p.year_seconds
     
-    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, 3.3)
+    static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, ys)
 
     u[:] = M \ ge
     
@@ -146,7 +144,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     M = p.ops.M̃
     K = p.ops.K
     H̃ = p.ops.H̃
-    JI = p.ops.JI
+    JH = p.ops.JH
     RS = p.RS
     MMS = p.MMS
     B_p = p.B_p
@@ -165,7 +163,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
-    mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+    mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
 
@@ -304,37 +302,28 @@ function STOPFUN_Q(ψδ,t,i)
             legend=false)
             plot(plt1, plt2, layout=2)
             gui()
-
+            
             
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
             =#
+            
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
         end
-        
-        #=
-        if cycles == 2
-            plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-                 xlabel="Slip", linecolor=:blue, linewidth=.1,
-                 legend=false)
-            gui()
-            sleep(10000)
-        end
-        =#
 
+        
         year_count = t/year_seconds
         
-        #=
         if Vmax >= 1e-2 #&& year_count > (t_prev[2] + 20)
             return true
         end
-        =#
+        
         pf[1] += 1
         u_prev .= u
         t_prev[1] = t

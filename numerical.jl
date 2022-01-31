@@ -46,7 +46,40 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
 
 end
 
-function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+
+function static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, ys)
+
+    (xf, yf) = metrics.facecoord
+    coord = metrics.coord
+    sJ = metrics.sJ
+    μf2 = μ(xf[2], yf[2], B_p)
+    
+    ge .= 0
+    
+    for i in 1:4
+        if i == 1
+            vf .=  he(xf[1], yf[1], 35 * ys, MMS)
+        elseif i == 2
+            # dirichlet h
+            vf .= (MMS.Vp/2 * 35 * ys .+ (RS.τ_inf * MMS.Lw) ./ μf2) .+
+                h_face2(xf[2], yf[2], 35 * ys, MMS, RS, μf2)
+        elseif i == 3
+            # neumann h
+            vf .= sJ[3] .* τhe(xf[3], yf[3], 35 * ys, 3, B_p, MMS)
+        elseif i == 4
+            # neumann h
+            vf .= sJ[4] .* τhe(xf[4], yf[4], 35 * ys, 4, B_p, MMS)
+        end
+        
+        ge .+= K[i] * vf
+    end
+
+    ge .+= JH * h_FORCE(coord[1][:], coord[2][:], 35 * ys, B_p, MMS)
+    
+end
+
+
+function mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
 
     (xf, yf) = metrics.facecoord
     coord = metrics.coord
@@ -73,7 +106,7 @@ function mod_data_mms!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
         ge .+= K[i] * vf
     end
 
-    ge .+= H̃ * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .+= JH * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
@@ -173,7 +206,6 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
 
     #@printf "Got Ã in %f seconds\n" A_t
 
-    boundary_t = @elapsed begin
 
         # volume quadrature
         H̃ = kron(Hr, Hs)
@@ -184,6 +216,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         rho = reshape(rho, Nrp*Nsp)
         P̃ = spdiagm(0 => rho)
         P̃inv = spdiagm(0 => (1 ./ rho))
+        
         JI = spdiagm(0 => reshape(metrics.JI, Nrp*Nsp))
         
         er0 = sparse([1  ], [1], [1], Nrp, 1)
@@ -325,22 +358,20 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
              H[2] * (B[2][1] + B[2][2]),
              -H[3] * (B[3][1] + B[3][2]),
              H[4] * (B[4][1] + B[4][2]))
-    end
 
-    #@printf "Got boundary ops in %f seconds\n" boundary_t
 
 
     static_t = @elapsed begin
 
-        K1 = JI * (L[1]' * H[1] * Γ[1] - G[1]')
-        K2 = JI * (L[2]' * H[2] * Γ[2] - G[2]')
-        #K3 = JI * (L[3]' * H[3] * Γ[3] - G[3]')
-        #K4 = JI * (L[4]' * H[4] * Γ[4] - G[4]')
+        K1 = L[1]' * H[1] * Γ[1] - G[1]'
+        K2 = L[2]' * H[2] * Γ[2] - G[2]'
+        #K3 = L[3]' * H[3] * Γ[3] - G[3]'
+        #K4 = L[4]' * H[4] * Γ[4] - G[4]'
         
-        #K1 = JI * L[1]' * H2]
-        #K2 = JI * L[2]' * H[2]
-        K3 = JI * L[3]' * H[3]
-        K4 = JI * L[4]' * H[4]
+        #K1 = L[1]' * H2]
+        #K2 = L[2]' * H[2]
+        K3 = L[3]' * H[3]
+        K4 = L[4]' * H[4]
 
         M̃ = copy(Ã)
         
@@ -350,7 +381,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
             M̃ -= G[f]' * L[f]
         end
         
-        M̃ = JI * M̃
+        
         
     end
     
