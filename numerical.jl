@@ -18,12 +18,13 @@ CUDA.allowscalar(false)
 
 
 
-function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
+function mod_data_mms!(δ, ge, K, vf, MMS, B_p, RS, metrics, t)
+
     
     (xf, yf) = metrics.facecoord
     coord = metrics.coord
     sJ = metrics.sJ
-    μf2 = μ(xf[2], yf[2], B_p)
+    μf2 = metrics.μf2
     
     ge .= 0
     
@@ -32,7 +33,7 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
             vf .=  δ ./ 2
         elseif i == 2
             # dirichlet h
-            vf .= (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2)
+            vf .= f2_data(MMS, RS, μf2, t)
         elseif i == 3
             # neumann h
             vf .= 0
@@ -45,6 +46,7 @@ function mod_data!(ge, vf, δ, ops, RS, t, μf2, Lw)
     end
 
 end
+
 
 
 function static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, ys)
@@ -111,18 +113,24 @@ function mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
 end
 
 
-function traction(ops, f, u, û, metrics)
+function f2_data(RS, μf2, Lw, t)
+    return (RS.Vp/2 * t .+ (RS.τ_inf * Lw) ./ μf2)
+end
+
+
+function traction(ops, f, u, û)
 
     HI = ops.HI[f]
     G = ops.G[f]
     Γ = ops.Γ[f]
     L = ops.L[f]
-    sJ = metrics.sJ[f]
     
-    
-    return (HI * G * u + Γ * (û - L * u)) ./ sJ
+    return (HI * G * u + Γ * (û - L * u))
     
 end
+
+
+
             
 function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics, 
                      τscale = 2,
