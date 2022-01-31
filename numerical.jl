@@ -18,7 +18,7 @@ CUDA.allowscalar(false)
 
 
 
-function mod_data_mms!(δ, ge, K, vf, MMS, B_p, RS, metrics, t)
+function mod_data!(δ, ge, K, vf, RS, metrics, Lw, t)
 
     
     (xf, yf) = metrics.facecoord
@@ -33,7 +33,7 @@ function mod_data_mms!(δ, ge, K, vf, MMS, B_p, RS, metrics, t)
             vf .=  δ ./ 2
         elseif i == 2
             # dirichlet h
-            vf .= f2_data(MMS, RS, μf2, t)
+            vf .= f2_data(RS, μf2, Lw, t)
         elseif i == 3
             # neumann h
             vf .= 0
