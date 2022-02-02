@@ -216,157 +216,156 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
     #@printf "Got Ã in %f seconds\n" A_t
 
 
-        # volume quadrature
-        H̃ = kron(Hr, Hs)
-        H̃inv = spdiagm(0 => 1 ./ diag(H̃))
-        
-        # diagonal rho
-        rho = ρ(metrics.coord[1], metrics.coord[2], B_p)
-        rho = reshape(rho, Nrp*Nsp)
-        P̃ = spdiagm(0 => rho)
-        P̃inv = spdiagm(0 => (1 ./ rho))
-        
-        JI = spdiagm(0 => reshape(metrics.JI, Nrp*Nsp))
-        
-        er0 = sparse([1  ], [1], [1], Nrp, 1)
-        erN = sparse([Nrp], [1], [1], Nrp, 1)
-        es0 = sparse([1  ], [1], [1], Nsp, 1)
-        esN = sparse([Nsp], [1], [1], Nsp, 1)
+    # volume quadrature
+    H̃ = kron(Hr, Hs)
+    H̃inv = spdiagm(0 => 1 ./ diag(H̃))
+    
+    # diagonal rho
+    rho = ρ(metrics.coord[1], metrics.coord[2], B_p)
+    rho = reshape(rho, Nrp*Nsp)
+    P̃ = spdiagm(0 => rho)
+    P̃inv = spdiagm(0 => (1 ./ rho))
+    
+    JI = spdiagm(0 => reshape(metrics.JI, Nrp*Nsp))
+    
+    er0 = sparse([1  ], [1], [1], Nrp, 1)
+    erN = sparse([Nrp], [1], [1], Nrp, 1)
+    es0 = sparse([1  ], [1], [1], Nsp, 1)
+    esN = sparse([Nsp], [1], [1], Nsp, 1)
 
-        er0T = sparse([1], [1  ], [1], 1, Nrp)
-        erNT = sparse([1], [Nrp], [1], 1, Nrp)
-        es0T = sparse([1], [1  ], [1], 1, Nsp)
-        esNT = sparse([1], [Nsp], [1], 1, Nsp)
+    er0T = sparse([1], [1  ], [1], 1, Nrp)
+    erNT = sparse([1], [Nrp], [1], 1, Nrp)
+    es0T = sparse([1], [1  ], [1], 1, Nsp)
+    esNT = sparse([1], [Nsp], [1], 1, Nsp)
 
-        cmax = maximum([maximum(crr), maximum(crs), maximum(css)])
+    cmax = maximum([maximum(crr), maximum(crs), maximum(css)])
 
-        # Surface quadtrature matrices
-        H1 = H2 = Hs 
-        H3 = H4 = Hr
+    # Surface quadtrature matrices
+    H1 = H2 = Hs 
+    H3 = H4 = Hr
 
-        H = (Hs, Hs, Hr, Hr)
-        HI = (HsI, HsI, HrI, HrI)
-        # Volume to Face Operators (transpose of these is face to volume)
-        L = (convert(SparseMatrixCSC{Float64, Int64}, kron(Ir, es0)'),
-             convert(SparseMatrixCSC{Float64, Int64}, kron(Ir, esN)'),
-             convert(SparseMatrixCSC{Float64, Int64}, kron(er0, Is)'),
-             convert(SparseMatrixCSC{Float64, Int64}, kron(erN, Is)'))
-        # coefficent matrices
-        Crr1 = spdiagm(0 => crr[1, :])
-        Crs1 = spdiagm(0 => crs[1, :])
-        Csr1 = spdiagm(0 => crs[1, :])
-        Css1 = spdiagm(0 => css[1, :])
-        
-        Crr2 = spdiagm(0 => crr[Nrp, :])
-        Crs2 = spdiagm(0 => crs[Nrp, :])
-        Csr2 = spdiagm(0 => crs[Nrp, :])
-        Css2 = spdiagm(0 => css[Nrp, :])
-        
-        Css3 = spdiagm(0 => css[:, 1])
-        Crs3 = spdiagm(0 => crs[:, 1])
-        Csr3 = spdiagm(0 => crs[:, 1])
-        Crr3 = spdiagm(0 => crr[:, 1])
-        
-        Css4 = spdiagm(0 => css[:, Nsp])
-        Crs4 = spdiagm(0 => crs[:, Nsp])
-        Csr4 = spdiagm(0 => crs[:, Nsp])
-        Crr4 = spdiagm(0 => crr[:, Nsp])
+    H = (Hs, Hs, Hr, Hr)
+    HI = (HsI, HsI, HrI, HrI)
+    # Volume to Face Operators (transpose of these is face to volume)
+    L = (convert(SparseMatrixCSC{Float64, Int64}, kron(Ir, es0)'),
+         convert(SparseMatrixCSC{Float64, Int64}, kron(Ir, esN)'),
+         convert(SparseMatrixCSC{Float64, Int64}, kron(er0, Is)'),
+         convert(SparseMatrixCSC{Float64, Int64}, kron(erN, Is)'))
+    # coefficent matrices
+    Crr1 = spdiagm(0 => crr[1, :])
+    Crs1 = spdiagm(0 => crs[1, :])
+    Csr1 = spdiagm(0 => crs[1, :])
+    Css1 = spdiagm(0 => css[1, :])
+    
+    Crr2 = spdiagm(0 => crr[Nrp, :])
+    Crs2 = spdiagm(0 => crs[Nrp, :])
+    Csr2 = spdiagm(0 => crs[Nrp, :])
+    Css2 = spdiagm(0 => css[Nrp, :])
+    
+    Css3 = spdiagm(0 => css[:, 1])
+    Crs3 = spdiagm(0 => crs[:, 1])
+    Csr3 = spdiagm(0 => crs[:, 1])
+    Crr3 = spdiagm(0 => crr[:, 1])
+    
+    Css4 = spdiagm(0 => css[:, Nsp])
+    Crs4 = spdiagm(0 => crs[:, Nsp])
+    Csr4 = spdiagm(0 => crs[:, Nsp])
+    Crr4 = spdiagm(0 => crr[:, Nsp])
 
-        (_, S0, SN, _, _) = D2(p, Nr, xc=(-1,1))[1:5]
-        S0 = sparse(Array(S0[1,:])')
-        SN = sparse(Array(SN[end, :])')
-        
-        # Boundars Derivatives
-        B1r =  Crr1 * kron(Is, S0)
-        B1s = Crs1 * L[1] * kron(Ds, Ir)
-        B2r = Crr2 * kron(Is, SN)
-        B2s = Crs2 * L[2] * kron(Ds, Ir)
-        B3s = Css3 * kron(S0, Ir)
-        B3r = Csr3 * L[3] * kron(Is, Dr)
-        B4s = Css4 * kron(SN, Ir)
-        B4r = Csr4 * L[4] * kron(Is, Dr)
-        
+    (_, S0, SN, _, _) = D2(p, Nr, xc=(-1,1))[1:5]
+    S0 = sparse(Array(S0[1,:])')
+    SN = sparse(Array(SN[end, :])')
+    
+    # Boundars Derivatives
+    B1r =  Crr1 * kron(Is, S0)
+    B1s = Crs1 * L[1] * kron(Ds, Ir)
+    B2r = Crr2 * kron(Is, SN)
+    B2s = Crs2 * L[2] * kron(Ds, Ir)
+    B3s = Css3 * kron(S0, Ir)
+    B3r = Csr3 * L[3] * kron(Is, Dr)
+    B4s = Css4 * kron(SN, Ir)
+    B4r = Csr4 * L[4] * kron(Is, Dr)
+    
 
-        (xf1, xf2, xf3, xf4) = metrics.facecoord[1]
-        (yf1, yf2, yf3, yf4) = metrics.facecoord[2]
+    (xf1, xf2, xf3, xf4) = metrics.facecoord[1]
+    (yf1, yf2, yf3, yf4) = metrics.facecoord[2]
 
-        Z̃f = (metrics.sJ[1] .* sqrt.(ρ(xf1, yf1, B_p) .* μ(xf1, yf1, B_p)),
-              metrics.sJ[2] .* sqrt.(ρ(xf2, yf2, B_p) .* μ(xf2, yf2, B_p)),
-              metrics.sJ[3] .* sqrt.(ρ(xf3, yf3, B_p) .* μ(xf3, yf3, B_p)),
-              metrics.sJ[4] .* sqrt.(ρ(xf4, yf4, B_p) .* μ(xf4, yf4, B_p)))
+    Z̃f = (metrics.sJ[1] .* sqrt.(ρ(xf1, yf1, B_p) .* μ(xf1, yf1, B_p)),
+          metrics.sJ[2] .* sqrt.(ρ(xf2, yf2, B_p) .* μ(xf2, yf2, B_p)),
+          metrics.sJ[3] .* sqrt.(ρ(xf3, yf3, B_p) .* μ(xf3, yf3, B_p)),
+          metrics.sJ[4] .* sqrt.(ρ(xf4, yf4, B_p) .* μ(xf4, yf4, B_p)))
 
-        # Penalty terms
-        if p == 2
-            l = 2
-            β = 0.363636363
-            α = 1 / 2
-            θ_R = 1.0
-        elseif p == 4
-            l = 4
-            β = 0.2505765857
-            α = 17 / 48
-            θ_R = 0.5776
-        elseif p == 6
-            l = 7
-            β = 0.1878687080
-            α = 13649 / 43200
-            θ_R = 0.3697
-        else
-            error("unknown order")
-        end
+    # Penalty terms
+    
+    if p == 2
+        l = 2
+        α = 1.0
+        θ_R = 1 / 2
+    elseif p == 4
+        l = 4
+        β = 0.2505765857
+        α = 0.5776
+        θ_R = 17 / 48
+    elseif p == 6
+        l = 7
+        β = 0.1878687080
+        α = 0.3697
+        θ_R = 13649 / 43200
+    else
+        error("unknown order")
+    end
 
-        ψmin_r = reshape(crr, Nrp, Nsp)
-        ψmin_s = reshape(css, Nrp, Nsp)
-        @assert minimum(ψmin_r) > 0
-        @assert minimum(ψmin_s) > 0
-        
-        hr = 2 / Nr
-        hs = 2 / Ns
+    ψmin_r = reshape(crr, Nrp, Nsp)
+    ψmin_s = reshape(css, Nrp, Nsp)
+    @assert minimum(ψmin_r) > 0
+    @assert minimum(ψmin_s) > 0
+    
+    hr = 2 / Nr
+    hs = 2 / Ns
 
-        ψ1 = ψmin_r[  1, :]
-        ψ2 = ψmin_r[Nrp, :]
-        ψ3 = ψmin_s[:,   1]
-        ψ4 = ψmin_s[:, Nsp]
-        
-        for k = 2:l
-            ψ1 = min.(ψ1, ψmin_r[k, :])
-            ψ2 = min.(ψ2, ψmin_r[Nrp+1-k, :])
-            ψ3 = min.(ψ3, ψmin_s[:, k])
-            ψ4 = min.(ψ4, ψmin_s[:, Nsp+1-k])
-        end
-        
-        τR1 = (1/(θ_R*hr))*Is
-        τR2 = (1/(θ_R*hr))*Is
-        τR3 = (1/(θ_R*hs))*Ir
-        τR4 = (1/(θ_R*hs))*Ir
-        
-        p1 = ((crr[  1, :]) ./ ψ1)
-        p2 = ((crr[Nrp, :]) ./ ψ2)
-        p3 = ((css[:,   1]) ./ ψ3)
-        p4 = ((css[:, Nsp]) ./ ψ4)
-        
-        P1 = sparse(1:Nsp, 1:Nsp, p1)
-        P2 = sparse(1:Nsp, 1:Nsp, p2)
-        P3 = sparse(1:Nrp, 1:Nrp, p3)
-        P4 = sparse(1:Nrp, 1:Nrp, p4)
+    ψ1 = ψmin_r[  1, :]
+    ψ2 = ψmin_r[Nrp, :]
+    ψ3 = ψmin_s[:,   1]
+    ψ4 = ψmin_s[:, Nsp]
+    
+    for k = 2:l
+        ψ1 = min.(ψ1, ψmin_r[k, :])
+        ψ2 = min.(ψ2, ψmin_r[Nrp+1-k, :])
+        ψ3 = min.(ψ3, ψmin_s[:, k])
+        ψ4 = min.(ψ4, ψmin_s[:, Nsp+1-k])
+    end
+    
+    τR1 = (1/(α*hr))*Is
+    τR2 = (1/(α*hr))*Is
+    τR3 = (1/(α*hs))*Ir
+    τR4 = (1/(α*hs))*Ir
+    
+    p1 = ((crr[  1, :]) ./ ψ1)
+    p2 = ((crr[Nrp, :]) ./ ψ2)
+    p3 = ((css[:,   1]) ./ ψ3)
+    p4 = ((css[:, Nsp]) ./ ψ4)
+    
+    P1 = sparse(1:Nsp, 1:Nsp, p1)
+    P2 = sparse(1:Nsp, 1:Nsp, p2)
+    P3 = sparse(1:Nrp, 1:Nrp, p3)
+    P4 = sparse(1:Nrp, 1:Nrp, p4)
 
-        #Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4))
-        # dynamic penalty matrices
-        Γ = (Crr1 * ((2/(α*hr))*Is + τR1 * P1),
-             Crr2 * ((2/(α*hr))*Is + τR2 * P2),
-             Css3 * ((2/(α*hs))*Ir + τR3 * P3),
-             Css4 * ((2/(α*hs))*Ir + τR4 * P4))
+    # dynamic penalty matrices
+    Γ = (Crr1 * ((2/(θ_R*hr))*Is + τR1 * P1),
+         Crr2 * ((2/(θ_R*hr))*Is + τR2 * P2),
+         Css3 * ((2/(θ_R*hs))*Ir + τR3 * P3),
+         Css4 * ((2/(θ_R*hs))*Ir + τR4 * P4))
 
-        JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
-        
-        JIHP = JI * H̃inv * P̃inv
-        
-        B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r))
-        nl = (-1, 1, -1, 1)
-        G = (-H[1] * (B[1][1] + B[1][2]),
-             H[2] * (B[2][1] + B[2][2]),
-             -H[3] * (B[3][1] + B[3][2]),
-             H[4] * (B[4][1] + B[4][2]))
+    JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
+    
+    JIHP = JI * H̃inv * P̃inv
+    
+    B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r))
+    nl = (-1, 1, -1, 1)
+    G = (-H[1] * (B[1][1] + B[1][2]),
+         H[2] * (B[2][1] + B[2][2]),
+         -H[3] * (B[3][1] + B[3][2]),
+         H[4] * (B[4][1] + B[4][2]))
 
 
 
@@ -434,7 +433,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
                 
                 dû_u[(i-1) * nn + 1 : i * nn , : ] .=
                     -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) -
-                                      Γ[i] * L[i])./Z̃f[i]
+                    Γ[i] * L[i])./Z̃f[i]
                 
                 dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
             end
@@ -455,14 +454,14 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
               dû_u dû_v dû_û dû_ψ
               spzeros(nn, 2Nn + 5nn) ]
 
-
         nCnΓ1 = Γ[1]
-        HIGΓL1 = HI[1] * G[1] - nCnΓ1 * L[1]
+        HIGΓL1 = HI[1] * G[1] - Γ[1] * L[1]
+        
     end
 
     #@printf "Got Λ and friends in %f seconds\n" Λ_t
 
- 
+    
     (Λ = Λ,
      M̃ = cholesky(Symmetric(M̃)),
      K = (K1, K2, K3, K4),

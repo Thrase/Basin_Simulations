@@ -117,15 +117,15 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                 =#
             end
             #@printf "Got Operators: %s s\n" ot
-
+            
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
-
+            
+            
             t_begin = 35 * year_seconds - 1
             t_final =  35 * year_seconds + 1
 
             
-            #=
             u0 = he(x[:], y[:], t_begin, MMS)
             v0 = he_t(x[:], y[:], t_begin, MMS)
             q1 = [u0;v0]
@@ -213,7 +213,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
 
-            =#
+            
+
+            #=
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
@@ -265,7 +267,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         callback=plotter)
             
 
-            #diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
+            diff = params.u[:] .- he(x[:], y[:], sol.t[end], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
 
@@ -310,7 +312,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
 
             @printf "\t___________________________________\n\n"
-            
+            =#
         end
     end
 end
