@@ -118,14 +118,15 @@ function f2_data(RS, μf2, Lw, t)
 end
 
 
-function traction(ops, f, u, û)
+function traction(ops, metrics, f, u, û)
 
     HI = ops.HI[f]
     G = ops.G[f]
     Γ = ops.Γ[f]
     L = ops.L[f]
+    sJ = ops.sJ[f]
     
-    return (HI * G * u + Γ * (û - L * u))
+    return (HI * G * u + Γ * (û - L * u)) ./ sJ
     
 end
 

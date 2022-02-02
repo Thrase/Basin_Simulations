@@ -583,10 +583,10 @@ function FAULT_GPU!(dq, q, p, t)
     @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f1, H, sJ, ψ, dψ, b, RS)
 
     dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source2 ./ (2*Z̃f2)
-    dq[nn^2 + 1:2nn^2] .+= L2' * H * source2 ./ 2
+    dq[nn^2 + 1:2nn^2] .+= L2' * (H .* source2 ./ 2)
 
     dq[2nn^2 + 2nn + 1 : 2nn^2 + 3nn] .+= source3 ./ (2*Z̃f3)
-    dq[nn^2 + 1:2nn^2] .+= L3' * H * source3 ./ 2
+    dq[nn^2 + 1:2nn^2] .+= L3' * (H .* source3 ./ 2)
 
     dv .= JIHP * dq[nn^2 + 1:2nn^2]
 

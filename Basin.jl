@@ -231,13 +231,13 @@ let
 
             ### getting source terms for non-reflecting boundaries
             dynamic_params.source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
-                ops.L[2] * q[nn^2 + 1 : 2nn^2] -
-                traction(ops, 2, q[1:nn^2],
+                ops.L[2] * q[nn^2 + 1 : 2nn^2] +
+                traction(ops, metrics, 2, q[1:nn^2],
                          f2_data(RS, metrics.μf2, Lw, t_now))))
 
             dynamic_params.source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
-            ops.L[3] * q[nn^2 + 1 : 2nn^2] -
-            traction(static_params.ops, 3, q[1:nn^2],
+            ops.L[3] * q[nn^2 + 1 : 2nn^2] +
+            traction(static_params.ops, metrics, 3, q[1:nn^2],
                      ops.L[3] * q[1:nn^2])))
             
             q = CuArray(q)
