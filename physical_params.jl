@@ -6,18 +6,19 @@ function μ(x, y, B_p)
     r̄ = B_p.r̄
     r_w = B_p.r_w
 
-    #=
+    
     if ndims(x) == 2
         return repeat([μ_out], outer=size(x))
     else
         return repeat([μ_out], outer=length(x))
     end
-    =#
-
     
+
+    #=
     return (μ_out - μ_in)/2 *
         (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
-    
+    =#
+
 end
 
 function ρ(x, y, B_p)
@@ -28,18 +29,19 @@ function ρ(x, y, B_p)
     r̄ = B_p.r̄
     r_w = B_p.r_w
 
-    #=
+    
     if ndims(x) == 2
         return repeat([ρ_out], outer=size(x))
     else
         return repeat([ρ_out], outer=length(x))
     end
-    =#
-
     
+
+    #=
     return (ρ_out - ρ_in)/2 *
         (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
-    
+    =#
+
 end
 
 function μ_x(x, y, B_p)
@@ -50,16 +52,17 @@ function μ_x(x, y, B_p)
     r̄ = B_p.r̄
     r_w = B_p.r_w
     
-    #=
+    
     if ndims(x) == 2
         return zeros(size(x))
     else
         return zeros(length(x))
     end
-    =#
-
+    
+    #=
     return ((μ_out - μ_in) .* x .*
         sech.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
+    =#
 end
 
 function μ_y(x, y, B_p)
@@ -70,16 +73,17 @@ function μ_y(x, y, B_p)
     r̄ = B_p.r̄
     r_w = B_p.r_w
 
-    #=
+    
     if ndims(x) == 2
         return zeros(size(x))
     else
         return zeros(length(x))
     end
-    =#
-
+    
+    #=
     return ((μ_out - μ_in) .* (c^2 * y) .*
         sech.((x .^ 2 + c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
+    =#
 end
 
 
@@ -120,7 +124,7 @@ function fault_params(fc, Dc)
     
     RS = (σn = 50.0,
           a = a,
-          b = b_fun.(fc[1:nn]),
+          b = b_fun.(fc),
           Dc = Dc,
           f0 = .6,
           V0 = 1e-6,

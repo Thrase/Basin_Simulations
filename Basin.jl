@@ -29,8 +29,6 @@ let
     ic_t_file,
     Dc = read_params(ARGS[1])
     
-    @show d_to_s
-    
     nn = N + 1
 
     ### get simulation time
@@ -67,9 +65,9 @@ let
     ### get fault params
     fc = metrics.facecoord[2][1]
     (x, y) = metrics.coord
-    for i in 2:length(fc)
-        @show fc[i], fc[i] - fc[i-1]
-    end
+    #for i in 2:length(fc)
+    #    @show fc[i], fc[i] - fc[i-1]
+    #end
 
     η = metrics.η
 
@@ -95,7 +93,7 @@ let
     opt_t = @elapsed begin
         ops = operators(p, N, N, μ, ρ, R, B_p, faces, metrics)
     end
-    @printf "Got operators\n"
+    @printf "Got operators in %f seconds\n" opt_t
     flush(stdout)
 
 
@@ -128,13 +126,13 @@ let
     
     vars = (u_prev = zeros(nn^2),
             t_prev = [0.0, 0.0],
-            year_seconds = year_seconds,
             Δτ = zeros(nn),
-            τ = zeros(nn),
+            vf = zeros(nn),
             u = zeros(nn^2),
             ge = zeros(nn^2))
 
-    static_params = (reject_step = [false],
+    static_params = (year_seconds,
+                     reject_step = [false],
                      Lw = Lw,
                      nn = nn,
                      d_to_s = d_to_s,
@@ -152,8 +150,11 @@ let
                       blocks = cld(nn, threads),
                       Λ = CuSparseMatrixCSC(ops.Λ),
                       sJ = CuArray(metrics.sJ[1]),
-                      Z̃f = CuArray(ops.Z̃f[1]),
-                      L = CuSparseMatrixCSC(ops.L[1]),
+                      Z̃f1 = CuArray(ops.Z̃f[1]),
+                      Z̃f2 = CuArray(ops.Z̃f[2]),
+                      Z̃f3 = CuArray(ops.Z̃f[3]),
+                      L2 = CuSparseMatrixCSC(ops.L[2]),
+                      L3 = CuSparseMatrixCSC(ops.L[3]),
                       H = CuArray(diag(ops.H[1])),
                       JIHP = CuSparseMatrixCSC(ops.JIHP),
                       nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
@@ -170,12 +171,11 @@ let
                       d_to_s = d_to_s,
                       RS_cpu = RS)
 
-    @printf "Approximately %f Gib to GPU\n" Base.summarysize(dynamic_params)/1e9
+    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
 
     ### set dynamic timestep
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
-    @show dts
     
 
     ### begin cycles
@@ -197,7 +197,7 @@ let
                         internalnorm=(x, _)->norm(x, Inf), callback=stopper)
         end
         
-        @printf "Interseismic period took %s seconds. \n" inter_time
+        @printf "\nInterseismic period took %s seconds. \n" inter_time
         flush(stdout)
     
         ### get dynamic inital conditions
@@ -230,13 +230,12 @@ let
             
 
             ### getting source terms for non-reflecting boundaries
-            
-            source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
+            dynamic_params.source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
                 ops.L[2] * q[nn^2 + 1 : 2nn^2] -
                 traction(ops, 2, q[1:nn^2],
-                         f2_data(RS, metrics.μf2, Lw, t))))
+                         f2_data(RS, metrics.μf2, Lw, t_now))))
 
-            source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
+            dynamic_params.source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
             ops.L[3] * q[nn^2 + 1 : 2nn^2] -
             traction(static_params.ops, 3, q[1:nn^2],
                      ops.L[3] * q[1:nn^2])))

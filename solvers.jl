@@ -16,21 +16,20 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     end
     
     nn = p.nn
-    Δτ = p.Δτ
-    u = p.u
-    ge = p.ge
-    vf = p.vf
+    Lw = p.Lw
+    Δτ = p.vars.Δτ
+    u = p.vars.u
+    ge = p.vars.ge
+    vf = p.vars.vf
     M = p.ops.M̃
     K = p.ops.K
     H̃ = p.ops.H̃
     JI = p.ops.JI
     RS = p.RS
-    MMS = p.MMS
-    B_p = p.B_p
     metrics = p.metrics
     ops = p.ops
     η = metrics.η
-    b = p.b
+    b = p.RS.b
     
 
     xf1 = metrics.facecoord[1][1]
@@ -42,7 +41,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
-    mod_data!(δ, ge, K, H̃, JI, vf, MMS, B_p, RS, metrics, t)
+    mod_data!(δ, ge, K, vf, RS, metrics, Lw, t)
 
     u[:] = M \ ge
 
@@ -70,7 +69,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
                                  atolx = 1e-12, rtolx = 1e-12)
 
         if !isfinite(Vn)
-            @printf "Reject V\n"
+            #@printf "Reject V\n"
             @show Vn
             flush(stdout)
             reject_step[1] = true
@@ -86,7 +85,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         end
         
         if !isfinite(dψ[n])
-            @printf "\nReject dψ\n"
+            #@printf "\nReject dψ\n"
             dψ .= 0
             reject_step[1] = true
             return
@@ -229,7 +228,6 @@ end
 function stepcheck(_, p, _)
     if p.reject_step[1]
         p.reject_step[1] = false
-        println("hellllo!")
         return true
     end
     return false
@@ -263,9 +261,9 @@ function STOPFUN_Q(ψδ,t,i)
 
         nn = i.p.nn
         RS = i.p.RS
-        τ = i.p.vars.τ
+        τ = i.p.vars.Δτ
         t_prev = i.p.vars.t_prev
-        year_seconds = i.p.vars.year_seconds
+        year_seconds = i.p.year_seconds
         u_prev = i.p.vars.u_prev
         u = i.p.vars.u
         fault_coord = i.p.metrics.facecoord[2][1]
@@ -302,9 +300,9 @@ function STOPFUN_Q(ψδ,t,i)
             legend=false)
             plot(plt1, plt2, layout=2)
             gui()
-            
-            
-            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            =#
+            #=
+            plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
@@ -544,6 +542,8 @@ end
 
 
 function FAULT_GPU!(dq, q, p, t)
+    
+    @printf "\r\t%f" t
 
     nn = p.nn
     RS = p.RS
@@ -583,7 +583,7 @@ function FAULT_GPU!(dq, q, p, t)
     τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
     
     
-    @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
+    @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f1, H, sJ, ψ, dψ, b, RS)
 
     dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source2 ./ (2*Z̃f2)
     dq[nn^2 + 1:2nn^2] .+= L2' * H * source2 ./ 2
@@ -737,7 +737,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     pf = p.io.pf
     τ̃f = p.τ̃f
     sJ = p.sJ
-    Z̃f = p. Z̃f
+    Z̃f = p. Z̃f1
     io = p.io
     v̂ = p.v̂
     d_to_s = p.d_to_s
@@ -815,13 +815,14 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                   fc,
                   Lw,
                   io.station_names)
+
         #pf[1] +=.1
         #end
         
         #if step == ceil(Int, pf[2]/dt)
 
         
-        
+        #=
         plt1 = plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
                     xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
                     legend=false)
@@ -832,7 +833,8 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         plot(plt1, plt2, layout=2)
         #sleep(.)
         gui()
-        
+        =#
+
         write_out_ss(δ,
                      2v̂_cpu,
                      τ̂,
@@ -846,12 +848,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
         
 
-        
-        #pf[2] += .5
-        #end
-
-        
-        #@show 2*maximum(v̂_cpu)
         if (2 * maximum(v̂_cpu)) < d_to_s
             #plot(2*v̂_cpu, fc, yflip = true, ylabel="Depth",
              #    xlabel="Slip", linecolor=:red, linewidth=.1,

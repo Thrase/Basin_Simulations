@@ -13,3 +13,4 @@ d_to_s=.00001
 dt=.5
 initial_con=None
 inital_t=None
+Dc=.032
