@@ -172,7 +172,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     Γ = ops.Γ[1]
     L = ops.L[1]
     sJ = metrics.sJ[1]
-    
+
+    #Δτ = - τhe(xf1, yf1, t, 1, B_p, MMS)
     Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
 
     for n in 1:nn
@@ -237,7 +238,6 @@ end
 function PLOTFACE(ψδ,t,i)
 
     if isdefined(i,:fsallast)
-        #@show t
         year_seconds = i.p.year_seconds
         yf1 = i.p.metrics.facecoord[2][1]
         xf1 = i.p.metrics.facecoord[1][1]
@@ -419,7 +419,7 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     # compute numerical traction on face 1
     #τ̃f .= sJ[1] .* τhe(fc[1][1], fc[2][1], t, 1, B_p, MMS)
     τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
-    #ψ .= ψe(fc[1][1], fc[2][1], t, B_p, RS, MMS)
+    #ψ .= ψe_d(fc[1][1], fc[2][1], t, B_p, RS, MMS)
     
     # Root find for RS friction
     for n in 1:nn
@@ -445,14 +445,15 @@ function MMS_FAULT_CPU!(dq, q, p, t)
             right = tmp
         end
         
-        (v̂n, _, _) = newtbndv(v̂_root, left, right, vn; ftol = 1e-12,
-                              atolx = 1e-12, rtolx = 1e-12)
+        (v̂n, _, _) = newtbndv(v̂_root, left, right, vn; ftol = 1e-14,
+                              atolx = 1e-14, rtolx = 1e-14)
 
         if isnan(v̂n)
             println("Not bracketing root")
         end
         
         dû1[n] = v̂n
+        #dû1[n] = he_t(fc[1][1][n], fc[2][1][n], t, MMS)
         dv[1 + (n - 1)*nn] +=  H[1][n, n] * (Z̃f[1][n] * v̂n)
         dψ[n] = (b[n] .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ[n]) ./ b[n]) .- abs.(2 .* v̂n) ./ RS.V0)
     end
@@ -464,12 +465,14 @@ function MMS_FAULT_CPU!(dq, q, p, t)
         dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= SOURCE ./ (2*Z̃f[i])
         dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * SOURCE ./ 2
     end
-    
-    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
-    dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 
     # psi source
     dψ .+= STATE_SOURCE(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
+
+
+    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
+    dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+
 
 end
 
@@ -913,13 +916,13 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
-        #=
-        plot(v̂, fc[2][1], legend=false, color =:blue, yflip=true, xlims=(0,.025))
-        plot!(he_t(fc[1][1], fc[2][1], t, MMS),
+        
+        plot(2v̂, fc[2][1], legend=false, color =:blue, yflip=true, xlims=(0,.1))
+        plot!(2he_t(fc[1][1], fc[2][1], t, MMS),
               fc[2][1], legend=false, color =:red,
-              yflip=true, xlims=(0,.025))
+              yflip=true, xlims=(0,.1))
         gui()
-        =#
+        
     end
 
     return t0 + (nstep - 1) * dt

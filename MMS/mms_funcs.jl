@@ -108,7 +108,7 @@ function ψe_d(x, y, t, B_p, RS, MMS)
     τe = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 .* he_t(x, y, t, MMS)
 
-    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τe .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.(-τe ./ (RS.a .* RS.σn)))
 end
 
 
