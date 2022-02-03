@@ -351,15 +351,16 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
     P4 = sparse(1:Nrp, 1:Nrp, p4)
 
     # dynamic penalty matrices
-    Γ = (Crr1 * ((2/(θ_R*hr))*Is + τR1 * P1),
-         Crr2 * ((2/(θ_R*hr))*Is + τR2 * P2),
-         Css3 * ((2/(θ_R*hs))*Ir + τR3 * P3),
-         Css4 * ((2/(θ_R*hs))*Ir + τR4 * P4))
+    Γ = ((2/(θ_R*hr))*Is + τR1 * P1,
+         (2/(θ_R*hr))*Is + τR2 * P2,
+         (2/(θ_R*hs))*Ir + τR3 * P3,
+         (2/(θ_R*hs))*Ir + τR4 * P4)
 
     JH = sparse(1:Np, 1:Np, view(J, :)) * (Hs ⊗ Hr)
     
     JIHP = JI * H̃inv * P̃inv
-    
+
+    Cf = ((Crr1, Crs1), (Crr2, Crs2), (Css3, Csr3), (Css4, Csr4))
     B = ((B1r, B1s), (B2r, B2s), (B3s, B3r), (B4s, B4r))
     nl = (-1, 1, -1, 1)
     G = (-H[1] * (B[1][1] + B[1][2]),
@@ -371,8 +372,8 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
 
     static_t = @elapsed begin
 
-        K1 = L[1]' * H[1] * Γ[1] - G[1]'
-        K2 = L[2]' * H[2] * Γ[2] - G[2]'
+        K1 = L[1]' * H[1] * Cf[1][1] * Γ[1] - G[1]'
+        K2 = L[2]' * H[2] * Cf[2][1] * Γ[2] - G[2]'
         #K3 = L[3]' * H[3] * Γ[3] - G[3]'
         #K4 = L[4]' * H[4] * Γ[4] - G[4]'
         
@@ -385,7 +386,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         
         for f in 1:2
             M̃ -= L[f]' * G[f]
-            M̃ += L[f]' * H[f] * Γ[f] * L[f]
+            M̃ += L[f]' * H[f] * Cf[f][1] * Γ[f] * L[f]
             M̃ -= G[f]' * L[f]
         end
         
@@ -393,17 +394,15 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         
     end
     
-    #@printf "Got quasi-dynamic ops in %f seconds\n" static_t
-    # accleration blocks
     Λ_t = @elapsed begin
         dv_u = -Ã
         
         for i in 1:4
             if faces[i] == 0
-                dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Γ[i] * L[i])) +
+                dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])) +
                     nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
             else
-                dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Γ[i] * L[i]))) +
+                dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
                     nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
             end
         end
@@ -424,16 +423,16 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         for i in 1:4
             if faces[i] == 0
                 dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                    (L[i]' * H[i] * Γ[i]) -
+                    (L[i]' * H[i] * Cf[i][1] * Γ[i]) -
                     nl[i] * (B[i][1]' + B[i][2]') * H[i]
             else
                 dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                    (L[i]' * H[i] * ((1 - R[i])/2 .* Γ[i])) -
+                    (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
                     nl[i] * (B[i][1]' + B[i][2]') * H[i]
                 
                 dû_u[(i-1) * nn + 1 : i * nn , : ] .=
                     -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) -
-                    Γ[i] * L[i])./Z̃f[i]
+                                      Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
                 
                 dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
             end
@@ -443,7 +442,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         dû_û = spzeros(4nn, 4nn)
         for i in 1:4
             if faces[i] != 0
-                dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Γ[i])./Z̃f[i]
+                dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
             end
         end
 
@@ -454,9 +453,9 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
               dû_u dû_v dû_û dû_ψ
               spzeros(nn, 2Nn + 5nn) ]
 
-        nCnΓ1 = Γ[1]
-        HIGΓL1 = HI[1] * G[1] - Γ[1] * L[1]
-        
+
+        nCnΓ1 = Crr1 * Γ[1]
+        HIGΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
     end
 
     #@printf "Got Λ and friends in %f seconds\n" Λ_t
