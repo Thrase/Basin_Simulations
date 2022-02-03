@@ -179,8 +179,8 @@ let
     ### set dynamic timestep
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
     
-    @show dts
-    quit()
+    
+    
     ### begin cycles
     cycles = 1
     while t_now < T * year_seconds

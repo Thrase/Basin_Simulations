@@ -14,3 +14,4 @@ dt=.5
 initial_con=None
 inital_t=None
 Dc=.032
+B_on=0

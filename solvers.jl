@@ -301,12 +301,12 @@ function STOPFUN_Q(ψδ,t,i)
             plot(plt1, plt2, layout=2)
             gui()
             =#
-            #=
-            plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            
+            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-            =#
+            
             
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
@@ -819,7 +819,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         #pf[1] +=.1
         #end
         
-        #if step == ceil(Int, pf[2]/dt)
+        if step == ceil(Int, pf[2]/dt)
 
         
         #=
@@ -829,12 +829,15 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         plt2 = plot(τ̂, fc, yflip = true, ylabel="Depth",
                     xlabel="Slip", linecolor=:red, linewidth=.1,
                     legend=false)
+            =#
+            plot!(δ, fc, yflip = true, ylabel="Depth",
+                  xlabel="Slip", linecolor=:red, linewidth=.1,
+                  legend=false)
 
-        plot(plt1, plt2, layout=2)
-        #sleep(.)
-        gui()
-        =#
-
+            gui()
+            pf[2] += .5
+        
+        end
         write_out_ss(δ,
                      2v̂_cpu,
                      τ̂,

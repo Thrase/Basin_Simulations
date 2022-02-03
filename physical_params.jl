@@ -5,43 +5,39 @@ function μ(x, y, B_p)
     μ_out = B_p.μ_out
     r̄ = B_p.r̄
     r_w = B_p.r_w
+    on = B_p.on
 
-    #=
-    if ndims(x) == 2
-        return repeat([μ_out], outer=size(x))
+    if on == false
+        if ndims(x) == 2
+            return repeat([μ_out], outer=size(x))
+        else
+            return repeat([μ_out], outer=length(x))
+        end
     else
-        return repeat([μ_out], outer=length(x))
+        return (μ_out - μ_in)/2 *
+            (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
     end
-    =#
-
-    
-    return (μ_out - μ_in)/2 *
-        (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ μ_in
-    
-
 end
 
 function ρ(x, y, B_p)
-
+    
     c = B_p.c
     ρ_in = B_p.ρ_in
     ρ_out = B_p.ρ_out
     r̄ = B_p.r̄
     r_w = B_p.r_w
+    on = B_p.on
 
-    #=
-    if ndims(x) == 2
-        return repeat([ρ_out], outer=size(x))
+    if on == false
+        if ndims(x) == 2
+            return repeat([ρ_out], outer=size(x))
+        else
+            return repeat([ρ_out], outer=length(x))
+        end
     else
-        return repeat([ρ_out], outer=length(x))
+        return (ρ_out - ρ_in)/2 *
+            (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
     end
-    =#
-
-    
-    return (ρ_out - ρ_in)/2 *
-        (tanh.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .+ 1) .+ ρ_in
-    
-
 end
 
 function μ_x(x, y, B_p)
@@ -51,18 +47,18 @@ function μ_x(x, y, B_p)
     μ_out = B_p.μ_out
     r̄ = B_p.r̄
     r_w = B_p.r_w
-    
-    #=
-    if ndims(x) == 2
-        return zeros(size(x))
+    on = B_p.on
+
+    if on == false
+        if ndims(x) == 2
+            return zeros(size(x))
+        else
+            return zeros(length(x))
+        end
     else
-        return zeros(length(x))
+        return ((μ_out - μ_in) .* x .*
+                sech.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
     end
-    =#
-    
-    return ((μ_out - μ_in) .* x .*
-        sech.((x .^ 2 .+ c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
-    
 end
 
 function μ_y(x, y, B_p)
@@ -72,18 +68,19 @@ function μ_y(x, y, B_p)
     μ_out = B_p.μ_out
     r̄ = B_p.r̄
     r_w = B_p.r_w
+    on = B_p.on
 
-    #=
-    if ndims(x) == 2
-        return zeros(size(x))
-    else
-        return zeros(length(x))
+    if on == false
+        if ndims(x) == 2
+            return zeros(size(x))
+        else
+            return zeros(length(x))
+        end
+
+    else    
+        return ((μ_out - μ_in) .* (c^2 * y) .*
+            sech.((x .^ 2 + c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
     end
-    =#
-    
-    return ((μ_out - μ_in) .* (c^2 * y) .*
-        sech.((x .^ 2 + c^2 * y .^ 2 .- r̄) ./ r_w) .^ 2) ./ r_w
-    
 end
 
 
