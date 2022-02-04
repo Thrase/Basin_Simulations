@@ -18,7 +18,7 @@ let
     ns = 2 .^ (4:9)
     
     # order of operators
-    p = [4]
+    p = [2]
 
     # Basin Params
     B_p = (μ_out = 24.0,
@@ -40,9 +40,11 @@ let
           τ_inf = 24.82,
           Vp = 1e-9)
 
-    
+     MMS = (wl = Lw/2,
+           amp = .5,
+           ϵ = .01)
     # MMS params
-    MMS = (Lw = Lw,
+ #=   MMS = (Lw = Lw,
            t̄ = 35*year_seconds,
            t_w = 10,
            t_f = 70*year_seconds,
@@ -51,9 +53,9 @@ let
            H = 8/40,
            Vmin = 1e-12,
            δ_e = 1e-9*(35*year_seconds) -
-               (1e-12*(35*year_seconds)),
+               (1e-12*(35*year_seconds)),         
            ϵ = 2.0)
-
+=#
     refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS)
 
 end

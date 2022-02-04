@@ -122,17 +122,17 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             yf1 = metrics.facecoord[2][1]
             
             
-            t_begin = 35 * year_seconds - 1
-            t_final =  35 * year_seconds - .9
+            t_begin = 0 #35 * year_seconds - 1
+            t_final =  .01 #35 * year_seconds - .99
 
             
-            u0 = he(x[:], y[:], t_begin, MMS)
-            v0 = he_t(x[:], y[:], t_begin, MMS)
+            u0 = ue(x[:], y[:], t_begin, MMS)
+            v0 = ue_t(x[:], y[:], t_begin, MMS)
             q1 = [u0;v0]
             for i in 1:4
                 q1 = vcat(q1, d_ops.L[i]*u0)
             end
-            q1 = vcat(q1, ψe_d(metrics.facecoord[1][1],
+            q1 = vcat(q1, ψe(metrics.facecoord[1][1],
                                metrics.facecoord[2][1],
                                t_begin, B_p, RS, MMS))
 
@@ -173,19 +173,19 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             y = metrics.coord[2]
             
             u_end4 = @view q4[1:Nn]
-            diff_u4 = u_end4 - he(x[:], y[:], t_final, MMS)
+            diff_u4 = u_end4 - ue(x[:], y[:], t_final, MMS)
             err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
             
             
             
             plt1 = contour(x[:, 1], y[1, :],
-                           (reshape(u_end4, (nn, nn)) .- he(x, y, t_span[2], MMS))',
+                           (reshape(u_end4, (nn, nn)) .- ue(x, y, t_final, MMS))',
                            title = "error", fill=true, yflip=true)
             plt2 = contour(x[:, 1], y[1, :],
-                           he(x, y, t_span[2], MMS)',
+                           ue(x, y, t_final, MMS)',
                            fill = true, yflip=true, title = "exact")
             plt3 = contour(x[:, 1], y[1, :], 
-                           Forcing(x, y, t_span[2], B_p, MMS)',
+                           Forcing(x, y, t_final, B_p, MMS)',
                            fill=true, yflip=true, title = "forcing")
             plt4 = contour(x[:, 1], y[1, :], 
                            reshape(u_end4, (nn,nn))',

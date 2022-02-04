@@ -415,8 +415,8 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     dq .= Λ * q
     
     # compute numerical traction on face 1
-    τ̃f .= sJ[1] .* τhe(fc[1][1], fc[2][1], t, 1, B_p, MMS)
-    #τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
+    #τ̃f .= sJ[1] .* τhe(fc[1][1], fc[2][1], t, 1, B_p, MMS)
+    τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
     #ψ .= ψe_d(fc[1][1], fc[2][1], t, B_p, RS, MMS)
     
     # Root find for RS friction
