@@ -301,12 +301,12 @@ function STOPFUN_Q(ψδ,t,i)
             plot(plt1, plt2, layout=2)
             gui()
             =#
-            
-            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            #=
+            plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-            
+            =#
             
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
@@ -586,10 +586,10 @@ function FAULT_GPU!(dq, q, p, t)
     @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f1, H, sJ, ψ, dψ, b, RS)
 
     dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source2 ./ (2*Z̃f2)
-    dq[nn^2 + 1:2nn^2] .+= L2' * (H .* source2 ./ 2)
+    dq[nn^2 + 1:2nn^2] .+= L2' * H * source2 ./ 2
 
     dq[2nn^2 + 2nn + 1 : 2nn^2 + 3nn] .+= source3 ./ (2*Z̃f3)
-    dq[nn^2 + 1:2nn^2] .+= L3' * (H .* source3 ./ 2)
+    dq[nn^2 + 1:2nn^2] .+= L3' * H * source3 ./ 2
 
     dv .= JIHP * dq[nn^2 + 1:2nn^2]
 
@@ -819,7 +819,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         #pf[1] +=.1
         #end
         
-        if step == ceil(Int, pf[2]/dt)
+        #if step == ceil(Int, pf[2]/dt)
 
         
         #=
@@ -829,15 +829,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         plt2 = plot(τ̂, fc, yflip = true, ylabel="Depth",
                     xlabel="Slip", linecolor=:red, linewidth=.1,
                     legend=false)
-            =#
-            plot!(δ, fc, yflip = true, ylabel="Depth",
-                  xlabel="Slip", linecolor=:red, linewidth=.1,
-                  legend=false)
 
-            gui()
-            pf[2] += .5
-        
-        end
+        plot(plt1, plt2, layout=2)
+        #sleep(.)
+        gui()
+        =#
+
         write_out_ss(δ,
                      2v̂_cpu,
                      τ̂,
@@ -910,18 +907,18 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
         t = t0 + (step - 1) * dt
         for s in 1:length(RKA)
             f!(Δq2, q, p, t + RKC[s] * dt)
-            v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
+           # v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
             Δq .+= Δq2
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
-        
+        #=
         plot(2v̂, fc[2][1], legend=false, color =:blue, yflip=true, xlims=(0,.1))
         plot!(2he_t(fc[1][1], fc[2][1], t, MMS),
               fc[2][1], legend=false, color =:red,
               yflip=true, xlims=(0,.1))
         gui()
-        
+        =#
     end
 
     return t0 + (nstep - 1) * dt

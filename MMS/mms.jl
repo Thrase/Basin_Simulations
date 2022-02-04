@@ -142,10 +142,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             @assert length(q1) == 2nn^2 + 5nn
 
             
-            dt_scale = .01
+            dt_scale = .0001
             dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-            @show dt
-            quit()
+            
             t_span = (t_begin, t_final)
 
             #@printf "Got initial conditions: %s s\n" it

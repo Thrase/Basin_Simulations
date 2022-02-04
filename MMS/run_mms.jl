@@ -15,7 +15,7 @@ let
     
     # mesh refinement
 
-    ns = 2 .^ (10:10)
+    ns = 2 .^ (4:9)
     
     # order of operators
     p = [4]
@@ -27,7 +27,8 @@ let
            ρ_in = 2.6,
            c = (W/2)/D,
            r̄ = (W/2)^2,
-           r_w = .01)
+           r_w = .01,
+           on = 1)
 
     # Rate-and-State Friction Params`
     RS = (σn = 50.0,
