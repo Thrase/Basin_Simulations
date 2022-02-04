@@ -146,6 +146,7 @@ let
                      vf = zeros(nn),
                      cycles = [0])
 
+    #=
     threads = 512
     dynamic_params = (nn = nn,
                       threads = threads,
@@ -172,15 +173,15 @@ let
                       io = io,
                       d_to_s = d_to_s,
                       RS_cpu = RS)
-
-    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
-    flush(stdout)
+    =#
+#    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
+#    flush(stdout)
 
     ### set dynamic timestep
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
     
-    @show dts
-    quit()
+    
+    
     ### begin cycles
     cycles = 1
     while t_now < T * year_seconds
@@ -253,21 +254,23 @@ let
         flush(stdout)
 
         ### get inter-seismic so
+        if t_now != nothing
 
-        ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
-        ψδ[nn + 1: 2nn] .= Array(2 * q[1 : nn : nn^2])
-        static_params.vars.t_prev[2] = t_now/year_seconds
-        t_span = (t_now, sim_seconds)
-        
-        temp_io = open(io.slip_file, "a")
-        writedlm(temp_io, ["BREAK"])
-        close(temp_io)
+            ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
+            ψδ[nn + 1: 2nn] .= Array(2 * q[1 : nn : nn^2])
+            static_params.vars.t_prev[2] = t_now/year_seconds
+            t_span = (t_now, sim_seconds)
+            
+            temp_io = open(io.slip_file, "a")
+            writedlm(temp_io, ["BREAK"])
+            close(temp_io)
+            
+            @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
+            static_params.io.pf[1] = 0
+            static_params.io.pf[2] = 0
+            cycles += 1
 
-        @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
-        static_params.io.pf[1] = 0
-        static_params.io.pf[2] = 0
-        cycles += 1
-        
+        end
     end
     
 end

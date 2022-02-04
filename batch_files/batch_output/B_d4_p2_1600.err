@@ -1,2 +1,0 @@
-/cm/local/apps/slurm/var/spool/job16731205/slurm_script: line 14: 84292 Killed                  julia -t8 ../Basin.jl ../input_files/basin_d4_p2_1600.dat
-slurmstepd: error: Detected 1 oom-kill event(s) in step 16731205.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.

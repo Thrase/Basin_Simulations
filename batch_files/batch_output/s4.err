@@ -1,0 +1,12 @@
+┌ Warning: Instability detected. Aborting
+└ @ SciMLBase ~/.julia/packages/SciMLBase/DXiE6/src/integrator_interface.jl:351
+ERROR: LoadError: UndefVarError: dynamic_params not defined
+Stacktrace:
+ [1] top-level scope at /gpfs/home/tharvey2/Basin_Simulations/Basin.jl:237
+ [2] top-level scope at timing.jl:233
+ [3] top-level scope at /gpfs/home/tharvey2/Basin_Simulations/Basin.jl:233
+ [4] include(::Function, ::Module, ::String) at ./Base.jl:380
+ [5] include(::Module, ::String) at ./Base.jl:368
+ [6] exec_options(::Base.JLOptions) at ./client.jl:296
+ [7] _start() at ./client.jl:506
+in expression starting at /gpfs/home/tharvey2/Basin_Simulations/Basin.jl:15

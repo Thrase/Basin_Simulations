@@ -280,11 +280,7 @@ function STOPFUN_Q(ψδ,t,i)
         Vmax = maximum(abs.(V))
         
         
-        write_out(δ, V, τ, ψ, t,
-                  fault_coord,
-                  Lw,
-                  io.station_names,
-                  η)
+        
         
         
         if pf[1] % 30 == 0
@@ -307,6 +303,12 @@ function STOPFUN_Q(ψδ,t,i)
             legend=false)
             gui()
             =#
+
+            write_out(δ, V, τ, ψ, t,
+                  fault_coord,
+                  Lw,
+                  io.station_names,
+                  η)
             
             write_out_ss(δ, V, τ, ψ, t,
                          io.slip_file,
@@ -317,11 +319,11 @@ function STOPFUN_Q(ψδ,t,i)
 
         
         year_count = t/year_seconds
-        
+        #=
         if Vmax >= 1e-2 #&& year_count > (t_prev[2] + 20)
             return true
         end
-        
+        =#
         pf[1] += 1
         u_prev .= u
         t_prev[1] = t
@@ -776,7 +778,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     nstep = ceil(Int, (t1 - t0) / dt)
     dt = (t1 - t0) / nstep
 
-    pf[1] = .1
+    pf[1] = .05
     pf[2] = .5
     
 
@@ -793,49 +795,26 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         end
         
         v̂_cpu = Array(v̂)
-
-        #if step == ceil(Int, pf[1]/dt)
-            
-        if any(isnan, v̂_cpu)
-            @printf "nan from dynamic rootfinder"
-            exit()
-        end
-        
-        τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-
         δ = Array(2uf)
-
+        τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
         ψ_cpu = Array(ψ)
+        if step == ceil(Int, pf[1]/dt)
+            
+            if any(isnan, v̂_cpu)
+                @printf "nan from dynamic rootfinder"
+                exit()
+            end
         
-        write_out(δ,
-                  2v̂_cpu,
-                  τ̂,
-                  ψ_cpu,
-                  t,
-                  fc,
-                  Lw,
-                  io.station_names)
+            write_out(δ,
+                      2v̂_cpu,
+                      τ̂,
+                      ψ_cpu,
+                      t,
+                      fc,
+                      Lw,
+                      io.station_names)
 
-        #pf[1] +=.1
-        #end
-        
-        #if step == ceil(Int, pf[2]/dt)
-
-        
-        #=
-        plt1 = plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
-                    xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
-                    legend=false)
-        plt2 = plot(τ̂, fc, yflip = true, ylabel="Depth",
-                    xlabel="Slip", linecolor=:red, linewidth=.1,
-                    legend=false)
-
-        plot(plt1, plt2, layout=2)
-        #sleep(.)
-        gui()
-        =#
-
-        write_out_ss(δ,
+                 write_out_ss(δ,
                      2v̂_cpu,
                      τ̂,
                      ψ_cpu,
@@ -845,15 +824,25 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                      io.slip_rate_file,
                      io.state_file)
 
-        write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
-        
+            write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
+            pf[1] +=.05
+        end
+        #=
+        if step == ceil(Int, pf[2]/dt)
 
+        plt1 = plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
+                    xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
+                    legend=false)
+        plt2 = plot(τ̂, fc, yflip = true, ylabel="Depth",
+                    xlabel="Slip", linecolor=:red, linewidth=.1,
+                    legend=false)
+
+            pf[2] += .5
+        
+        end
+   
+        =#
         if (2 * maximum(v̂_cpu)) < d_to_s
-            #plot(2*v̂_cpu, fc, yflip = true, ylabel="Depth",
-             #    xlabel="Slip", linecolor=:red, linewidth=.1,
-             #    legend=false)
-            #gui()
-            #sleep(1000000)
             return t
         end
 
