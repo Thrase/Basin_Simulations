@@ -377,7 +377,7 @@ end
 
 function MMS_FAULT_CPU!(dq, q, p, t)
 
-    #@printf "\r\t%f" t
+    @printf "\r\t%f" t
     
     nn = p.nn
     R = p.R
@@ -896,18 +896,18 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
         t = t0 + (step - 1) * dt
         for s in 1:length(RKA)
             f!(Δq2, q, p, t + RKC[s] * dt)
-           # v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
+            v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
             Δq .+= Δq2
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
-        #=
-        plot(2v̂, fc[2][1], legend=false, color =:blue, yflip=true, xlims=(0,.1))
-        plot!(2he_t(fc[1][1], fc[2][1], t, MMS),
+        
+        plot(2v̂, fc[2][1], legend=false, color =:blue, yflip=true)
+        plot!(2ue_t(fc[1][1], fc[2][1], t, MMS),
               fc[2][1], legend=false, color =:red,
-              yflip=true, xlims=(0,.1))
+              yflip=true)
         gui()
-        =#
+        
     end
 
     return t0 + (nstep - 1) * dt

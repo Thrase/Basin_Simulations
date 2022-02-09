@@ -18,7 +18,7 @@ let
     ns = 2 .^ (4:9)
     
     # order of operators
-    p = [2]
+    p = [4]
 
     # Basin Params
     B_p = (μ_out = 24.0,

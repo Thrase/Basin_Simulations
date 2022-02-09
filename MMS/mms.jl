@@ -123,7 +123,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             
             t_begin = 0 #35 * year_seconds - 1
-            t_final =  .01 #35 * year_seconds - .99
+            t_final =  .001 #35 * year_seconds - .99
 
             
             u0 = ue(x[:], y[:], t_begin, MMS)
@@ -142,7 +142,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             @assert length(q1) == 2nn^2 + 5nn
 
             
-            dt_scale = .00001
+            dt_scale = .0001
             dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
             
             t_span = (t_begin, t_final)
@@ -177,7 +177,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
             
             
-            #=
+            
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(u_end4, (nn, nn)) .- ue(x, y, t_final, MMS))',
                            title = "error", fill=true, yflip=true)
@@ -192,7 +192,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-            =#
+            
             #=
             plt5 = plot((d_ops.L[1] * u_end4 - he(xf1, yf1, t_span[2], MMS)), yf1,
                         yflip = true, title = "face 1 error", legend=false)
