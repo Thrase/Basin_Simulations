@@ -8,7 +8,7 @@ CUDA.allowscalar(false)
 
 function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
-    @printf "\r\t%f" t/p.year_seconds
+    #@printf "\r\t%f" t/p.year_seconds
     
     reject_step = p.reject_step
     if reject_step[1]
@@ -65,8 +65,8 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         VL = -VR
         Vn = V[n]
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
-        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
-                                 atolx = 1e-12, rtolx = 1e-12)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
+                                 atolx = 1e-14, rtolx = 1e-14)
 
         if !isfinite(Vn)
             #@printf "Reject V\n"
@@ -279,10 +279,6 @@ function STOPFUN_Q(ψδ,t,i)
         V = @view dψV[nn .+ (1:nn)]
         Vmax = maximum(abs.(V))
         
-        
-        
-        
-        
         if pf[1] % 30 == 0
 
             #=    
@@ -319,11 +315,11 @@ function STOPFUN_Q(ψδ,t,i)
 
         
         year_count = t/year_seconds
-        #=
+        
         if Vmax >= 1e-2 #&& year_count > (t_prev[2] + 20)
             return true
         end
-        =#
+        
         pf[1] += 1
         u_prev .= u
         t_prev[1] = t
@@ -381,7 +377,7 @@ end
 
 function MMS_FAULT_CPU!(dq, q, p, t)
 
-    @printf "\r\t%f" t
+    #@printf "\r\t%f" t
     
     nn = p.nn
     R = p.R
@@ -545,7 +541,7 @@ end
 
 function FAULT_GPU!(dq, q, p, t)
     
-    @printf "\r\t%f" t
+    #@printf "\r\t%f" t
 
     nn = p.nn
     RS = p.RS
@@ -588,10 +584,10 @@ function FAULT_GPU!(dq, q, p, t)
     @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f1, H, sJ, ψ, dψ, b, RS)
 
     dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source2 ./ (2*Z̃f2)
-    dq[nn^2 + 1:2nn^2] .+= L2' * H * source2 ./ 2
+    dq[nn^2 + 1:2nn^2] .+= L2' * (H .* source2 ./ 2)
 
     dq[2nn^2 + 2nn + 1 : 2nn^2 + 3nn] .+= source3 ./ (2*Z̃f3)
-    dq[nn^2 + 1:2nn^2] .+= L3' * H * source3 ./ 2
+    dq[nn^2 + 1:2nn^2] .+= L3' * (H .* source3 ./ 2)
 
     dv .= JIHP * dq[nn^2 + 1:2nn^2]
 
@@ -778,7 +774,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     nstep = ceil(Int, (t1 - t0) / dt)
     dt = (t1 - t0) / nstep
 
-    pf[1] = .05
+    pf[1] = .1
     pf[2] = .5
     
 
@@ -794,12 +790,16 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             Δq .*= RKA[s % length(RKA) + 1]
         end
         
-        v̂_cpu = Array(v̂)
-        δ = Array(2uf)
-        τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-        ψ_cpu = Array(ψ)
+       
+
         if step == ceil(Int, pf[1]/dt)
             
+            v̂_cpu = Array(v̂)
+            δ = Array(2uf)
+            τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+            ψ_cpu = Array(ψ)
+            
+
             if any(isnan, v̂_cpu)
                 @printf "nan from dynamic rootfinder"
                 exit()
@@ -825,7 +825,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                      io.state_file)
 
             write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
-            pf[1] +=.05
+            pf[1] +=.1
         end
         #=
         if step == ceil(Int, pf[2]/dt)
@@ -842,7 +842,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         end
    
         =#
-        if (2 * maximum(v̂_cpu)) < d_to_s
+        if (2 * maximum(v̂)) < d_to_s
             return t
         end
 

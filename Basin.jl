@@ -146,7 +146,7 @@ let
                      vf = zeros(nn),
                      cycles = [0])
 
-    #=
+    
     threads = 512
     dynamic_params = (nn = nn,
                       threads = threads,
@@ -173,14 +173,12 @@ let
                       io = io,
                       d_to_s = d_to_s,
                       RS_cpu = RS)
-    =#
-#    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
-#    flush(stdout)
+    
+    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
+    flush(stdout)
 
     ### set dynamic timestep
     dts = (year_seconds, dt_scale * 2 * ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out)))
-    
-    
     
     ### begin cycles
     cycles = 1
