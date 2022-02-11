@@ -15,7 +15,7 @@ let
     
     # mesh refinement
 
-    ns = 2 .^ (4:9)
+    ns = 2 .^ (4:10)
     
     # order of operators
     p = [4]
@@ -34,7 +34,7 @@ let
     RS = (σn = 50.0,
           a = .015,
           b0 = .02,
-          Dc = 1e9,
+          Dc = 1e14,
           f0 = .6,
           V0 = 1e-6,
           τ_inf = 24.82,

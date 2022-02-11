@@ -901,13 +901,13 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
-        
+        #=
         plot(2v̂, fc[2][1], legend=false, color =:blue, yflip=true)
         plot!(2ue_t(fc[1][1], fc[2][1], t, MMS),
               fc[2][1], legend=false, color =:red,
               yflip=true)
         gui()
-        
+        =#
     end
 
     return t0 + (nstep - 1) * dt

@@ -123,7 +123,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             
             t_begin = 0 #35 * year_seconds - 1
-            t_final =  .001 #35 * year_seconds - .99
+            t_final =  .01 #35 * year_seconds - .99
 
             
             u0 = ue(x[:], y[:], t_begin, MMS)
@@ -142,9 +142,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             @assert length(q1) == 2nn^2 + 5nn
 
             
-            dt_scale = .0001
-            dt = dt_scale * 2 * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
-            
+            dt_scale = .5^15
+            dt = dt_scale * d_ops.hmin
+            @show dt
             t_span = (t_begin, t_final)
 
             #@printf "Got initial conditions: %s s\n" it
