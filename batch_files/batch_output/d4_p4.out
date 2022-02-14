@@ -1,0 +1,111 @@
+got grid in 4.344447 seconds
+set-up io
+Got operators in 431.151131 seconds
+Got initial conditions
+Approximately 0.020522 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Vn = NaN
+
+Interseismic period took 7402.876736027 seconds. 
+Simulation time is now 125.94588451945502 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 19137.757695707 seconds. 
+Simulation time is now 125.94588646533259 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8762.828787171 seconds. 
+Simulation time is now 243.5139538503714 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 18063.174114533 seconds. 
+Simulation time is now 243.51395578362232 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8795.233355345 seconds. 
+Simulation time is now 360.3766592883935 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 19179.196121842 seconds. 
+Simulation time is now 360.37666129478635 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8780.017838566 seconds. 
+Simulation time is now 475.95345728449274 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 20215.412928696 seconds. 
+Simulation time is now 475.9534594180471 years. 
+
+On cycle 5
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8546.494983687 seconds. 
+Simulation time is now 587.7226809236548 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 20914.017596722 seconds. 
+Simulation time is now 587.7226831501141 years. 
+
+On cycle 6
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8451.716348324 seconds. 
+Simulation time is now 698.0618362662816 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 21925.688614343 seconds. 
+Simulation time is now 698.0618385875238 years. 
+
+On cycle 7
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+Vn = NaN
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8442.457603102 seconds. 
+Simulation time is now 804.2184277849532 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 22523.237619802 seconds. 
+Simulation time is now 804.2184302028231 years. 
+
+On cycle 8
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN
+
+Interseismic period took 8081.146893101 seconds. 
+Simulation time is now 908.9950126235913 years. 
+
+Begining Co-sesimic period...
+Coseismic period took 25445.512187822 seconds. 
+Simulation time is now 908.995015349373 years. 
+
+On cycle 9
+Begining Inter-seismic period...
+Vn = NaN
+Vn = NaN

@@ -1,7 +1,7 @@
 # Parameter input file for Basin Simulations
 #
 #
-P=4
+P=2
 Total_time=5000.0
 Number_nodes=1600
 Domain_length=24

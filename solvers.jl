@@ -445,7 +445,7 @@ function MMS_FAULT_CPU!(dq, q, p, t)
                               atolx = 1e-14, rtolx = 1e-14)
 
         if isnan(v̂n)
-            println("Not bracketing root")
+            #println("Not bracketing root")
         end
         
         dû1[n] = v̂n

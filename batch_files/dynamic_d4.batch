@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=erickson		   ### change this to the actual account
 #SBATCH --partition=cisds  		   ### queue to submit to
-#SBATCH --job-name=d4              	   ### job name
-#SBATCH --output=batch_output/d4.out    ### file in which to store job stdout
-#SBATCH --error=batch_output/d4.err     ### file in which to store job stderr
+#SBATCH --job-name=d4_p4             	   ### job name
+#SBATCH --output=batch_output/d4_p4.out    ### file in which to store job stdout
+#SBATCH --error=batch_output/d4_p4.err     ### file in which to store job stderr
 #SBATCH --time=14-00:00:00   		   ### wall-clock time limit, in minutes
 #SBATCH --mem=128G            		   ### memory limit per node, in MB
 #SBATCH --nodes=1    

@@ -83,6 +83,7 @@ he_yy(x, y, t, MMS) =  MMS.δ_e/2 .* K(t, MMS) .* ϕ_yy(x, y, MMS) .- MMS.Vp/2 .
 he_xt(x, y, t, MMS) = MMS.δ_e/2 .* K_t(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* ϕ_x(x, y, MMS)
 =#
 
+
 f(a, MMS) = MMS.amp * sin.(π.*(a)/MMS.wl)
 fp(a, MMS) = MMS.amp * π/MMS.wl*cos.(π.*(a)/MMS.wl)
 fpp(a, MMS) = MMS.amp * (-(π/MMS.wl)^2) .* sin.(π.*(a)/MMS.wl)
@@ -180,6 +181,7 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
     return  ψ_t .- G
 
 end
+
 
 #=
 h_FORCE(x, y, t, B_p, MMS) = -(μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+

@@ -54,7 +54,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             quit()
             =#
-            faces_fault = [0 2 3 4]
+            faces_fault = [1 2 3 4]
             d_ops = operators(p, N, N, μ, ρ, R, B_p, faces_fault, metrics)
             
             b = repeat([.02], nn)
@@ -122,8 +122,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             yf1 = metrics.facecoord[2][1]
             
             
-            t_begin = 0 #35 * year_seconds - 1
-            t_final =  .01 #35 * year_seconds - .99
+            t_begin = 35 * year_seconds 
+            t_final = 35 * year_seconds + .01
 
             
             u0 = ue(x[:], y[:], t_begin, MMS)
@@ -142,76 +142,78 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             @assert length(q1) == 2nn^2 + 5nn
 
             
-            dt_scale = .5^15
-            dt = dt_scale * d_ops.hmin
-            @show dt
-            t_span = (t_begin, t_final)
+            for dt_scale = .5 .^ (1:16)
+                dt = dt_scale * d_ops.hmin
+                if dt < (t_final - t_begin)
+                    @show dt_scale, dt
+                    t_span = (t_begin, t_final)
 
-            #@printf "Got initial conditions: %s s\n" it
-            
-            #=
-            st3 = @elapsed begin
-            timestep!(q3, FAULT_GPU!, GPU_operators, dt, t_span)
+                    #@printf "Got initial conditions: %s s\n" it
+                    
+                    #=
+                    st3 = @elapsed begin
+                    timestep!(q3, FAULT_GPU!, GPU_operators, dt, t_span)
+                    end
+                    =#
+
+                    #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
+                    
+                    st4 = @elapsed begin
+                        t_final = timestep!(q4, MMS_WAVEPROP_CPU!, cpu_operators, dt, t_span)
+                    end
+                    
+                    #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
+                    
+                    #=
+                    st5 = @elapsed begin
+                    timestep!(q5, FAULT_CPU!, cpu_operators, dt, t_span)
+                    end
+                    =#
+
+                    x = metrics.coord[1]
+                    y = metrics.coord[2]
+                    
+                    u_end4 = @view q4[1:Nn]
+                    diff_u4 = u_end4 - ue(x[:], y[:], t_final, MMS)
+                    err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
+                    
+                    
+                    #=
+                    plt1 = contour(x[:, 1], y[1, :],
+                    (reshape(u_end4, (nn, nn)) .- ue(x, y, t_final, MMS))',
+                    title = "error", fill=true, yflip=true)
+                    plt2 = contour(x[:, 1], y[1, :],
+                    ue(x, y, t_final, MMS)',
+                    fill = true, yflip=true, title = "exact")
+                    plt3 = contour(x[:, 1], y[1, :], 
+                    Forcing(x, y, t_final, B_p, MMS)',
+                    fill=true, yflip=true, title = "forcing")
+                    plt4 = contour(x[:, 1], y[1, :], 
+                    reshape(u_end4, (nn,nn))',
+                    fill=true, yflip=true, title = "numerical")
+                    plot(plt1, plt2, plt3, plt4, layout=4)
+                    gui()
+                    =#
+                    #=
+                    plt5 = plot((d_ops.L[1] * u_end4 - he(xf1, yf1, t_span[2], MMS)), yf1,
+                    yflip = true, title = "face 1 error", legend=false)
+                    plt6 = plot(he(xf1, yf1, t_span[2], MMS), yf1,
+                    yflip = true, title = "face 1 exact", legend=false, xlims=(0, 1.1))
+                    plt7 = plot(d_ops.L[1] * u_end4, yf1,
+                    yflip = true, title = "face 1 numerical", legend=false, xlims=(0, 1.1))
+                    plot(plt5, plt6, plt7, layout=3)
+                    gui()
+                    =#
+                    #u_end3 = @view Array(q3)[1:Nn]
+                    #u_end5 = @view q5[1:Nn]
+
+                    @printf "\n\t\tdynamic error with MS: %e\n" err4[iter]
+                    if iter > 1
+                        @printf "\t\tdynamic rate: %f\n" log(2, err4[iter - 1]/err4[iter])
+                    end
+                    flush(stdout)
+                end
             end
-            =#
-
-            #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
-            
-            st4 = @elapsed begin
-                t_final = timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
-            end
-            
-            #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
-            
-            #=
-            st5 = @elapsed begin
-            timestep!(q5, FAULT_CPU!, cpu_operators, dt, t_span)
-            end
-            =#
-
-            x = metrics.coord[1]
-            y = metrics.coord[2]
-            
-            u_end4 = @view q4[1:Nn]
-            diff_u4 = u_end4 - ue(x[:], y[:], t_final, MMS)
-            err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
-            
-            
-            
-            plt1 = contour(x[:, 1], y[1, :],
-                           (reshape(u_end4, (nn, nn)) .- ue(x, y, t_final, MMS))',
-                           title = "error", fill=true, yflip=true)
-            plt2 = contour(x[:, 1], y[1, :],
-                           ue(x, y, t_final, MMS)',
-                           fill = true, yflip=true, title = "exact")
-            plt3 = contour(x[:, 1], y[1, :], 
-                           Forcing(x, y, t_final, B_p, MMS)',
-                           fill=true, yflip=true, title = "forcing")
-            plt4 = contour(x[:, 1], y[1, :], 
-                           reshape(u_end4, (nn,nn))',
-                           fill=true, yflip=true, title = "numerical")
-            plot(plt1, plt2, plt3, plt4, layout=4)
-            gui()
-            
-            #=
-            plt5 = plot((d_ops.L[1] * u_end4 - he(xf1, yf1, t_span[2], MMS)), yf1,
-                        yflip = true, title = "face 1 error", legend=false)
-            plt6 = plot(he(xf1, yf1, t_span[2], MMS), yf1,
-                        yflip = true, title = "face 1 exact", legend=false, xlims=(0, 1.1))
-            plt7 = plot(d_ops.L[1] * u_end4, yf1,
-                        yflip = true, title = "face 1 numerical", legend=false, xlims=(0, 1.1))
-            plot(plt5, plt6, plt7, layout=3)
-            gui()
-            =#
-            #u_end3 = @view Array(q3)[1:Nn]
-            #u_end5 = @view q5[1:Nn]
-
-            @printf "\n\t\tdynamic error with MS: %e\n" err4[iter]
-            if iter > 1
-                @printf "\t\tdynamic rate: %f\n" log(2, err4[iter - 1]/err4[iter])
-            end
-            
-
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
 
             
