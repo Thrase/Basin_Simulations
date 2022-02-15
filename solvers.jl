@@ -333,6 +333,8 @@ end
 
 function MMS_WAVEPROP_CPU!(dq, q, p, t)
 
+    @printf "\r\t%f" t
+    
     nn = p.nn
     fc = p.fc
     coord = p.coord
@@ -854,38 +856,31 @@ end
 
 
 function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
-
-    fc = p.fc
-    nn = p.nn
-    v̂ = p.v̂
-    MMS = p.MMS
-    
     T = eltype(q)
-    
-    RKA = [
+
+    RKA = (
         T(0),
         T(-567301805773 // 1357537059087),
         T(-2404267990393 // 2016746695238),
         T(-3550918686646 // 2091501179385),
         T(-1275806237668 // 842570457699),
-    ]
+    )
 
-    RKB = [
+    RKB = (
         T(1432997174477 // 9575080441755),
         T(5161836677717 // 13612068292357),
         T(1720146321549 // 2090206949498),
         T(3134564353537 // 4481467310338),
         T(2277821191437 // 14882151754819),
-    ]
+    )
 
-    RKC = [
+    RKC = (
         T(0),
         T(1432997174477 // 9575080441755),
         T(2526269341429 // 6820363962896),
         T(2006345519317 // 3224310063776),
         T(2802321613138 // 2924317926251),
-    ]
-    
+    )
 
     nstep = ceil(Int, (t1 - t0) / dt)
     dt = (t1 - t0) / nstep
@@ -896,22 +891,13 @@ function timestep!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = similar(q))
         t = t0 + (step - 1) * dt
         for s in 1:length(RKA)
             f!(Δq2, q, p, t + RKC[s] * dt)
-            v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
             Δq .+= Δq2
-            q .+= (RKB[s] * dt) .* Δq
+            q .+= RKB[s] * dt * Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
-        #=
-        plot(2v̂, fc[2][1], legend=false, color =:blue, yflip=true)
-        plot!(2ue_t(fc[1][1], fc[2][1], t, MMS),
-              fc[2][1], legend=false, color =:red,
-              yflip=true)
-        gui()
-        =#
     end
 
-    return t0 + (nstep - 1) * dt
-
+    nothing
 end
 
 

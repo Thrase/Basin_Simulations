@@ -122,8 +122,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             yf1 = metrics.facecoord[2][1]
             
             
-            t_begin = 35 * year_seconds 
-            t_final = 35 * year_seconds + .01
+            t_begin = 0#35 * year_seconds 
+            t_final = 1.0#35 * year_seconds + .01
 
             
             u0 = ue(x[:], y[:], t_begin, MMS)
@@ -142,10 +142,10 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             @assert length(q1) == 2nn^2 + 5nn
 
             
-            for dt_scale = .5 .^ (1:16)
-                dt = dt_scale * d_ops.hmin
+            for dt_scale = .5 .^ (3:3)
+                dt = dt_scale * d_ops.hmin / (sqrt(B_p.μ_out/B_p.ρ_out))
                 if dt < (t_final - t_begin)
-                    @show dt_scale, dt
+                    #@show dt_scale, dt
                     t_span = (t_begin, t_final)
 
                     #@printf "Got initial conditions: %s s\n" it
@@ -159,7 +159,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
                     
                     st4 = @elapsed begin
-                        t_final = timestep!(q4, MMS_WAVEPROP_CPU!, cpu_operators, dt, t_span)
+                        #t_final = timestep!(q4, MMS_WAVEPROP_CPU!, cpu_operators, dt, t_span)
+                        prob = ODEProblem(MMS_WAVEPROP_CPU!, q4, t_span, cpu_operators)
+                        sol = solve(prob, Tsit5();
+                                    atol = 1e-14,
+                                    rtol = 1e-14,
+                                    internalnorm=(x,_)->norm(x, Inf))
                     end
                     
                     #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
@@ -173,7 +178,9 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     x = metrics.coord[1]
                     y = metrics.coord[2]
                     
-                    u_end4 = @view q4[1:Nn]
+                    #u_end4 = @view q4[1:Nn]
+                    u_end4 = sol.u[end][1:Nn]
+                    t_final = sol.t[end]
                     diff_u4 = u_end4 - ue(x[:], y[:], t_final, MMS)
                     err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
                     

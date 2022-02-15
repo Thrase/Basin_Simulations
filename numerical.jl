@@ -349,6 +349,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
     P2 = sparse(1:Nsp, 1:Nsp, p2)
     P3 = sparse(1:Nrp, 1:Nrp, p3)
     P4 = sparse(1:Nrp, 1:Nrp, p4)
+    
 
     # dynamic penalty matrices
     Γ = ((2/(θ_R*hr))*Is + τR1 * P1,
@@ -438,7 +439,6 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
             end
         end
 
-        
         dû_û = spzeros(4nn, 4nn)
         for i in 1:4
             if faces[i] != 0
