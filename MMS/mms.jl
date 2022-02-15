@@ -123,7 +123,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             
             t_begin = 0#35 * year_seconds 
-            t_final = 1.0#35 * year_seconds + .01
+            t_final = .1#35 * year_seconds + .01
 
             
             u0 = ue(x[:], y[:], t_begin, MMS)
@@ -159,12 +159,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
                     
                     st4 = @elapsed begin
-                        #t_final = timestep!(q4, MMS_WAVEPROP_CPU!, cpu_operators, dt, t_span)
-                        prob = ODEProblem(MMS_WAVEPROP_CPU!, q4, t_span, cpu_operators)
-                        sol = solve(prob, Tsit5();
-                                    atol = 1e-14,
-                                    rtol = 1e-14,
-                                    internalnorm=(x,_)->norm(x, Inf))
+                        timestep!(q4, MMS_WAVEPROP_CPU!, cpu_operators, dt, t_span)
                     end
                     
                     #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
@@ -178,10 +173,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     x = metrics.coord[1]
                     y = metrics.coord[2]
                     
-                    #u_end4 = @view q4[1:Nn]
-                    u_end4 = sol.u[end][1:Nn]
-                    t_final = sol.t[end]
-                    diff_u4 = u_end4 - ue(x[:], y[:], t_final, MMS)
+                    u_end4 = @view q4[1:Nn]
+                    diff_u4 = u_end4 - ue(x[:], y[:], t_span[2], MMS)
                     err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
                     
                     
