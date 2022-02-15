@@ -7,9 +7,9 @@ let
     # Domain length
     Lw = 1
     # Basin width
-    W = 24/Lw
+    W = 24/40
     # Basin Depth
-    D = 6/Lw
+    D = 6/40
     # simulation timespan
     
     
@@ -40,13 +40,13 @@ let
           τ_inf = 24.82,
           Vp = 1e-9)
 
-    
+    #=
      MMS = (wl = Lw/2,
            amp = .5,
            ϵ = .01)
-    
+    =#
     # MMS params
-    #=
+    
     MMS = (Lw = Lw,
            t̄ = 35*year_seconds,
            t_w = 10,
@@ -58,7 +58,7 @@ let
            δ_e = 1e-9*(35*year_seconds) -
                (1e-12*(35*year_seconds)),         
            ϵ = 2.0)
-    =#
+    
     refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS)
 
 end

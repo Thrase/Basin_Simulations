@@ -5,7 +5,7 @@ using Plots
 #  MMS Function  #
 ##################
 
-#=
+
 function ϕ(x, y, MMS)
     h = MMS.H
     return (h .* (h .+ x)) ./
@@ -81,9 +81,9 @@ he_y(x, y, t, MMS) =  MMS.δ_e/2 .* K(t, MMS) .* ϕ_y(x, y, MMS) .- MMS.Vp/2 .* 
 he_yy(x, y, t, MMS) =  MMS.δ_e/2 .* K(t, MMS) .* ϕ_yy(x, y, MMS) .- MMS.Vp/2 .* t .* ϕ_yy(x, y, MMS)
 
 he_xt(x, y, t, MMS) = MMS.δ_e/2 .* K_t(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* ϕ_x(x, y, MMS)
-=#
 
 
+#=
 f(a, MMS) = MMS.amp * sin.(π.*(a)/MMS.wl)
 fp(a, MMS) = MMS.amp * π/MMS.wl*cos.(π.*(a)/MMS.wl)
 fpp(a, MMS) = MMS.amp * (-(π/MMS.wl)^2) .* sin.(π.*(a)/MMS.wl)
@@ -181,9 +181,9 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
     return  ψ_t .- G
 
 end
+=#
 
 
-#=
 h_FORCE(x, y, t, B_p, MMS) = -(μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+
     μ(x, y, B_p) .* he_xx(x, y, t, MMS) .+
     μ_y(x, y, B_p) .* he_y(x, y, t, MMS) .+
@@ -331,7 +331,7 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
 
 end
 
-
+#=
 Pe(x, y, t, MMS) = sin.(2/MMS.Lw .* x) .* cos.(2/MMS.Lw .* (y.-1)) .* sin.(2/MMS.Lw .* t) .+ MMS.ϵ .* x .+ MMS.ϵ .* t
 
 Pe_y(x, y, t, MMS) = - 2/MMS.Lw .* sin.(2/MMS.Lw * x) .* sin.(2/MMS.Lw * (y.-1)) .* sin.(2/MMS.Lw .* t)

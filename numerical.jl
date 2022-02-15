@@ -133,7 +133,7 @@ end
 
 
             
-function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics, 
+function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics, 
                      τscale = 2,
                      crr = metrics.crr,
                      css = metrics.css,
@@ -394,27 +394,21 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         
         
     end
+
     
     Λ_t = @elapsed begin
         dv_u = -Ã
         
         for i in 1:4
-            if faces[i] == 0
-                dv_u .+= (L[i]' * H[i] * (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i])) +
-                    nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
-            else
-                dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
-                    nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
-            end
+            dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
+                nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
+            
         end
-
+        
         dv_v = spzeros(Nn, Nn)
         for i in 1:4
-            if faces[i] == 0
-                dv_v .+=  L[i]' * H[i] * (-Z̃f[i] .* L[i])
-            else
-                dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
-            end
+            dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
+            
         end
 
         dv_û = spzeros(Nn, 4nn)
@@ -422,28 +416,20 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, faces, metrics,
         dû_v = spzeros(4nn, Nn)
 
         for i in 1:4
-            if faces[i] == 0
-                dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                    (L[i]' * H[i] * Cf[i][1] * Γ[i]) -
-                    nl[i] * (B[i][1]' + B[i][2]') * H[i]
-            else
-                dv_û[ : , (i-1) * nn + 1 : i * nn] .=
-                    (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
-                    nl[i] * (B[i][1]' + B[i][2]') * H[i]
-                
-                dû_u[(i-1) * nn + 1 : i * nn , : ] .=
-                    -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) -
-                                      Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
-                
-                dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
-            end
+            dv_û[ : , (i-1) * nn + 1 : i * nn] .=
+                (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
+                nl[i] * (B[i][1]' + B[i][2]') * H[i]
+            
+            dû_u[(i-1) * nn + 1 : i * nn , : ] .=
+                -(1 + R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) -
+                Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
+            
+            dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
         end
 
         dû_û = spzeros(4nn, 4nn)
         for i in 1:4
-            if faces[i] != 0
-                dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
-            end
+            dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
         end
 
         dû_ψ = spzeros(4nn, nn)

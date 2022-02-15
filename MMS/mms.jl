@@ -43,20 +43,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             facecoord = metrics.facecoord
             x = metrics.coord[1]
             y = metrics.coord[2]
-            #=
-            for time in 0:.1:3
-            #@show minimum(Pe(x,v y, 1.1, MMS))
-                contour(x[:, 1], y[1, :],
-                        Pe(x, y, time, MMS),
-                        fill = true, yflip=true, title = "μ")
-                gui()
-                sleep(.1)
-            end
-            
-            quit()
-            =#
-            faces_fault = [1 2 3 4]
-            d_ops = operators(p, N, N, μ, ρ, R, B_p, faces_fault, metrics)
+
+            d_ops = operators(p, N, N, μ, ρ, R, B_p, metrics)
             
             b = repeat([.02], nn)
             τ̃f = Array{Float64, 1}(undef, nn)
@@ -127,13 +115,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             t_final = .1#35 * year_seconds + .01
 
             
-            u0 = ue(x[:], y[:], t_begin, MMS)
-            v0 = ue_t(x[:], y[:], t_begin, MMS)
+            u0 = he(x[:], y[:], t_begin, MMS)
+            v0 = he_t(x[:], y[:], t_begin, MMS)
             q1 = [u0;v0]
             for i in 1:4
                 q1 = vcat(q1, d_ops.L[i]*u0)
             end
-            q1 = vcat(q1, ψe(metrics.facecoord[1][1],
+            q1 = vcat(q1, ψe_d(metrics.facecoord[1][1],
                                metrics.facecoord[2][1],
                                t_begin, B_p, RS, MMS))
 
@@ -175,7 +163,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     y = metrics.coord[2]
                     
                     u_end4 = @view q4[1:Nn]
-                    diff_u4 = u_end4 - ue(x[:], y[:], t_span[2], MMS)
+                    diff_u4 = u_end4 - he(x[:], y[:], t_span[2], MMS)
                     err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
                     
                     
