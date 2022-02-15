@@ -18,7 +18,7 @@ function transforms_e(Lw, r̂, l)
     r = -1:.01:1
     s = -1:.01:1
 
-
+   
     scatter(r, xt(r,s))
     gui()
 

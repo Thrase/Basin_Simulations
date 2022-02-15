@@ -7,9 +7,9 @@ let
     # Domain length
     Lw = 1
     # Basin width
-    W = 24/40
+    W = 24/Lw
     # Basin Depth
-    D = 6/40
+    D = 6/Lw
     # simulation timespan
     
     

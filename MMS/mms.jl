@@ -16,9 +16,10 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     year_seconds = 31556952
     #xt, yt = transforms_e(Lw, .1, .05)
     # expand to (0,Lw) × (0, Lw)
-    (x1, x2, x3, x4) = (0, Lw, 0, Lw)
-    (y1, y2, y3, y4) = (0, 0, Lw, Lw)
-    xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
+    #(x1, x2, x3, x4) = (0, Lw, 0, Lw)
+    #(y1, y2, y3, y4) = (0, 0, Lw, Lw)
+    #xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
+    xt, yt = transforms_e(Lw, .75, .2)
     
     for p in ps
 
@@ -159,7 +160,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     #@printf "Ran GPU to time %s in: %s s \n\n" t_span[2] st3
                     
                     st4 = @elapsed begin
-                        timestep!(q4, MMS_WAVEPROP_CPU!, cpu_operators, dt, t_span)
+                        timestep!(q4, MMS_FAULT_CPU!, cpu_operators, dt, t_span)
                     end
                     
                     #@printf "Ran CPU MMS to time %s in: %s s \n\n" t_span[2] st4
