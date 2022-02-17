@@ -49,7 +49,7 @@ end
 
 
 
-function static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, ys)
+function static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, t)
 
     (xf, yf) = metrics.facecoord
     coord = metrics.coord
@@ -60,23 +60,23 @@ function static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, ys)
     
     for i in 1:4
         if i == 1
-            vf .=  he(xf[1], yf[1], 35 * ys, MMS)
+            vf .=  he(xf[1], yf[1], t, MMS)
         elseif i == 2
             # dirichlet h
-            vf .= (MMS.Vp/2 * 35 * ys .+ (RS.τ_inf * MMS.Lw) ./ μf2) .+
-                h_face2(xf[2], yf[2], 35 * ys, MMS, RS, μf2)
+            vf .= (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2) .+
+                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
         elseif i == 3
             # neumann h
-            vf .= sJ[3] .* τhe(xf[3], yf[3], 35 * ys, 3, B_p, MMS)
+            vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
         elseif i == 4
             # neumann h
-            vf .= sJ[4] .* τhe(xf[4], yf[4], 35 * ys, 4, B_p, MMS)
+            vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
         end
         
         ge .+= K[i] * vf
     end
 
-    ge .+= JH * h_FORCE(coord[1][:], coord[2][:], 35 * ys, B_p, MMS)
+    ge .+= JH * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 

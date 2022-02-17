@@ -116,8 +116,9 @@ function Q_STATIC_MMS!(p)
     b = p.b
     δ = 0
     ys = p.year_seconds
+    t = p.t_final
     
-    static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, ys)
+    static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
     
@@ -172,7 +173,11 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-    #Δτ = - τhe(xf1, yf1, t, 1, B_p, MMS)
+    V .= he_t(xf1, yf1, t, MMS)
+    dψ .= 0
+    
+    #=
+    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
     Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
 
     for n in 1:nn
@@ -218,7 +223,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         end
 
     end
-    
+    =#
     nothing
     
 end
