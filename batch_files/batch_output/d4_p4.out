@@ -1,2 +1,9 @@
-got grid in 3.943066 seconds
+got grid in 3.948859 seconds
 set-up io
+Got operators in 475.999892 seconds
+Got initial conditions
+Approximately 0.020522 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Vn = NaN

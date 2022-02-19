@@ -37,7 +37,7 @@ let
     sim_seconds = T * year_seconds
     t_now = 0.0
     if ic_t_file != "None"
-        t_now = readdlm(ic_t_file)
+        t_now = readdlm(ic_t_file)[1]
         t_span = (t_now, sim_seconds)
     else
         t_span = (0.0, sim_seconds)
