@@ -39,7 +39,6 @@ let
     if ic_t_file != "None"
         t_now = readdlm(ic_t_file)
         t_span = (t_now, sim_seconds)
-
     else
         t_span = (0.0, sim_seconds)
     end
@@ -93,7 +92,7 @@ let
     faces = [0 2 3 4]
     R = [-1 0 1 0]
     opt_t = @elapsed begin
-        ops = operators(p, N, N, μ, ρ, R, B_p, faces, metrics)
+        ops = operators(p, N, N, μ, ρ, R, B_p, metrics)
     end
     @printf "Got operators in %f seconds\n" opt_t
     flush(stdout)
