@@ -164,7 +164,7 @@ let
                       RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, nn]),
                       b = CuArray(RS.b),
                       τ̃f = CuArray(zeros(nn)),
-                      v̂= CuArray(zeros(nn)),
+                      v̂ = CuArray(zeros(nn)),
                       source2 = CuArray(zeros(nn)),
                       source3 = CuArray(zeros(nn)),
                       fc = metrics.facecoord[2][1],
@@ -181,6 +181,7 @@ let
     
     ### begin cycles
     cycles = 1
+    done = false
     while t_now < T * year_seconds
 
         static_params.cycles[1] = cycles
@@ -192,44 +193,72 @@ let
         static_params.reject_step[1] = false
         stopper = DiscreteCallback(STOPFUN_Q, terminate!)
         prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
-        inter_time = @elapsed begin
-            sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=dts[2],
-                        atol = 1e-12, rtol = 1e-12, save_everystep=true,
-                        internalnorm=(x, _)->norm(x, Inf), callback=stopper)
-        end
         
-        @printf "\nInterseismic period took %s seconds. \n" inter_time
-        flush(stdout)
-    
-        ### get dynamic inital conditions
-        t_now = sol.t[end]
-        t_span = (t_now,  sim_seconds)
+        inter_flag = false
+        # while intergration is not finished
+        while !inter_flag
+            inter_time = @elapsed begin
+                # integrate
+                prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
+                sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=dts[2],
+                            atol = 1e-12, rtol = 1e-12, save_everystep=true,
+                            internalnorm=(x, _)->norm(x, Inf), callback=stopper)
+            end
+            
+            # if the timestepper fails
+            if sol.retcode == :Unstable
+                # try again
+                @printf "Broke out of Integrator early\n"
+                @printf "Restarting...\n"
+                nt_begin = reset_quasidynamic!(ψδ, static_params)
+                t_span = (nt_begin, sim_seconds)
+                #otherwise break
+            elseif sol.retcode == :Terminated
+                @printf "Finished Interseismic\n"
+                @printf "Interseismic period took %s seconds. \n" inter_time
+                flush(stdout)
+                
+                ### get dynamic inital conditions
+                t_now = sol.t[end]
+                t_span = (t_now,  sim_seconds)
+                @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
 
-        @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
+                q = Array(q)
+                q[1:nn^2] .= static_params.vars.u[:]
+                q[nn^2 + 1 : 2nn^2] .=
+                    (static_params.vars.u - static_params.vars.u_prev) / 
+                    (sol.t[end] - static_params.vars.t_prev[1])
+                
+                for i in 1:4
+                    q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
+                end
+                q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
 
-        q = Array(q)
-        q[1:nn^2] .= static_params.vars.u[:]
-        q[nn^2 + 1 : 2nn^2] .=
-            (static_params.vars.u -static_params.vars.u_prev) / (sol.t[end] - static_params.vars.t_prev[1])
-        
-        for i in 1:4
-            q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
+                inter_flag = true
+
+            elseif sol.retcode == :Success
+                inter_flag = true
+                @printf "Finished Interseismic\n"
+                @printf "Simulation time is now %s year. \n\n" sol.t[end]/year_seconds
+                done = true
+            end
+        end 
+
+        # to breakout on last cycle
+        if done == true
+            break
         end
-        q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
-        
 
         ### write break to output file
         temp_io = open(io.slip_file, "a")
         writedlm(temp_io, ["BREAK"])
         close(temp_io)
 
-
-        @printf "Begining Co-sesimic period...\n"
+        @printf "Begining Co-seismic period...\n"
         flush(stdout)
 
         co_time = @elapsed begin
             
-
             ### getting source terms for non-reflecting boundaries
             dynamic_params.source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
                 ops.L[2] * q[nn^2 + 1 : 2nn^2] +
@@ -246,7 +275,7 @@ let
             ### run inter-seismic solver
             t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
         end
-
+        @printf "Finised Co-seismic period\n"
         @printf "Coseismic period took %s seconds. \n" co_time
         flush(stdout)
 

@@ -238,6 +238,43 @@ function stepcheck(_, p, _)
     return false
 end
 
+function reset_quasidynamic!(ψδ, static_params)
+
+    slip_file = open(static_params.io.slip_file, "r")
+    slip_data = collect(eachline(slip_file))
+    nn = static_params.nn
+    io = static_params.io
+
+    y = map(x->parse(Float64, x), split.(slip_data[2, :])[1])[3:end]
+    
+    lc_index = 0
+    cycle_count = 0
+    
+    for (i, line) in enumerate(slip_data)
+        if line == "BREAK"
+            lc_index = i + 1
+            cycle_count += 1
+        end
+    end
+
+    reset = slip_data[lc_index]
+    d = map(x->parse(Float64, x), split.(reset))
+    ψδ[nn + 1 : 2nn] = d[3:end]
+    t = d[1]
+
+    all_index = lc_index - cycle_count - 1
+
+    state_file = open(io.state_file, "r")
+    state_data = collect(eachline(state_file))
+    ψδ[1 : nn] = map(x->parse(Float64, x), split.(state_data[all_index, :])[1])[3:end]
+
+    close(slip_file)
+    close(state_file)
+    
+    return t
+end
+
+
 function PLOTFACE(ψδ,t,i)
 
     if isdefined(i,:fsallast)
@@ -284,7 +321,7 @@ function STOPFUN_Q(ψδ,t,i)
         V = @view dψV[nn .+ (1:nn)]
         Vmax = maximum(abs.(V))
         
-        if pf[1] % 30 == 0
+        if pf[1] % 10 == 0
 
             #=    
             plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
@@ -298,12 +335,12 @@ function STOPFUN_Q(ψδ,t,i)
             plot(plt1, plt2, layout=2)
             gui()
             =#
-            #=
-            plot(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
+            
+            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-            =#
+            
 
             write_out(δ, V, τ, ψ, t,
                   fault_coord,
@@ -321,7 +358,7 @@ function STOPFUN_Q(ψδ,t,i)
         
         year_count = t/year_seconds
         
-        if Vmax >= 1e-2 #&& year_count > (t_prev[2] + 20)
+        if Vmax >= 1e-2 
             return true
         end
         
@@ -750,7 +787,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     vf = @view q[nn^2 + 1: nn : 2nn^2]
     v = @view q[nn^2 + 1 : 2nn^2]
     u = @view q[1 : nn^2]
-    uf = @view q[1 : nn : nn^2]
+    ûf = @view q[2nn^2 + 1 : 2nn^2 + nn]
     ψ = @view q[2nn^2 + 4nn + 1 : 2nn^2 + 5*nn]
     
     RKA = [
@@ -802,7 +839,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         if step == ceil(Int, pf[1]/dt)
             
             v̂_cpu = Array(v̂)
-            δ = Array(2uf)
+            δ = Array(2ûf)
             τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
             ψ_cpu = Array(ψ)
             
@@ -821,34 +858,24 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                       Lw,
                       io.station_names)
 
-                 write_out_ss(δ,
-                     2v̂_cpu,
-                     τ̂,
-                     ψ_cpu,
-                     t,
-                     io.slip_file,
-                     io.stress_file,
-                     io.slip_rate_file,
-                     io.state_file)
-
-            write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
+            write_out_ss(δ,
+                         2v̂_cpu,
+                         τ̂,
+                         ψ_cpu,
+                         t,
+                         io.slip_file,
+                         io.stress_file,
+                         io.slip_rate_file,
+                         io.state_file)
+            
+            plot!(δ, fc, yflip = true, ylabel="Depth",
+                  xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
+                  legend=false)
+            gui()
+            #write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
             pf[1] +=.1
         end
-        #=
-        if step == ceil(Int, pf[2]/dt)
-
-        plt1 = plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
-                    xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
-                    legend=false)
-        plt2 = plot(τ̂, fc, yflip = true, ylabel="Depth",
-                    xlabel="Slip", linecolor=:red, linewidth=.1,
-                    legend=false)
-
-            pf[2] += .5
-        
-        end
-   
-        =#
+    
         if (2 * maximum(v̂)) < d_to_s
             return t
         end
