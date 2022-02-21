@@ -60,23 +60,23 @@ function static_data_mms!(δ, ge, K, JH, vf, MMS, B_p, RS, metrics, t)
     
     for i in 1:4
         if i == 1
-            vf .=  he(xf[1], yf[1], t, MMS)
+            vf .=  ue(xf[1], yf[1], t, MMS)
         elseif i == 2
             # dirichlet h
             vf .= (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2) .+
-                h_face2(xf[2], yf[2], t, MMS, RS, μf2)
+                u_face2(xf[2], yf[2], t, MMS, RS, μf2)
         elseif i == 3
             # neumann h
-            vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
+            vf .= sJ[3] .* τe(xf[3], yf[3], t, 3, B_p, MMS)
         elseif i == 4
             # neumann h
-            vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
+            vf .= sJ[4] .* τe(xf[4], yf[4], t, 4, B_p, MMS)
         end
         
         ge .+= K[i] * vf
     end
 
-    ge .+= JH * h_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .+= JH * u_FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 

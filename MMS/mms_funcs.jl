@@ -5,7 +5,7 @@ using Plots
 #  MMS Function  #
 ##################
 
-
+#=
 function ϕ(x, y, MMS)
     h = MMS.H
     return (h .* (h .+ x)) ./
@@ -81,9 +81,9 @@ he_y(x, y, t, MMS) =  MMS.δ_e/2 .* K(t, MMS) .* ϕ_y(x, y, MMS) .- MMS.Vp/2 .* 
 he_yy(x, y, t, MMS) =  MMS.δ_e/2 .* K(t, MMS) .* ϕ_yy(x, y, MMS) .- MMS.Vp/2 .* t .* ϕ_yy(x, y, MMS)
 
 he_xt(x, y, t, MMS) = MMS.δ_e/2 .* K_t(t, MMS) .* ϕ_x(x, y, MMS) .- MMS.Vp/2 .* ϕ_x(x, y, MMS)
+=#
 
 
-#=
 f(a, MMS) = MMS.amp * sin.(π.*(a)/MMS.wl)
 fp(a, MMS) = MMS.amp * π/MMS.wl*cos.(π.*(a)/MMS.wl)
 fpp(a, MMS) = MMS.amp * (-(π/MMS.wl)^2) .* sin.(π.*(a)/MMS.wl)
@@ -181,9 +181,9 @@ function S_rs(fx, fy, b, t, B_p, RS, MMS)
     return  ψ_t .- G
 
 end
-=#
 
 
+#=
 h_FORCE(x, y, t, B_p, MMS) = -(μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+
     μ(x, y, B_p) .* he_xx(x, y, t, MMS) .+
     μ_y(x, y, B_p) .* he_y(x, y, t, MMS) .+
@@ -226,84 +226,55 @@ function ψe_td(x, y, t, B_p, RS, MMS)
     return ψ_t
 
 end
+=#
 
+u_FORCE(x, y, t, B_p, MMS) = -(μ_x(x, y, B_p) .* ue_x(x, y, t, MMS) .+
+    μ(x, y, B_p) .* ue_xx(x, y, t, MMS) .+
+    μ_y(x, y, B_p) .* ue_y(x, y, t, MMS) .+
+    μ(x, y, B_p) .* ue_yy(x, y, t, MMS)) 
 
-    
 function ψe(x, y, t, B_p, RS, MMS)
 
-    τe = τhe(x, y, t, 1, B_p, MMS)
-    Ve = 2 .* he_t(x, y, t, MMS)
+    τ = τe(x, y, t, 1, B_p, MMS)
+    Ve = 2 .* ue_t(x, y, t, MMS)
 
-    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τe .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τ .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
     
 end
 
 function ψe_t(x, y, t, B_p, RS, MMS)
 
-    τe = τhe(x, y, t, 1, B_p, MMS)
-    Ve = 2 * he_t(x, y, t, MMS)
-    Ve_t = 2 * he_tt(x, y, t, MMS)
-    τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
+    τ = τe(x, y, t, 1, B_p, MMS)
+    Ve = 2 * ue_t(x, y, t, MMS)
+    Ve_t = 2 * ue_tt(x, y, t, MMS)
+    τe_t = - μ(x, y, B_p) .* ue_xt(x, y, t, MMS)
 
-    ψ_t = (-τe_t .- η(y, B_p) .* Ve_t) .* coth.((-τe .- η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
+    ψ_t = (-τe_t .- η(y, B_p) .* Ve_t) .* coth.((-τ .- η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
 
     return ψ_t
 
 end
 
 
-function findNanInf(a)
-
-    for i in 1:length(a)
-        
-        if isnan(a[i])
-            return true, 1, i
-        end
-
-        if isinf(a[i])
-            return true, 2, i
-        end
-
-    end
-
-    return false, 0, 0
-    
-end
-
-
-
-function fault_force(x, y, t, b, B_p, RS, MMS)
+function S_rs(x, y, t, b, B_p, RS, MMS)
 
     ψ = ψe(x, y, t, B_p, RS, MMS)
-    Ve = 2 * he_t(x, y, t, MMS)
+    Ve = 2 * ue_t(x, y, t, MMS)
     G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(Ve) / RS.V0)
 
-
     s_rs = ψe_t(x, y, t, B_p, RS, MMS) .- G
-    #=
-    if any(!isfinite, s_rs)
 
-        ψ_test = findNanInf(ψ)
-        V_test = findNanInf(Ve)
-        G_test = findNanInf(G)
-        
-        @show ψ_test
-        @show V_test
-        @show G_test
-
-    end
-    =#
-    
     return s_rs
 
 end
 
-function h_face2(x, y, t, MMS, RS, μf2)
-    return he(x, y, t, MMS) .- (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2)
+function u_face2(x, y, t, MMS, RS, μf2)
+    return ue(x, y, t, MMS) .- (MMS.Vp/2 * t .+ (RS.τ_inf * MMS.Lw) ./ μf2)
                                 
 end
 
-function Forcing(x, y, t, B_p, MMS)
+
+function Forcing_d(x, y, t, B_p, MMS)
         
     Force = ρ(x, y, B_p) .* he_tt(x, y, t, MMS) .-
         (μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+ μ(x, y, B_p) .* he_xx(x, y, t, MMS) .+
@@ -321,7 +292,7 @@ function S_c(fx, fy, t, fnum, R, B_p, MMS)
     return Z .* v .+ τ .- R .* (Z .* v .- τ)
 end
 
-function S_rs(fx, fy, b, t, B_p, RS, MMS)
+function S_rsd(fx, fy, b, t, B_p, RS, MMS)
     
     ψ = ψe_d(fx, fy, t, B_p, RS, MMS)
     V = 2*he_t(fx, fy, t, MMS)

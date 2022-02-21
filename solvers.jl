@@ -70,7 +70,6 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
         if !isfinite(Vn)
             #@printf "Reject V\n"
-            @show Vn
             flush(stdout)
             reject_step[1] = true
             return
@@ -173,7 +172,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-    V .= he_t(xf1, yf1, t, MMS)
+    V .= ue_t(xf1, yf1, t, MMS)
     dψ .= 0
     
     #=
@@ -335,12 +334,12 @@ function STOPFUN_Q(ψδ,t,i)
             plot(plt1, plt2, layout=2)
             gui()
             =#
-            
+            #=
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-            
+            =#
 
             write_out(δ, V, τ, ψ, t,
                   fault_coord,
@@ -867,11 +866,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-            
+            #=
             plot!(δ, fc, yflip = true, ylabel="Depth",
                   xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
                   legend=false)
             gui()
+            =#
             #write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
             pf[1] +=.1
         end

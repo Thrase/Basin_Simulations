@@ -181,8 +181,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 10 * year_seconds
-            t_begin = 0 * year_seconds
+            t_final = 1.0#10 * year_seconds
+            t_begin = 0#0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
                       reject_step = [false],
@@ -199,7 +199,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                       metrics = metrics,
                       counter = [0])
             
-            δ = 2 * he(xf1,
+            δ = 2 * ue(xf1,
                        yf1,
                        t_begin,
                        MMS)

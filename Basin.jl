@@ -288,8 +288,16 @@ let
             t_span = (t_now, sim_seconds)
             
             temp_io = open(io.slip_file, "a")
+            temp_io2 = open(u_file, "a")
+            temp_io3 = open(v_file, "a")
+            
             writedlm(temp_io, ["BREAK"])
+            writedlm(temp_io2, ["BREAK"])
+            writedlm(temp_io3, ["BREAK"])
+            
             close(temp_io)
+            close(temp_io2)
+            close(temp_io3)
             
             @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
             static_params.io.pf[1] = 0

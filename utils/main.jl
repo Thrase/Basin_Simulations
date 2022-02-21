@@ -7,14 +7,12 @@ get_line(data, i) = map(x -> parse(Float64, x), split.(data[i]))
 
 function get_cycle_indices(slip_data)
 
-        cycle_index = []
+        cycle_index = [1]
         count = 0
         for (i, line) in enumerate(slip_data)
             if line == "BREAK"
                 count += 1
-                if count%2 == 0
                     push!(cycle_index, i+1)
-                end
             end
         end
 
@@ -49,6 +47,47 @@ function read_params(f_name)
     B_on = parse(Int64, params[14])
     return (p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, B_on)
 end
+
+
+function plot_slip(slip_data; index_offset=0)
+
+    nn = parse(Int64, slip_data[1])
+    y = get_line(slip_data, 2)[3:end]
+
+    plt = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
+
+    δ = zeros(nn)
+    break_count = 0
+    if index_offset != 0
+        δ_off = get_line(slip_data, index_offset)[3:end]
+    else
+        δ_off = zeros(nn)
+        index_offset = 3
+    end
+    for index in index_offset:length(slip_data)
+        
+        if slip_data[index] == "BREAK"
+            plt = plot!(δ-δ_off, y, linecolor=:black, linewidth = 1)
+            break_count += 1
+        else
+            
+            δ .= get_line(slip_data, index)[3:end]
+            
+            if break_count % 2 == 0
+                plt = plot!(δ-δ_off, y, linecolor=:blue, linewidth = .2)
+            else
+                plt = plot!(δ-δ_off, y, linecolor=:red, linewidth = .2)
+            end 
+        end
+        
+    end
+    gui()
+
+end
+
+
+
+
 
 let 
     
@@ -96,50 +135,25 @@ let
             slip_file = open("slip.dat", "r")
             slip_data = collect(eachline(slip_file))
             
-            nn = parse(Int64, slip_data[1])
-            y = get_line(slip_data, 2)[3:end]
-            
             cycle_index = get_cycle_indices(slip_data)[2]
             
-            @printf "\n%d cycles in this data\n" length(cycle_index)
-            @printf "Offset contours by # of cycles: "
+            @printf "\n%d cycles in this data\n" floor(length(cycle_index)/2)
+            @printf "Offset contours by # of cycles (or -1 is no offset): "
             cycle_offset = parse(Int64, chomp(readline()))
             if cycle_offset == 0
-                index_offset = 1
+                index_offset = 3
             elseif cycle_offset == length(cycle_index)
-                index_offset = cycle_index[cycle_offset]
+                index_offset = cycle_index[2*cycle_offset+1]
+            elseif cycle_offset == -1
+                index_offset = 0
             else
-                index_offset = cycle_index[cycle_offset] + 30
+                index_offset = cycle_index[2*cycle_offset+1] + 30
             end
             
-            plt = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
-
-            δ = zeros(nn)
-            break_count = 0
-            δ_off = get_line(slip_data, index_offset)[3:end]
-            for index in index_offset:length(slip_data)
-                
-                if slip_data[index] == "BREAK"
-                    plt = plot!(δ-δ_off, y, linecolor=:black, linewidth = 1)
-                    break_count += 1
-                else
-                    
-                    δ .= get_line(slip_data, index)[3:end]
-                    
-                    if break_count % 2 == 0
-                        plt = plot!(δ-δ_off, y, linecolor=:blue, linewidth = .2)
-                    else
-                    plt = plot!(δ-δ_off, y, linecolor=:red, linewidth = .2)
-                    end 
-                end
-                
-            end
-            
-            
-            gui()
+            plot_slip(slip_data, index_offset=index_offset)
             
             close(slip_file)
-            
+
         elseif flag[1] == 2
             
         elseif flag[1] == 3
@@ -160,7 +174,7 @@ let
             @printf "Which Cycle: "
             
             cycle_number = parse(Int64, chomp(readline()))
-            
+            @show cycle_indices
             cycle_index = cycle_indices[cycle_number]
             done1 = false
 
@@ -204,6 +218,22 @@ let
                     @printf "inital conditions write to %s\n" filename
 
                 elseif option == 2
+
+                    t_begin = parse(Float64, slip_data[cycle_index][1])
+                    t_end = parse(Float64, slip_data[cycle_index - 2][1])
+
+                    @printf "(1) displacements\n"
+                    @printf "(2) velocity\n"
+
+                    option = chomp(readline())
+
+                    if option == 1
+                        u_file = open("us.dat", "r")
+                        u_data = collect(eachline(u_file))
+                    elseif option == 2
+
+                    end
+
 
                 elseif option == 3
                     done1 = true
