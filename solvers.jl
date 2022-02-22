@@ -163,6 +163,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
+
     mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
 
     u[:] = M \ ge
@@ -173,10 +174,10 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-    V .= f1_source(xf1, yf1, t, MMS)
-    dψ .= 0
+   
+    #V .= 2 .* he_t(xf1, yf1, t, MMS)
     
-    #=
+    
     #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
     Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
 
@@ -192,8 +193,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         VL = -VR
         Vn = V[n]
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
-        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-12,
-                                 atolx = 1e-12, rtolx = 1e-12)
+        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
+                                 atolx = 1e-14, rtolx = 1e-14)
 
         if !isfinite(Vn)
             @printf "Reject V\n"
@@ -208,8 +209,8 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         if bn != 0
             dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            #dψ[n] = ψe_t(xf1[n], yf1[n], t, B_p, RS, MMS)
-            dψ[n] += fault_force(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
+            #dψ[n] = ψe_th(xf1[n], yf1[n], t, B_p, RS, MMS)
+            dψ[n] += S_rsh(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
         end
@@ -223,7 +224,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         end
 
     end
-    =#
+    
     nothing
     
 end

@@ -15,7 +15,7 @@ let
     
     # mesh refinement
 
-    ns = 2 .^ (4:9)
+    ns = 2 .^ (4:8)
     
     # order of operators
     p = [4,6]
@@ -28,7 +28,7 @@ let
            c = (W/2)/D,
            r̄ = (W/2)^2,
            r_w = .1,
-           on = 1)
+           on = 0)
 
     # Rate-and-State Friction Params`
     RS = (σn = 50.0,
@@ -40,13 +40,13 @@ let
           τ_inf = 24.82,
           Vp = 1e-9)
 
-    
+    #=
      MMS = (wl = Lw/2,
            amp = .5,
            ϵ = 4.00)
-    
+    =#
     # MMS params
-    #=
+    
     MMS = (Lw = Lw,
            t̄ = 35*year_seconds,
            t_w = 10,
@@ -58,7 +58,7 @@ let
            δ_e = 1e-9*(35*year_seconds) -
                (1e-12*(35*year_seconds)),         
            ϵ = 2.0)
-    =#
+    
     refine(p, ns, Lw, D, B_p, RS, (-1, 0, 0, 1), MMS)
 
 end

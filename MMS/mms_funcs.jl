@@ -5,7 +5,7 @@ using Plots
 #  MMS Function  #
 ##################
 
-#=
+
 function ϕ(x, y, MMS)
     h = MMS.H
     return (h .* (h .+ x)) ./
@@ -159,11 +159,44 @@ Forcing_h(x, y, t, B_p, MMS) = -(μ_x(x, y, B_p) .* he_x(x, y, t, MMS) .+
     μ(x, y, B_p) .* he_yy(x, y, t, MMS))
 
 
+function ψe_h(x, y, t, B_p, RS, MMS)
+
+    τ = τhe(x, y, t, 1, B_p, MMS)
+    Ve = 2 .* he_t(x, y, t, MMS)
+
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τ .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
+    
+end
+
+
+function ψe_th(x, y, t, B_p, RS, MMS)
+
+    τ = τhe(x, y, t, 1, B_p, MMS)
+    Ve = 2 * he_t(x, y, t, MMS)
+    Ve_t = 2 * he_tt(x, y, t, MMS)
+    τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
+
+    ψ_t = (-τe_t .- η(y, B_p) .* Ve_t) .* coth.((-τ .- η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
+
+    return ψ_t[1]
+
+end
+
+
+function S_rsh(x, y, t, b, B_p, RS, MMS)
+
+    ψ = ψe_h(x, y, t, B_p, RS, MMS)
+    Ve = 2 * he_t(x, y, t, MMS)
+    G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(Ve) / RS.V0)
+
+    s_rs = ψe_th(x, y, t, B_p, RS, MMS) .- G
+    
+    return s_rs[1]
+
+end
 
 
 
-
-=#
 
 
 f(a, MMS) = MMS.amp * sin.(π.*(a)/MMS.wl)
@@ -172,7 +205,6 @@ fpp(a, MMS) = MMS.amp * (-(π/MMS.wl)^2) .* sin.(π.*(a)/MMS.wl)
 
 ue(x, y, t, MMS) = f(x .+ y .- t, MMS) .+ (MMS.amp * π/MMS.wl + MMS.ϵ)*t .+ (MMS.amp * π/MMS.wl 
                                                                              + MMS.ϵ)*x
-
 ue_t(x, y, t, MMS) = -fp(x .+ y .- t, MMS) .+ (MMS.amp * π/MMS.wl + MMS.ϵ)
 ue_tt(x, y, t, MMS) = fpp(x .+ y .- t, MMS)
 

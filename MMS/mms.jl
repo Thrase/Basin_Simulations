@@ -16,10 +16,10 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     year_seconds = 31556952
     #xt, yt = transforms_e(Lw, .1, .05)
     # expand to (0,Lw) × (0, Lw)
-    #(x1, x2, x3, x4) = (0, Lw, 0, Lw)
-    #(y1, y2, y3, y4) = (0, 0, Lw, Lw)
-    #xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
-    xt, yt = transforms_e(Lw, .75, .2)
+    (x1, x2, x3, x4) = (0, Lw, 0, Lw)
+    (y1, y2, y3, y4) = (0, 0, Lw, Lw)
+    xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
+    #xt, yt = transforms_e(Lw, .75, .2)
     
     for p in ps
 
@@ -177,8 +177,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 100.0#10 * year_seconds
-            t_begin = 0#0 * year_seconds
+            t_final = 10 * year_seconds
+            t_begin = 0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
                       reject_step = [false],
@@ -196,12 +196,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                       counter = [0],
                       f1_source = ue_t)
             
-            δ = 2 * ue(xf1,
+            δ = 2 * he(xf1,
                        yf1,
                        t_begin,
                        MMS)
 
-            ψ = ψe(xf1,
+            ψ = ψe_h(xf1,
                      yf1,
                      t_begin,
                      B_p,
@@ -214,8 +214,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             t_span = (t_begin, t_final)
 
             #Q_STATIC_MMS!(params)
+            #=
+            dt_scale = .5 ^ 14
+                dt = dt_scale * d_ops.hmin
+            timestep!(ψδ, Q_DYNAMIC_MMS!, params, dt, t_span)
+            =#
 
-            
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
             sol = solve(prob, Tsit5();
@@ -223,32 +227,31 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         atol = 1e-14,
                         rtol = 1e-14,
                         internalnorm=(x,_)->norm(x, Inf))
-            
-            
 
-            diff = params.u[:] .- ue(x[:], y[:], t_final, MMS)
+            
+            diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
 
             
-            #=
+            
             plt1 = contour(x[:, 1], y[1, :],
-                           (reshape(params.u, (nn, nn)) .- he(x, y, t_final, MMS))',
+                           (reshape(params.u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                             title = "error", fill=true, yflip=true)
                            
             plt2 = contour(x[:, 1], y[1, :],
-                           he(x, y, t_final, MMS)',
+                           he(x, y, t_span[2], MMS)',
                            fill = true, yflip=true, title = "exact")
                            
             plt3 = contour(x[:, 1], y[1, :], 
-                           Forcing(x, y, t_final, B_p, MMS)',
+                           Forcing_h(x, y, t_span[2], B_p, MMS)',
                            fill=true, yflip=true, title = "forcing")
             plt4 = contour(x[:, 1], y[1, :], 
                            reshape(params.u, (nn,nn))',
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-            =#
+            
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,
@@ -271,8 +274,6 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
 
             @printf "\t___________________________________\n\n"
-           
-            
         end
     end
 end

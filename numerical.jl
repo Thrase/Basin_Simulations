@@ -89,24 +89,25 @@ function mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
     
     ge .= 0
     
+    
     for i in 1:4
         if i == 1
             vf .=  δ ./ 2
         elseif i == 2
             # dirichlet h
-            vf .= ue(xf[2], yf[2], t, MMS)
+            vf .= he(xf[2], yf[2], t, MMS)
         elseif i == 3
             # neumann h
-            vf .= sJ[3] .* τe(xf[3], yf[3], t, 3, B_p, MMS)
+            vf .= sJ[3] .* τhe(xf[3], yf[3], t, 3, B_p, MMS)
         elseif i == 4
             # neumann h
-            vf .= sJ[4] .* τe(xf[4], yf[4], t, 4, B_p, MMS)
+            vf .= sJ[4] .* τhe(xf[4], yf[4], t, 4, B_p, MMS)
         end
         
         ge .+= K[i] * vf
     end
 
-    ge .+= JH * Forcing_u(coord[1][:], coord[2][:], t, B_p, MMS)
+    ge .+= JH * Forcing_h(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
 
