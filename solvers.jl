@@ -128,7 +128,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
 
     #@printf "%f\n" t
-    @printf "\r\t%f" t/p.year_seconds
+    @printf "\r\t%f" t
     
     reject_step = p.reject_step
     if reject_step[1]
@@ -151,6 +151,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     ops = p.ops
     η = metrics.η
     b = p.b
+    f1_source = p.f1_source
     
 
     xf1 = metrics.facecoord[1][1]
@@ -172,7 +173,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-    V .= ue_t(xf1, yf1, t, MMS)
+    V .= f1_source(xf1, yf1, t, MMS)
     dψ .= 0
     
     #=

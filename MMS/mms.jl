@@ -51,6 +51,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             vf = Array{Float64, 1}(undef, nn)
             v̂_fric = Array{Float64, 1}(undef, nn)
             
+
+
             cpu_operators = (d_ops = d_ops,
                              nn = nn,
                              R = R,
@@ -62,12 +64,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                              b = b,
                              sJ = metrics.sJ,
                              τ̃f = τ̃f,
-                             v̂ = zeros(nn),
-                             CHAR_SOURCE = S_c,
-                             STATE_SOURCE = S_rs,
-                             FORCE = Forcing)
-            
-
+                             v̂ = zeros(nn))
+                             
 
             threads = 512
             GS = 0.0
@@ -137,9 +135,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     #@show dt_scale, dt
                     t_span = (t_begin, t_final)
 
-                    #@printf "Got initial conditions: %s s\n" it
-                    
-                    #=
+                    #@printf "Got initial conditions: %s s\n" it                          #=
                     st3 = @elapsed begin
                     timestep!(q3, FAULT_GPU!, GPU_operators, dt, t_span)
                     end
@@ -181,7 +177,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 1.0#10 * year_seconds
+            t_final = 100.0#10 * year_seconds
             t_begin = 0#0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -197,7 +193,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                       ops = d_ops,
                       b = b,
                       metrics = metrics,
-                      counter = [0])
+                      counter = [0],
+                      f1_source = ue_t)
             
             δ = 2 * ue(xf1,
                        yf1,
@@ -229,12 +226,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             
             
 
-            diff = params.u[:] .- he(x[:], y[:], t_final, MMS)
+            diff = params.u[:] .- ue(x[:], y[:], t_final, MMS)
 
             err[iter] = sqrt(diff' * d_ops.JH * diff)
 
             
-            
+            #=
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(params.u, (nn, nn)) .- he(x, y, t_final, MMS))',
                             title = "error", fill=true, yflip=true)
@@ -251,7 +248,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-           
+            =#
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,

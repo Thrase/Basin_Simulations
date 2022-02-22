@@ -43,7 +43,7 @@ let
     
      MMS = (wl = Lw/2,
            amp = .5,
-           ϵ = .01)
+           ϵ = 4.00)
     
     # MMS params
     #=

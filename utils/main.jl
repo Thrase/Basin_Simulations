@@ -112,8 +112,8 @@ let
         @printf "\t(2) Slip Rate Animation\n"
         @printf "\t(3) Traction Animation\n"
         @printf "\t(4) Station Data\n"
-        @printf "\t(5) Single Cycle\n\n"
-        @printf "\t(6) Done\n"
+        @printf "\t(5) Single Cycle\n"
+        @printf "\t(6) Done\n\n"
 
         v = false
         flag = [0]
