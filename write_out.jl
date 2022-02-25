@@ -1,15 +1,8 @@
 using DelimitedFiles
 using WriteVTK
 
-function make_ss(fault_coord, δNp, input_file)
+function make_ss(dir_name, fault_coord, δNp, input_file)
 
-    num = 1
-    dir_name = string("../../erickson/output_files/basin_data", num)
-    while isdir(dir_name)
-        num += 1
-        dir_name = string("../../erickson/output_files/basin_data", num)
-    end
-    
     mkdir(dir_name)
     cp(input_file, string(dir_name, "/input_file.dat"))
 
@@ -39,7 +32,7 @@ function make_ss(fault_coord, δNp, input_file)
     close(io)
     
 
-    return dir_name, slip_file, slip_rate_file, stress_file, state_file
+    return slip_file, slip_rate_file, stress_file, state_file
 
 end
 

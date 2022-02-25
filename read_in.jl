@@ -23,5 +23,6 @@ function read_params(f_name)
     ic_t_file = params[12]
     Dc = parse(Float64, params[13])
     B_on = parse(Int64, params[14])
-    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, B_on
+    dir_out = params[15]
+    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, B_on, dir_out
 end

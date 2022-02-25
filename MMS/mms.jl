@@ -19,8 +19,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     (x1, x2, x3, x4) = (0, Lw, 0, Lw)
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
-    #xt, yt = transforms_e(Lw, .75, .2)
-    
+    #xt, yt = transforms_e(Lw, .75, .05)
+
     for p in ps
 
         @printf "Operator order: %d\n\n" p

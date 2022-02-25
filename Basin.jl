@@ -28,8 +28,10 @@ let
     ic_file,
     ic_t_file,
     Dc,
-    B_on = read_params(ARGS[1])
-    
+    B_on,
+    dir_out=read_params(ARGS[1])
+    dir_out = string("../../erickson/output_files/", dir_out)
+
     nn = N + 1
 
     ### get simulation time
@@ -69,7 +71,7 @@ let
     #for i in 2:length(fc)
     #    @show fc[i], fc[i] - fc[i-1]
     #end
-
+    
     η = metrics.η
 
     δNp, 
@@ -78,13 +80,12 @@ let
     RS = fault_params(fc, Dc)
 
     ### setup io
-    dir_name,
     slip_file,
     slip_rate_file,
     stress_file,
-    state_file = make_ss(fc, δNp, ARGS[1])
-    station_names = make_stations(dir_name)
-    u_file, v_file = make_uv_files(dir_name, x[1:2:nn, 1], y[1, 1:2:nn])
+    state_file = make_ss(dir_out, fc, δNp, ARGS[1])
+    station_names = make_stations(dir_out)
+    u_file, v_file = make_uv_files(dir_out, x[1:2:nn, 1], y[1, 1:2:nn])
     @printf "set-up io\n"
     flush(stdout)
 
@@ -115,7 +116,7 @@ let
     flush(stdout)
 
     ### parameter orginzation
-    io = (dir_name = dir_name,
+    io = (dir_name = dir_out,
           slip_file = slip_file,
           slip_rate_file = slip_rate_file,
           stress_file = stress_file,
