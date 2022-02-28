@@ -246,28 +246,27 @@ function reset_quasidynamic!(ψδ, static_params)
     nn = static_params.nn
     io = static_params.io
 
-    y = map(x->parse(Float64, x), split.(slip_data[2, :])[1])[3:end]
     
-    lc_index = 0
+    restart_index = 0
     cycle_count = 0
     
     for (i, line) in enumerate(slip_data)
         if line == "BREAK"
-            lc_index = i + 1
+            restart_index = i + 1
             cycle_count += 1
         end
     end
 
-    reset = slip_data[lc_index]
+    reset = slip_data[restart_index]
     d = map(x->parse(Float64, x), split.(reset))
     ψδ[nn + 1 : 2nn] = d[3:end]
     t = d[1]
 
-    all_index = lc_index - cycle_count - 1
+    state_index = restart_index - cycle_count - 1
 
     state_file = open(io.state_file, "r")
     state_data = collect(eachline(state_file))
-    ψδ[1 : nn] = map(x->parse(Float64, x), split.(state_data[all_index, :])[1])[3:end]
+    ψδ[1 : nn] = map(x->parse(Float64, x), split.(state_data[state_index, :])[1])[3:end]
 
     close(slip_file)
     close(state_file)
