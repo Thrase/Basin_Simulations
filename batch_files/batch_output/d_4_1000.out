@@ -479,3 +479,17 @@ Simulation time is now 4867.417566274299 years.
 
 On cycle 44
 Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 2282.912679238 seconds. 
+Simulation time is now 4990.3231946202495 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 5193.95243748 seconds. 
+Simulation time is now 4990.323197057933 years. 
+
+On cycle 45
+Begining Inter-seismic period...
+Finished Interseismic
+Simulation time is now 5000.0 year. 
+
