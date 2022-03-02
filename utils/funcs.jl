@@ -5,15 +5,18 @@ using Plots
 get_line(data, i) = map(x -> parse(Float64, x), split.(data[i]))
 
 function get_cycle_indices(slip_data)
-
-        cycle_index = [1]
-        count = 0
-        for (i, line) in enumerate(slip_data)
-            if line == "BREAK"
-                count += 1
-                    push!(cycle_index, i+1)
-            end
+    
+    cycle_index = [1]
+    count = 0
+    count1 = 0
+    for (i, line) in enumerate(slip_data)
+        if line == "BREAK"
+            count += 1
+            push!(cycle_index, i+1)
         end
+        count1 += 1
+    end
+    push!(cycle_index, count1)
 
     return count, cycle_index
 
@@ -94,7 +97,7 @@ function get_plot_indices(cycle_offset, final_cycle, cycle_index, total_cycles)
     if final_cycle < total_cycles
         final_index = cycle_index[2*final_cycle+1]
     else
-        final_index = size(slip_data)[1]
+        final_index = cycle_index[end]
     end
     
     if cycle_offset == 0
@@ -104,7 +107,7 @@ function get_plot_indices(cycle_offset, final_cycle, cycle_index, total_cycles)
     elseif cycle_offset == -1
         index_offset = 0
     else
-        index_offset = cycle_index[2*cycle_offset+1] + 5
+        index_offset = cycle_index[2*cycle_offset+1] + 100
     end
 
     return final_index, index_offset

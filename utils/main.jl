@@ -63,9 +63,13 @@ let
                 
                 final_index, index_offset = get_plot_indices(cycle_offset,
                                                              final_cycle,
-                                                             cycle_index)
+                                                             cycle_index, 
+                                                             total_cycles)
+                                                             
                 
-                plot_slip(slip_data, final_index, index_offset=index_offset)
+                plt = plot_slip(slip_data, final_index, "", index_offset=index_offset)
+                
+                display(plt)
                 
                 close(slip_file)
 

@@ -284,7 +284,7 @@ let
         if t_now != nothing
 
             ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
-            ψδ[nn + 1: 2nn] .= Array(2 * q[1 : nn : nn^2])
+            ψδ[nn + 1: 2nn] .= Array(2 * q[2nn^2 + 1 : 2nn^2 + nn])
             static_params.vars.t_prev[2] = t_now/year_seconds
             t_span = (t_now, sim_seconds)
             
