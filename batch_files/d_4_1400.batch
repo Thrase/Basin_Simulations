@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=erickson		   ### change this to the actual account
 #SBATCH --partition=cisds  		   ### queue to submit to
-#SBATCH --job-name=d4_p4             	   ### job name
+#SBATCH --job-name=14             	   ### job name
 #SBATCH --output=batch_output/d_4_1400.out    ### file in which to store job stdout
 #SBATCH --error=batch_output/d_4_1400.err     ### file in which to store job stderr
 #SBATCH --time=14-00:00:00   		   ### wall-clock time limit, in minutes
