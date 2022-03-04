@@ -107,7 +107,7 @@ let
         for n in 1:nn
             ψδ[n] = RS.a * log(2*(RS.V0/RS.Vp) * sinh((RS.τ_inf - η[n]*RS.Vp)/(RS.σn*RS.a)))
         end
-        ψδ[δNp .+ (1:nn)] .= 0
+        ψδ[nn + 1: 2nn] .= 0
     end
 
     q = Array{Float64, 1}(undef, 2nn^2 + 5*nn)
@@ -230,7 +230,9 @@ let
                     (static_params.vars.u - static_params.vars.u_prev) / 
                     (sol.t[end] - static_params.vars.t_prev[1])
                 
-                for i in 1:4
+                q[2nn^2 + 1 : 2nn^2 + nn] = ψδ[nn+1:2nn]
+
+                for i in 2:4
                     q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
                 end
                 q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
