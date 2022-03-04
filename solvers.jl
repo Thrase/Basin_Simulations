@@ -176,10 +176,9 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
    
     #V .= 2 .* he_t(xf1, yf1, t, MMS)
-    
-    
-    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
-    Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
+      
+    Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
+    #Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
 
     for n in 1:nn
         
@@ -440,9 +439,7 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     JIHP = p.d_ops.JIHP
     nCnΓ1 = p.d_ops.nCnΓ1
     HIGΓL1 = p.d_ops.HIGΓL1
-    CHAR_SOURCE = p.CHAR_SOURCE
-    STATE_SOURCE = p.STATE_SOURCE
-    FORCE = p.FORCE
+
     τ̃f = p.τ̃f
     
     u = @view q[1:nn^2]
@@ -501,17 +498,17 @@ function MMS_FAULT_CPU!(dq, q, p, t)
 
     # Non-fault Source injection
     for i in 2:4
-        SOURCE = sJ[i] .* CHAR_SOURCE(fc[1][i], fc[2][i], t, i, R[i], B_p, MMS)
+        SOURCE = sJ[i] .* S_ch(fc[1][i], fc[2][i], t, i, R[i], B_p, MMS)
         dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= SOURCE ./ (2*Z̃f[i])
         dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * SOURCE ./ 2
     end
 
     # psi source
-    dψ .+= STATE_SOURCE(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
+    dψ .+= S_rsdh(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
 
 
     dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
-    dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    dq[nn^2 + 1:2nn^2] .+= P̃I * Forcing_hd(coord[1][:], coord[2][:], t, B_p, MMS)
 
 
 end
