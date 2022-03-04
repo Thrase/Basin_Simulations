@@ -156,7 +156,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     end
                     =#
 
-                    x = metrics.coord[1]
+                  x = metrics.coord[1]
                     y = metrics.coord[2]
                     
                     u_end4 = @view q4[1:Nn]

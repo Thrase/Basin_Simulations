@@ -230,11 +230,12 @@ let
                     (static_params.vars.u - static_params.vars.u_prev) / 
                     (sol.t[end] - static_params.vars.t_prev[1])
                 
-                q[2nn^2 + 1 : 2nn^2 + nn] = ψδ[nn+1:2nn]
+                q[2nn^2 + 1 : 2nn^2 + nn] .= ψδ[nn+1:2nn]
 
                 for i in 2:4
                     q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
                 end
+
                 q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
 
                 inter_flag = true

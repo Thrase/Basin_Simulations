@@ -6,3 +6,9 @@ Approximately 0.015717 Gib to GPU
 
 On cycle 1
 Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 4850.181140824 seconds. 
+Simulation time is now 125.94599867609527 years. 
+
+Begining Co-seismic period...
+nan from dynamic rootfinder
