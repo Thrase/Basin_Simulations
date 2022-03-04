@@ -15,3 +15,4 @@ initial_con=None
 inital_t=None
 Dc=.032
 B_on=0
+dir_name=test
