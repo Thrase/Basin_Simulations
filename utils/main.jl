@@ -29,7 +29,8 @@ let
             @printf "\t(3) Traction Animation\n"
             @printf "\t(4) Station Data\n"
             @printf "\t(5) Single Cycle\n"
-            @printf "\t(6) Done\n\n"
+            @printf "\t(6) Back\n"
+            @printf "\t(7) Done\n\n"
 
             v = false
             flag = [0]
@@ -51,8 +52,10 @@ let
                 slip_file = open("slip.dat", "r")
                 slip_data = collect(eachline(slip_file))
                 
-                cycle_index = get_cycle_indices(slip_data)[2]
-                total_cycles = floor(length(cycle_index)/2)
+                y, nn, slip_data = get_y_nn(slip_data)
+
+                num_breaks, break_indices = get_break_indices(slip_data)
+                total_cycles = floor(length(break_indices)/2)
 
                 @printf "\n%d cycles in this data\n" total_cycles
                 @printf "Offset contours by # of cycles (or -1 is no offset): "
@@ -63,11 +66,12 @@ let
                 
                 final_index, index_offset = get_plot_indices(cycle_offset,
                                                              final_cycle,
-                                                             cycle_index, 
-                                                             total_cycles)
+                                                             break_indices)
                                                              
-                
-                plt = plot_slip(slip_data, final_index, "", index_offset=index_offset)
+                                                             
+                slip_data = @view slip_data[index_offset:final_index, :]
+
+                plt = plot_slip(slip_data, y, nn, "")
                 
                 display(plt)
                 
@@ -84,17 +88,19 @@ let
                 slip_file = open("slip.dat", "r")
                 slip_data = collect(eachline(slip_file))
                 
-                nn = parse(Int64, split.(Iterators.take(slip_data, 1))[1][1])
-                y = map(x -> parse(Float64, x), split.(slip_data[2]))[3:end]
+                y, nn, slip_data = get_y_nn(slip_data)
                 
-                break_number, cycle_indices = get_cycle_indices(slip_data)
+                break_number, break_indices = get_break_indices(slip_data)
                 
-                @printf "\n%d cycles in this data\n" length(cycle_indices)
+                @printf "\n%d cycles in this data\n" floor(length(break_indices)/2)
                 @printf "Which Cycle: "
                 
                 cycle_number = parse(Int64, chomp(readline()))
-                @show cycle_indices
-                cycle_index = cycle_indices[cycle_number]
+                                
+                final_index, begin_index = get_plot_indices(cycle_number, cycle_number, break_indices)
+
+                slip_data = @view slip_data[begin_index : final_index, :]
+
                 done2 = false
 
                 while !done2
@@ -108,34 +114,49 @@ let
                     
                     if option == 1
                         
-                        state_file = open("state.dat", "r")
-                        state_data = collect(eachline(state_file))
-                        state_index = cycle_index - break_number - 1
-                        
-                        ψ = get_line(state_data, state_index)[3:end]
-                        line = get_line(slip_data, cycle_index)
-                        δ = line[3:end]
-                        t = line[1]
+                        plt = plot_slip(slip_data, y, nn, "")
+                        display(plt)
 
-                        close(state_file)
-                        close(slip_file)
-                        
-                        ψδ = vcat(ψ, δ)
-                        
-                        @printf "Filename: "
-                        name = chomp(readline())
-                        filename = string("/home/tharvey2/Basin_Simulations/input_files/", name)
-                        filename_t = string(filename, "_t")
+                        @printf "\nIs this the right cycle (y/n): "
+                        anw = chomp(readline())
 
-                        fout = open(filename, "w")
-                        writedlm(fout , ψδ)
-                        close(fout)
-                        
-                        fout = open(filename_t, "w")
-                        writedlm(fout, [t])
-                        close(fout)
+                        if anw == "y"
 
-                        @printf "inital conditions write to %s\n" filename
+                            state_file = open("state.dat", "r")
+                            state_data = collect(eachline(state_file))[2:end, :]
+                            state_index = begin_index - 2*(cycle_number - 1)
+                            
+                            line = get_line(state_data, state_index)
+                            ψ = line[3:end]
+                            t1 = line[1]
+                            line = get_line(slip_data, 1)
+                            δ = line[3:end]
+                            t2 = line[1]
+
+                            @assert t1 == t2
+                          
+                            close(state_file)
+                            close(slip_file)
+                            
+                            ψδ = vcat(ψ, δ)
+                            
+                            @printf "Filename: "
+                            name = chomp(readline())
+                            filename = string("/home/tharvey2/Basin_Simulations/input_files/inital_cons/", name)
+                            filename_t = string(filename, "_t")
+
+                            fout = open(filename, "w")
+                            writedlm(fout , ψδ)
+                            close(fout)
+                            
+                            fout = open(filename_t, "w")
+                            writedlm(fout, [t1])
+                            close(fout)
+
+                            @printf "inital conditions write to %s\n" filename
+                        else
+                            done2 = false
+                        end
 
                     elseif option == 2
 
@@ -164,6 +185,9 @@ let
             elseif flag[1] == 6
                 done1 = true
                 cd("..")
+
+            elseif flag[1] == 7
+                exit()
             end
         end
     end

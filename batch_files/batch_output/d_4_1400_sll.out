@@ -1,14 +1,35 @@
-got grid in 4.232529 seconds
+got grid in 4.281577 seconds
 set-up io
-Got operators in 341.857591 seconds
+Got operators in 348.149377 seconds
 Got initial conditions
 Approximately 0.015717 Gib to GPU
 
 On cycle 1
 Begining Inter-seismic period...
 Finished Interseismic
-Interseismic period took 4459.248279543 seconds. 
+Interseismic period took 4700.935621879 seconds. 
 Simulation time is now 125.94599867609527 years. 
 
 Begining Co-seismic period...
-nan from dynamic rootfinder
+Finised Co-seismic period
+Coseismic period took 107439.623757128 seconds. 
+Simulation time is now 125.94601495427494 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 5722.885249674 seconds. 
+Simulation time is now 243.99807505666598 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 106525.757915023 seconds. 
+Simulation time is now 243.99809132949258 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 6148.593815879 seconds. 
+Simulation time is now 361.0939070825984 years. 
+
+Begining Co-seismic period...

@@ -4,7 +4,18 @@ using Plots
 
 get_line(data, i) = map(x -> parse(Float64, x), split.(data[i]))
 
-function get_cycle_indices(slip_data)
+function get_y_nn(slip_data)
+
+    nn = parse(Int64, split.(Iterators.take(slip_data, 1))[1][1])
+    y = map(x -> parse(Float64, x), split.(slip_data[2]))[3:end]
+    slip_data = @view slip_data[3:end, :]
+
+    return y, nn, slip_data
+
+end
+
+
+function get_break_indices(slip_data)
     
     cycle_index = [1]
     count = 0
@@ -52,24 +63,18 @@ end
 
 
 
-function plot_slip(slip_data, final_index, title; index_offset=0)
-
-    nn = parse(Int64, slip_data[1])
-    y = get_line(slip_data, 2)[3:end]
+function plot_slip(slip_data, y, nn, title)
 
     plt = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)", title=title)
 
     δ = zeros(nn)
     break_count = 0
-    if index_offset != 0
-        δ_off = get_line(slip_data, index_offset)[3:end]
-    else
-        δ_off = zeros(nn)
-        index_offset = 3
-    end
-    for index in index_offset:final_index
+    δ_off = get_line(slip_data, 1)[3:end]
 
-        @printf "\r%f" (index - index_offset)/(final_index - index_offset)
+    final_index = size(slip_data)[1]
+    for index in 1:final_index
+
+        @printf "\r%f" index/final_index
         if slip_data[index] == "BREAK"
             plt = plot!(δ-δ_off, y, linecolor=:black, linewidth = 1)
             break_count += 1
@@ -90,24 +95,13 @@ function plot_slip(slip_data, final_index, title; index_offset=0)
 end
 
 
-function get_plot_indices(cycle_offset, final_cycle, cycle_index, total_cycles)
+function get_plot_indices(cycle_offset, final_cycle, break_indices)
 
-    final_index = 0
-    index_offset = 0
-    if final_cycle < total_cycles
-        final_index = cycle_index[2*final_cycle+1]
+    index_offset = break_indices[2*cycle_offset - 1]
+    if 2*final_cycle + 1 <= length(break_indices)
+        final_index = break_indices[2*final_cycle + 1] - 2
     else
-        final_index = cycle_index[end]
-    end
-    
-    if cycle_offset == 0
-        index_offset = 3
-    elseif cycle_offset == length(cycle_index)
-        index_offset = cycle_index[2*cycle_offset+1]
-    elseif cycle_offset == -1
-        index_offset = 0
-    else
-        index_offset = cycle_index[2*cycle_offset+1] + 100
+        final_index = break_indices[2*final_cycle] - 2
     end
 
     return final_index, index_offset

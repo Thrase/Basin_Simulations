@@ -238,39 +238,14 @@ function stepcheck(_, p, _)
     return false
 end
 
-function reset_quasidynamic!(ψδ, static_params)
-
-    slip_file = open(static_params.io.slip_file, "r")
-    slip_data = collect(eachline(slip_file))
-    nn = static_params.nn
-    io = static_params.io
-
+function break_con(t_now, sim_seconds, cycle_flag, cycles, num_cycles)
     
-    restart_index = 0
-    cycle_count = 0
-    
-    for (i, line) in enumerate(slip_data)
-        if line == "BREAK"
-            restart_index = i + 1
-            cycle_count += 1
-        end
+    if cycle_flag == false
+        return t_now < sim_seconds
+    elseif cycle_flag == true
+        return cycles <= num_cycles
     end
 
-    reset = slip_data[restart_index]
-    d = map(x->parse(Float64, x), split.(reset))
-    ψδ[nn + 1 : 2nn] = d[3:end]
-    t = d[1]
-
-    state_index = restart_index - cycle_count - 1
-
-    state_file = open(io.state_file, "r")
-    state_data = collect(eachline(state_file))
-    ψδ[1 : nn] = map(x->parse(Float64, x), split.(state_data[state_index, :])[1])[3:end]
-
-    close(slip_file)
-    close(state_file)
-    
-    return t
 end
 
 
@@ -334,12 +309,12 @@ function STOPFUN_Q(ψδ,t,i)
             plot(plt1, plt2, layout=2)
             gui()
             =#
-            
+            #=
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-            
+            =#
 
             write_out(δ, V, τ, ψ, t,
                   fault_coord,
@@ -864,13 +839,17 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-            
+            #=
             plot!(δ, fc, yflip = true, ylabel="Depth",
                   xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
                   legend=false)
             gui()
-            
-            #write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
+            =#
+
+            if io.vp == 1
+                write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
+            end
+
             pf[1] +=.1
         end
     
@@ -957,4 +936,3 @@ function rateandstateQ(V, ψ, σn, τn, ηn, a, V0)
     dgdV = σn .* dfdV + ηn
     (g, dgdV)
 end
-

@@ -22,18 +22,18 @@ let
         end
     end
 
-    total_cycles = []
-    cycle_indices = []
+    nb_arr= []
+    bi_arr = []
     for dir_name in dir_names
         slip_file = open(string(dir_name, "/slip.dat"))
         slip_data = eachline(slip_file)
-        cycle_count, cycle_index = get_cycle_indices(slip_data)
-        push!(total_cycles, cycle_count)
-        push!(cycle_indices, cycle_index)
+        num_breaks, break_indices = get_break_indices(slip_data)
+        push!(nb_arr, num_breaks)
+        push!(bi_arr, break_indices)
         close(slip_file)
     end
 
-    @printf "The minimum number of cycles over the simulations is %d\n" floor(minimum(total_cycles)/2)
+    @printf "The minimum number of cycles over the simulations is %d\n" floor(minimum(nb_arr)/2)
 
     @printf "Offset contours by # of cycles (or -1 is no offset): "
     cycle_offset = parse(Int64, chomp(readline()))
@@ -44,23 +44,23 @@ let
     count = 1
     for (i, dir_name) in enumerate(dir_names)
         
-        cycle_index = cycle_indices[i]
-        total_cycle = floor(total_cycles[i])/2
+        break_indices = bi_arr[i]
+        total_cycles = floor(nb_arr[i])/2
         final_index, index_offset = get_plot_indices(cycle_offset,
                                                      final_cycle,
-                                                     cycle_index,
-                                                     total_cycle)
-                                                     
+                                                     break_indices)
 
-        slip_file = open(string( dir_name, "/slip.dat"))
+                                                     
+        
+        slip_file = open(string(dir_name, "/slip.dat"))
         slip_data = collect(eachline(slip_file))
-              
         
-        push!(plts, plot_slip(slip_data, 
-                              final_index,
-                              titles[i],
-                              index_offset=index_offset))
+        y, nn, slip_data = get_y_nn(slip_data)
         
+        slip_data = @view slip_data[index_offset:final_index,:]
+
+        push!(plts, plot_slip(slip_data, y, nn, titles[i]))
+
         close(slip_file)
         
         @printf "\rGot plot %d" count

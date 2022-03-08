@@ -29,7 +29,10 @@ let
     ic_t_file,
     Dc,
     B_on,
-    dir_out=read_params(ARGS[1])
+    dir_out,
+    volume_plots,
+    cycle_flag,
+    num_cycles = read_params(ARGS[1])
     dir_out = string("../../erickson/output_files/", dir_out)
 
     nn = N + 1
@@ -124,7 +127,8 @@ let
           station_names = station_names,
           pf = [0, 0.0, 0.0],
           u_file = u_file,
-          v_file = v_file)
+          v_file = v_file,
+          vp = volume_plots)
     
     vars = (u_prev = zeros(nn^2),
             t_prev = [0.0, 0.0],
@@ -183,7 +187,7 @@ let
     ### begin cycles
     cycles = 1
     done = false
-    while t_now < T * year_seconds
+    while break_con(t_now, sim_seconds, cycle_flag, cycles, num_cycles)
 
         static_params.cycles[1] = cycles
         @printf "On cycle %d\n" cycles
@@ -195,64 +199,37 @@ let
         stopper = DiscreteCallback(STOPFUN_Q, terminate!)
         prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
         
-        inter_flag = false
-        # while intergration is not finished
-        while !inter_flag
-            inter_time = @elapsed begin
-                # integrate
-                prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
-                sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=dts[2],
-                            atol = 1e-12, rtol = 1e-12, save_everystep=true,
-                            internalnorm=(x, _)->norm(x, Inf), callback=stopper)
+        inter_time = @elapsed begin
+            # integrate
+            prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
+            sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=dts[2],
+                        atol = 1e-12, rtol = 1e-12, save_everystep=true,
+                        internalnorm=(x, _)->norm(x, Inf), callback=stopper)
             end
             
-            # if the timestepper fails
-            if sol.retcode == :Unstable
-                # try again
-                @printf "Broke out of Integrator early\n"
-                @printf "Restarting...\n"
-                nt_begin = reset_quasidynamic!(ψδ, static_params)
-                t_span = (nt_begin, sim_seconds)
-                #otherwise break
-            elseif sol.retcode == :Terminated
-                @printf "Finished Interseismic\n"
-                @printf "Interseismic period took %s seconds. \n" inter_time
-                flush(stdout)
-                
-                ### get dynamic inital conditions
-                t_now = sol.t[end]
-                t_span = (t_now,  sim_seconds)
-                @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
-
-                q = Array(q)
-                q[1:nn^2] .= static_params.vars.u[:]
-                q[nn^2 + 1 : 2nn^2] .=
-                    (static_params.vars.u - static_params.vars.u_prev) / 
-                    (sol.t[end] - static_params.vars.t_prev[1])
-                
-                q[2nn^2 + 1 : 2nn^2 + nn] .= ψδ[nn+1:2nn]
-
-                for i in 2:4
-                    q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
-                end
-
-                q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
-
-                inter_flag = true
-
-            elseif sol.retcode == :Success
-                inter_flag = true
-                @printf "Finished Interseismic\n"
-                @printf "Simulation time is now %s year. \n\n" sol.t[end]/year_seconds
-                done = true
-            end
-        end 
-
-        # to breakout on last cycle
-        if done == true
-            break
+        @printf "Finished Interseismic\n"
+        @printf "Interseismic period took %s seconds. \n" inter_time
+        flush(stdout)
+        
+        ### get dynamic inital conditions
+        t_now = sol.t[end]
+        t_span = (t_now,  sim_seconds)
+        @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
+        flush(stdout)
+        q = Array(q)
+        q[1:nn^2] .= static_params.vars.u[:]
+        q[nn^2 + 1 : 2nn^2] .=
+            (static_params.vars.u - static_params.vars.u_prev) / 
+            (sol.t[end] - static_params.vars.t_prev[1])
+        
+        q[2nn^2 + 1 : 2nn^2 + nn] .= sol.u[end][nn+1:2nn]./2
+        
+        for i in 2:4
+            q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
         end
-
+        
+        q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
+        
         ### write break to output file
         temp_io = open(io.slip_file, "a")
         writedlm(temp_io, ["BREAK"])

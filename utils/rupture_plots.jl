@@ -33,7 +33,8 @@ let
     inter_count = 0
     cycle_count = 1
     final_index = size(slip_data)[1]
-    anim = @animate for i = 1:final_index
+
+    for i = 1:final_index
         @printf "\r%f" i/final_index
         stress_index = i - break_count
         

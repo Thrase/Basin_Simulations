@@ -16,8 +16,6 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-
-
 function mod_data!(δ, ge, K, vf, RS, metrics, Lw, t)
 
     
