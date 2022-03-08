@@ -1,6 +1,7 @@
 # Program for plotting Basin output, and getting new initial conditions.
 include("funcs.jl")
-
+using DelimitedFiles
+using InteractiveViz
 let 
     
 
@@ -51,16 +52,12 @@ let
                 
                 slip_file = open("slip.dat", "r")
                 slip_data = collect(eachline(slip_file))
-                
                 y, nn, slip_data = get_y_nn(slip_data)
-
                 num_breaks, break_indices = get_break_indices(slip_data)
                 total_cycles = floor(length(break_indices)/2)
-
                 @printf "\n%d cycles in this data\n" total_cycles
-                @printf "Offset contours by # of cycles (or -1 is no offset): "
+                @printf "Offset contours by # of cycles: "
                 cycle_offset = parse(Int64, chomp(readline()))
-
                 @printf "Last cycle: "
                 final_cycle = parse(Int64, chomp(readline()))
                 
@@ -83,6 +80,13 @@ let
                 
             elseif flag[1] == 4
                 
+                @printf "Station depth: "
+                depth = chomp(readline())
+                station_data = @view readdlm(string("station_", depth))[2:end, :]
+                t = @view station_data[ : , 1]
+                V = @view station_data[ : , 3]
+                iplot(t, V)
+
             elseif flag[1] == 5
                 
                 slip_file = open("slip.dat", "r")

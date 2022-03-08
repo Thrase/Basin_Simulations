@@ -127,3 +127,10 @@ Simulation time is now 1252.51189315745 years.
 
 On cycle 12
 Begining Inter-seismic period...
+Broke out of Integrator early
+Restarting...
+Finished Interseismic
+Interseismic period took 5877.96186267 seconds. 
+Simulation time is now 1371.763615203035 years. 
+
+Begining Co-seismic period...

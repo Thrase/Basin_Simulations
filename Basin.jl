@@ -117,7 +117,7 @@ let
 
     @printf "Got initial conditions\n"
     flush(stdout)
-
+    
     ### parameter orginzation
     io = (dir_name = dir_out,
           slip_file = slip_file,
@@ -150,7 +150,6 @@ let
                      vf = zeros(nn),
                      cycles = [0])
 
-    
     threads = 512
     dynamic_params = (nn = nn,
                       threads = threads,
@@ -231,9 +230,7 @@ let
         q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
         
         ### write break to output file
-        temp_io = open(io.slip_file, "a")
-        writedlm(temp_io, ["BREAK"])
-        close(temp_io)
+        write_breaks(io)
 
         @printf "Begining Co-seismic period...\n"
         flush(stdout)

@@ -128,13 +128,13 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
 
     #@printf "%f\n" t
-    @printf "\r\t%f" t
-    
+    #@printf "\r\t%f" t
+    #=
     reject_step = p.reject_step
     if reject_step[1]
         return
     end
-    
+    =#
     nn = p.nn
     Δτ = p.Δτ
     u = p.u
@@ -162,7 +162,6 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     δ =  @view ψδ[nn + 1 : 2nn]
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
-
 
     mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
 
@@ -194,7 +193,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
         (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
                                  atolx = 1e-14, rtolx = 1e-14)
-
+        #=
         if !isfinite(Vn)
             @printf "Reject V\n"
             @show Vn
@@ -202,7 +201,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             reject_step[1] = true
             return
         end
-
+        =#
         V[n] = Vn
         
 
@@ -214,13 +213,14 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             dψ[n] = 0
         end
         
-        
+        #=
         if !isfinite(dψ[n])
             @printf "\nReject dψ\n"
             dψ .= 0
             reject_step[1] = true
             return
         end
+        =#
 
     end
     
@@ -246,6 +246,34 @@ function break_con(t_now, sim_seconds, cycle_flag, cycles, num_cycles)
         return cycles <= num_cycles
     end
 
+end
+
+function write_breaks(io)
+    
+    temp_io = open(io.slip_file, "a")
+    writedlm(temp_io, ["BREAK"])
+    close(temp_io)
+    temp_io = open(io.slip_rate_file, "a")
+    writedlm(temp_io, ["BREAK"])
+    close(temp_io)
+    temp_io = open(io.stress_file, "a")
+    writedlm(temp_io, ["BREAK"])
+    close(temp_io)
+    temp_io = open(io.state_file, "a")
+    writedlm(temp_io, ["BREAK"])
+    close(temp_io)
+    temp_io = open(io.u_file, "a")
+    writedlm(temp_io, ["BREAK"])
+    close(temp_io)
+    temp_io = open(io.v_file, "a")
+    writedlm(temp_io, ["BREAK"])
+    close(temp_io)
+    
+    for file_name in io.station_names
+         temp_io = open(file_name, "a")
+        writedlm(temp_io, ["BREAK"])
+        close(temp_io)
+    end
 end
 
 

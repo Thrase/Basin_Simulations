@@ -3,6 +3,7 @@ using Printf
 using CUDA
 using CUDA.CUSPARSE
 using OrdinaryDiffEq
+using MATLABDiffEq
 #using ODE
 
 include("../physical_params.jl")
@@ -177,7 +178,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 10.0 * year_seconds
+            t_final = 10.0 * year_seconds/365
             t_begin = 0.0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -222,11 +223,11 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, Tsit5();
-                        isoutofdomain=stepcheck,
+            sol = solve(prob, MATLABDiffEq.ode45();
+                        #isoutofdomain=stepcheck,
                         atol = 1e-14,
-                        rtol = 1e-14,
-                        internalnorm=(x,_)->norm(x, Inf))
+                        rtol = 1e-14)
+                        #internalnorm=(x,_)->norm(x, Inf))
 
             
             diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
