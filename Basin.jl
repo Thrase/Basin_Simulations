@@ -257,7 +257,7 @@ let
         @printf "Coseismic period took %s seconds. \n" co_time
         flush(stdout)
 
-        ### get inter-seismic so
+        ### get inter-seismic initial conditions
         if t_now != nothing
 
             ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
@@ -265,17 +265,8 @@ let
             static_params.vars.t_prev[2] = t_now/year_seconds
             t_span = (t_now, sim_seconds)
             
-            temp_io = open(io.slip_file, "a")
-            temp_io2 = open(u_file, "a")
-            temp_io3 = open(v_file, "a")
-            
-            writedlm(temp_io, ["BREAK"])
-            writedlm(temp_io2, ["BREAK"])
-            writedlm(temp_io3, ["BREAK"])
-            
-            close(temp_io)
-            close(temp_io2)
-            close(temp_io3)
+            ### write breaks to output file
+            write_breaks(io)
             
             @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
             static_params.io.pf[1] = 0

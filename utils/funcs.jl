@@ -2,8 +2,13 @@ using Printf
 using DelimitedFiles
 using Plots
 
+### parse line of 2D array of strings data into 1D array of Float64s
 get_line(data, i) = map(x -> parse(Float64, x), split.(data[i]))
 
+### parse single string into 1D array of FLoat64s
+parse_line(line) = map(x -> parse(Float64,x), split.(line))
+
+### take off the first two lines of the slip_file and return them and the new array
 function get_y_nn(slip_data)
 
     nn = parse(Int64, split.(Iterators.take(slip_data, 1))[1][1])
@@ -14,55 +19,25 @@ function get_y_nn(slip_data)
 
 end
 
-
+### get the number of breaks in a file, and the starting indices of each file
 function get_break_indices(slip_data)
     
     cycle_index = [1]
     count = 0
-    count1 = 0
+
     for (i, line) in enumerate(slip_data)
         if line == "BREAK"
             count += 1
             push!(cycle_index, i+1)
         end
-        count1 += 1
     end
-    push!(cycle_index, count1)
+    
 
     return count, cycle_index
 
 end
 
-# Function for reading in numerical parameters for basin simulations
-function read_params(f_name)
-    f = open(f_name, "r")
-    params = []
-    while ! eof(f)
-        s = readline(f)
-        if s[1] != '#'
-            push!(params, split(s, '=')[2])
-        end
-    end
-    close(f)
-    p = parse(Int64, params[1])
-    T = parse(Float64, params[2])
-    N = parse(Int64, params[3])
-    Lw = parse(Float64, params[4])
-    r̂ = parse(Float64, params[5])
-    l = parse(Float64, params[6])
-    b_depth = parse(Float64, params[7])
-    dynamic_flag = parse(Int64,params[8])
-    d_to_s = parse(Float64, params[9])
-    dt_scale = parse(Float64, params[10])
-    ic_file = params[11]
-    ic_t_file = params[12]
-    Dc = parse(Float64, params[13])
-    B_on = parse(Int64, params[14])
-    return (p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, B_on)
-end
-
-
-
+### make slip contour plot with given slip_data
 function plot_slip(slip_data, y, nn, title)
 
     plt = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)", title=title)
@@ -94,10 +69,10 @@ function plot_slip(slip_data, y, nn, title)
 
 end
 
+### convert begin_cycle, and final_cycle to there corrisponding indices in slip_data
+function get_plot_indices(begin_cycle, final_cycle, break_indices)
 
-function get_plot_indices(cycle_offset, final_cycle, break_indices)
-
-    index_offset = break_indices[2*cycle_offset - 1]
+    index_offset = break_indices[2*begin_cycle - 1]
     if 2*final_cycle + 1 <= length(break_indices)
         final_index = break_indices[2*final_cycle + 1] - 2
     else
@@ -106,4 +81,46 @@ function get_plot_indices(cycle_offset, final_cycle, break_indices)
 
     return final_index, index_offset
 
+end
+
+
+### write out new initial conditions
+function write_ψδ(ψ, δ)
+
+    ψδ = vcat(ψ, δ)
+    
+    @printf "Filename: "
+    name = chomp(readline())
+    filename = string("/home/tharvey2/Basin_Simulations/input_files/inital_cons/", name)
+    filename_t = string(filename, "_t")
+    
+    fout = open(filename, "w")
+    writedlm(fout , ψδ)
+    close(fout)
+    
+    fout = open(filename_t, "w")
+    writedlm(fout, [t1])
+    close(fout)
+
+    @printf "inital conditions write to %s\n" filename
+
+end
+
+
+### get coordinates, and data from volume files
+function parse_volume_file(file_name, cycle_number, break_indices)
+       
+    file = open(file_name, "r")
+    iter = eachline(file)
+    
+    # get volume coordinates
+    x, iter = firstrest(iter)
+    x = parse_line(x)
+    y, iter = firstrest(iter)
+    y = parse_line(y)
+
+    iter = Iterators.drop(iter, 1)
+
+    return file, x, y, iter
+    
 end

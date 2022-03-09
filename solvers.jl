@@ -270,7 +270,7 @@ function write_breaks(io)
     close(temp_io)
     
     for file_name in io.station_names
-         temp_io = open(file_name, "a")
+        temp_io = open(file_name, "a")
         writedlm(temp_io, ["BREAK"])
         close(temp_io)
     end
