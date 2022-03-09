@@ -58,7 +58,7 @@ let
                 slip_data = collect(eachline(slip_file))
                 y, nn, slip_data = get_y_nn(slip_data)
                 num_breaks, break_indices = get_break_indices(slip_data)
-                @show num_breaks, break_indices
+                
                 total_cycles = floor(length(break_indices)/2)
                 @printf "\n%d cycles in this data\n" total_cycles
                 @printf "Offset contours by # of cycles: "
