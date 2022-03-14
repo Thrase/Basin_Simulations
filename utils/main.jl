@@ -5,6 +5,7 @@ using InteractiveViz
 using IterTools
 let 
     
+    year_seconds = 31556952
     ### getting directory for simulation data
     done = false
     cd(string("../../erickson/output_files/"))
@@ -126,15 +127,15 @@ let
                     if option == 1
                         
                         # get a wider view to check initial conditions against
-                        temp_plot = @view slip_data[break_indices[11] : final_index, :]
+                        temp_plot = @view slip_data[break_indices[1] : final_index, :]
                         δ_off = get_line(temp_plot, 1)[3:end]
-                        plt = plot_slip(temp_plot, y_depth, nn, "")
+                        plt1 = plot_slip(temp_plot, y_depth, nn, "")
 
                         # get state initial condition
                         state_file = open("state.dat", "r")
                         state_data = collect(eachline(state_file))[2:end, :]
-                        state_index = begin_index - 2*(cycle_number - 1)
-                        line = get_line(state_data, state_index)
+                        #state_index = begin_index - 2*(cycle_number - 1)
+                        line = get_line(state_data, begin_index)
                         ψ = line[3:end]
                         t1 = line[1]
 
@@ -144,8 +145,10 @@ let
                         t2 = line[1]
                         
                         # plot initial condition to check that it is the right one
-                        plt = plot!(δ-δ_off, y_depth, linecolor=:green, linewidth=6)
-                        display(plt)
+                        plt1 = plot!(δ-δ_off, y_depth, linecolor=:green, linewidth=3)
+                        plt2 = plot(δ, y_depth, yflip = true, legend = false)
+                        plt3 = plot(ψ, y_depth, yflip = true, legend = false)
+                        display(plot(plt1,plt2,plt3, layout=(3,1)))
                         
                         # check that ψ and δ are coming from the same time
                         @assert t1 == t2
@@ -153,12 +156,13 @@ let
                         close(state_file)
                         close(slip_file)
 
+                        @printf "\nTime is: %f \n" t1/year_seconds
                         @printf "\nIs this the right initial condition (y/n): "
                         anw = chomp(readline())
 
                         ### if initial conditions look good write them out.
                         if anw == "y"
-                            write_ψδ(ψ,δ)
+                            write_ψδ(ψ, δ, t1)
                         else
                             done2 = false
                         end

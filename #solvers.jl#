@@ -68,7 +68,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
                                  atolx = 1e-14, rtolx = 1e-14)
 
-        if !isfinite(Vn)
+64;44;25M        if !isfinite(Vn)
             #@printf "Reject V\n"
             flush(stdout)
             reject_step[1] = true

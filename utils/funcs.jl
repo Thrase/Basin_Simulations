@@ -73,9 +73,10 @@ end
 function get_plot_indices(begin_cycle, final_cycle, break_indices)
 
     index_offset = break_indices[2*begin_cycle - 1]
+    @show length(break_indices)
     if 2*final_cycle + 1 <= length(break_indices)
         final_index = break_indices[2*final_cycle + 1] - 2
-    else
+    elseif 2*final_cycle + 1 > length(break_indices)
         final_index = break_indices[2*final_cycle] - 2
     end
 
@@ -85,13 +86,13 @@ end
 
 
 ### write out new initial conditions
-function write_ψδ(ψ, δ)
+function write_ψδ(ψ, δ, t)
 
     ψδ = vcat(ψ, δ)
     
     @printf "Filename: "
     name = chomp(readline())
-    filename = string("/home/tharvey2/Basin_Simulations/input_files/inital_cons/", name)
+    filename = string("/home/tharvey2/Basin_Simulations/input_files/initial_cons/", name)
     filename_t = string(filename, "_t")
     
     fout = open(filename, "w")
@@ -99,7 +100,7 @@ function write_ψδ(ψ, δ)
     close(fout)
     
     fout = open(filename_t, "w")
-    writedlm(fout, [t1])
+    writedlm(fout, [t])
     close(fout)
 
     @printf "inital conditions write to %s\n" filename

@@ -19,6 +19,26 @@ function μ(x, y, B_p)
     end
 end
 
+
+function plot_basin(B_p)
+    
+    x = collect(-40:.05:40)
+    y = collect(0:.025:40)
+    nx = length(x)
+    ny = length(y)
+    xm = kron(x', ones(ny))
+    ym = kron(ones(nx)', y)
+    #display(ym)
+
+    μ_vals = reshape(μ(xm, ym, B_p), (nx,ny))
+    heatmap(x, y, μ_vals, yflip=true, ticks=nothing, c = cgrad([:black, :blue, :white]))
+
+
+end
+
+
+
+
 function ρ(x, y, B_p)
     
     c = B_p.c
