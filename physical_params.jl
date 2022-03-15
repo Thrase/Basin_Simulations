@@ -1,3 +1,6 @@
+
+
+
 function μ(x, y, B_p)
 
     c = B_p.c
@@ -20,19 +23,62 @@ function μ(x, y, B_p)
 end
 
 
-function plot_basin(B_p)
+function plot_basin(x, y, B_p)
     
-    x = collect(-40:.05:40)
-    y = collect(0:.025:40)
+    x = collect(x)
+    y = collect(y)
     nx = length(x)
     ny = length(y)
-    xm = kron(x', ones(ny))
-    ym = kron(ones(nx)', y)
-    #display(ym)
+   
+    xm = kron(x, ones(ny)')
+    ym = kron(y', ones(nx))
 
-    μ_vals = reshape(μ(xm, ym, B_p), (nx,ny))
-    heatmap(x, y, μ_vals, yflip=true, ticks=nothing, c = cgrad([:black, :blue, :white]))
-
+    μ_vals = μ(xm, ym, B_p)
+    
+    @pgf TikzPicture(
+    Axis(
+        {
+            view=(0, 90),
+            colorbar_horizontal,
+            "colormap/blackwhite",
+            colorbar_style={
+                xlabel=raw"$\mu$ (GPa)",
+                xtick=[B_p.μ_out, B_p.μ_in],
+                xticklabels=[raw"$\mu_{out}$", raw"$\mu_{in}$"]
+                },
+            y_dir="reverse",
+            ticks="none",
+        },
+        Plot3(
+            {
+                surf,
+                shader="flat",
+            },
+            Coordinates(x,y, μ_vals)
+        )
+    ),
+    Axis(
+        {axis_lines="box",
+         ticks="none",
+         }
+    ),
+    Axis(
+        {
+            ymin=y[1],
+            ymax=y[end],
+            xmin=x[1],
+            xmax=x[end],
+            y_dir="reverse",
+            ytick=[4, 8],
+            axis_y_line="middle",
+            yticklabels=["D", "H"],
+            xtick=[-40, 40],
+            xticklabels=["-L", "L"],
+            xticklabel_pos="top",
+        }
+        )
+    )
+    
 
 end
 
