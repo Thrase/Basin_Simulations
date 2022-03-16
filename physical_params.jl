@@ -155,8 +155,6 @@ function η(y, B_p)
     return μf ./ (2 .* sqrt.(μf ./ ρ(0, y, B_p)))
 end
 
-
-
 function fault_params(fc, Dc)
 
     
@@ -197,4 +195,42 @@ function fault_params(fc, Dc)
 
     return δNp, gNp, VWp, RS
     
+end
+
+
+function plot_ab(a, b, fc)
+    
+    a = repeat([a], length(fc))
+    @pgf ab_plot = Axis(
+        {
+            xmin = -0.01,
+            xmax = .02,
+            xlabel = raw"$a-b$ and $a$",
+            ylabel = "Depth (Km)",
+            xticklabel_style = ["/pgf/number format/fixed",
+                                "/pgf/number format/precision=2",
+                                "/pgf/number format/fixed zerofill"],
+            scaled_x_ticks = "false",
+            legend_entries = [raw"$(a-b)$", raw"$a$"],
+            legend_pos = "south west",
+            y_dir = "reverse",
+        }
+    )
+    @pgf push!(ab_plot, Plot(
+        {
+            color = "blue"
+        },
+        Table(a .- b, fc)
+    )
+               )
+    @pgf push!(ab_plot, Plot(
+        {
+            color = "red",
+            dashed
+        },
+        Table(a, fc)
+    )
+               )
+    
+
 end

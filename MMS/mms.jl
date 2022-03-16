@@ -23,6 +23,9 @@ function plot_convergence(I_error, D_error, ns)
         {
             xlabel = raw"$N$",
             ylabel = raw"$||\Delta\boldsymbol{u} ||_{\boldsymbol{H}}$",
+            legend_entries = ["2th order operators",
+                              "4th order operators",
+                              "6th order operators"],
         },
     )
 
@@ -55,6 +58,9 @@ function plot_convergence(I_error, D_error, ns)
         {
             xlabel = raw"$N$",
             ylabel = raw"$||\Delta \boldsymbol{u} ||_{\boldsymbol{H}}$",
+            legend_entries = ["2th order operators",
+                              "4th order operators",
+                              "6th order operators"],
         },
     )
     @pgf push!(D_plot, Plot(
