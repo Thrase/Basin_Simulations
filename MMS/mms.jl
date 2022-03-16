@@ -1,16 +1,89 @@
 using Plots
+using PGFPlotsX
 using Printf
 using CUDA
 using CUDA.CUSPARSE
 using OrdinaryDiffEq
-using MATLABDiffEq
-#using ODE
+
+
 
 include("../physical_params.jl")
 include("mms_funcs.jl")
 include("../domain.jl")
 include("../numerical.jl")
 include("../solvers.jl")
+
+
+function plot_convergence(I_error, D_error, ns)
+
+    @pgf push!(PGFPlotsX.CUSTOM_PREAMBLE, raw"\usepackage{amsmath}")
+
+    
+    @pgf I_plot = LogLogAxis(
+        {
+            xlabel = raw"$N$",
+            ylabel = raw"$||\Delta\boldsymbol{u} ||_{\boldsymbol{H}}$",
+        },
+    )
+
+    @pgf push!(I_plot, Plot(
+        {
+            color = "red",
+            mark = "o",
+        },
+        Table(ns,I_error[1,:])
+    )
+               )
+    @pgf push!(I_plot, Plot(
+        {
+            color = "blue",
+            mark = "o",
+        },
+        Table(ns,I_error[2,:])
+    )
+               )
+    @pgf push!(I_plot, Plot(
+        {
+            color = "green",
+            mark = "o",
+        },
+        Table(ns,I_error[3,:])
+    )
+               )
+
+    @pgf D_plot = LogLogAxis(
+        {
+            xlabel = raw"$N$",
+            ylabel = raw"$||\Delta \boldsymbol{u} ||_{\boldsymbol{H}}$",
+        },
+    )
+    @pgf push!(D_plot, Plot(
+        {
+            color = "red",
+            mark = "o",
+        },
+        Table(ns,D_error[1,:])
+    )
+               )
+    @pgf push!(D_plot, Plot(
+        {
+            color = "blue",
+            mark = "o",
+        },
+        Table(ns,D_error[2,:])
+    )
+               )
+    @pgf push!(D_plot, Plot(
+        {
+            color = "green",
+            mark = "o",
+        },
+        Table(ns,D_error[3,:])
+    )
+               )
+
+ end
+
 
 function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     
@@ -22,13 +95,13 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
     #xt, yt = transforms_e(Lw, .75, .05)
 
-    for p in ps
+    errI = Array{Float64, 2}(undef, (length(ps), length(ns)))
+    errD = Array{Float64, 2}(undef, (length(ps), length(ns)))
+    
+    for (np, p) in enumerate(ps)
 
         @printf "Operator order: %d\n\n" p
-        err = Vector{Float64}(undef, length(ns))
-        err3 = Vector{Float64}(undef, length(ns))
-        err4 = Vector{Float64}(undef, length(ns))
-        err5 = Vector{Float64}(undef, length(ns))
+
         for (iter, N) in enumerate(ns)
             
             nn = N + 1
@@ -162,12 +235,12 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     
                     u_end4 = @view q4[1:Nn]
                     diff_u4 = u_end4 - he(x[:], y[:], t_span[2], MMS)
-                    err4[iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
+                    errD[np, iter] = sqrt(diff_u4' * d_ops.JH * diff_u4)
                     
 
-                    @printf "\n\t\tdynamic error with MS: %e\n" err4[iter]
+                    @printf "\n\t\tdynamic error with MS: %e\n" errD[np, iter]
                     if iter > 1
-                        @printf "\t\tdynamic rate: %f\n" log(2, err4[iter - 1]/err4[iter])
+                        @printf "\t\tdynamic rate: %f\n" log(2, errD[np, iter - 1]/errD[np, iter])
                     end
                     flush(stdout)
                 end
@@ -178,7 +251,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 10.0 * year_seconds/365
+            t_final = 1.0 * year_seconds/365
             t_begin = 0.0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -223,16 +296,16 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
-            sol = solve(prob, MATLABDiffEq.ode45();
-                        #isoutofdomain=stepcheck,
+            sol = solve(prob, Tsit5();
+                        isoutofdomain=stepcheck,
                         atol = 1e-14,
-                        rtol = 1e-14)
-                        #internalnorm=(x,_)->norm(x, Inf))
+                        rtol = 1e-14,
+                        internalnorm=(x,_)->norm(x, Inf))
 
             
             diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
-            err[iter] = sqrt(diff' * d_ops.JH * diff)
+            errI[np, iter] = sqrt(diff' * d_ops.JH * diff)
 
             
             #=
@@ -268,13 +341,16 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             =#
 
             
-            @printf "\n\t\tquasi-dynamic error with MS: %e\n" err[iter]
+            @printf "\n\t\tquasi-dynamic error with MS: %e\n" errI[np, iter]
             if iter > 1
-                @printf "\t\tquasi-dynamic rate: %f\n" log(2, err[iter - 1]/err[iter])
+                @printf "\t\tquasi-dynamic rate: %f\n" log(2, errI[np, iter - 1]/errI[np, iter])
             end
 
 
             @printf "\t___________________________________\n\n"
         end
     end
+
+    plot_convergence(errD, errI, ns)
+    
 end

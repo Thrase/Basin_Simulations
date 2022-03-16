@@ -128,7 +128,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
 
     #@printf "%f\n" t
-    #@printf "\r\t%f" t
+    @printf "\r\t%f" t/31556952
     #=
     reject_step = p.reject_step
     if reject_step[1]
