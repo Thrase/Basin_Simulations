@@ -35,9 +35,11 @@ function plot_basin(x, y, B_p)
 
     μ_vals = μ(xm, ym, B_p)
     
-    @pgf TikzPicture(
+    @pgf basin_plot =  TikzPicture(
     Axis(
         {
+            height = "6cm",
+            width = "6cm",
             view=(0, 90),
             colorbar_horizontal,
             "colormap/blackwhite",
@@ -58,12 +60,17 @@ function plot_basin(x, y, B_p)
         )
     ),
     Axis(
-        {axis_lines="box",
-         ticks="none",
-         }
+        {
+            height = "6cm",
+            width = "6cm",
+            axis_lines="box",
+            ticks="none",
+        }
     ),
     Axis(
         {
+            height = "6cm",
+            width = "6cm",
             ymin=y[1],
             ymax=y[end],
             xmin=x[1],
@@ -78,6 +85,7 @@ function plot_basin(x, y, B_p)
         }
         )
     )
+    pgfsave("../Basin_paper/figures/basin_plot.tex", basin_plot)
     
 
 end
@@ -203,6 +211,8 @@ function plot_ab(a, b, fc)
     a = repeat([a], length(fc))
     @pgf ab_plot = Axis(
         {
+            height = "6cm",
+            width = "5cm",
             xmin = -0.01,
             xmax = .02,
             xlabel = raw"$a-b$ and $a$",
@@ -231,6 +241,8 @@ function plot_ab(a, b, fc)
         Table(a, fc)
     )
                )
+
+    pgfsave("../Basin_paper/figures/ab_plot.tex", ab_plot)
     
 
 end

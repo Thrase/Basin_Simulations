@@ -19,74 +19,74 @@ function plot_convergence(I_error, D_error, ns)
     @pgf push!(PGFPlotsX.CUSTOM_PREAMBLE, raw"\usepackage{amsmath}")
 
     
-    @pgf I_plot = LogLogAxis(
+    @pgf con_plot = LogLogAxis(
         {
+            width = "7cm",
+            height = "5cm",
             xlabel = raw"$N$",
             ylabel = raw"$||\Delta\boldsymbol{u} ||_{\boldsymbol{H}}$",
-            legend_entries = ["2th order operators",
-                              "4th order operators",
-                              "6th order operators"],
+            legend_pos = "outer north east",
+            legend_entries = [raw"Interseismic $p=2$ ",
+                              raw"Interseismic $p=4$",
+                              raw"Interseismic $p=6$",
+                              raw"Coseismic $p=2$",
+                              raw"Coseismic $p=4$",
+                              raw"Coseismic $p=6$",],
         },
     )
 
-    @pgf push!(I_plot, Plot(
+    @pgf push!(con_plot, Plot(
         {
             color = "red",
-            mark = "o",
+            mark = "oplus",
         },
         Table(ns,I_error[1,:])
     )
                )
-    @pgf push!(I_plot, Plot(
+    @pgf push!(con_plot, Plot(
         {
             color = "blue",
-            mark = "o",
+            mark = "oplus",
         },
         Table(ns,I_error[2,:])
     )
                )
-    @pgf push!(I_plot, Plot(
+    @pgf push!(con_plot, Plot(
         {
             color = "green",
-            mark = "o",
+            mark = "oplus",
         },
         Table(ns,I_error[3,:])
     )
                )
-
-    @pgf D_plot = LogLogAxis(
-        {
-            xlabel = raw"$N$",
-            ylabel = raw"$||\Delta \boldsymbol{u} ||_{\boldsymbol{H}}$",
-            legend_entries = ["2th order operators",
-                              "4th order operators",
-                              "6th order operators"],
-        },
-    )
-    @pgf push!(D_plot, Plot(
+        @pgf push!(con_plot, Plot(
         {
             color = "red",
-            mark = "o",
+            mark = "asterisk",
         },
         Table(ns,D_error[1,:])
     )
                )
-    @pgf push!(D_plot, Plot(
+    @pgf push!(con_plot, Plot(
         {
             color = "blue",
-            mark = "o",
+            mark = "asterisk",
         },
         Table(ns,D_error[2,:])
     )
                )
-    @pgf push!(D_plot, Plot(
+    @pgf push!(con_plot, Plot(
         {
             color = "green",
-            mark = "o",
+            mark = "asterisk",
         },
         Table(ns,D_error[3,:])
     )
                )
+
+
+    pgfsave("../../Basin_paper/figures/converge_plot.tex", con_plot)
+    #pgfsave("../../Basin_paper/figures/I_converge.tex", I_plot)
 
  end
 
