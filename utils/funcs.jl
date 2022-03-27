@@ -1,6 +1,6 @@
 using Printf
 using DelimitedFiles
-using Plots
+using PyPlot
 
 ### parse line of 2D array of strings data into 1D array of Float64s
 get_line(data, i) = map(x -> parse(Float64, x), split.(data[i]))

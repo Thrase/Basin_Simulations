@@ -8,7 +8,7 @@ let
     year_seconds = 31556952
     ### getting directory for simulation data
     done = false
-    cd(string("../../erickson/output_files/"))
+    cd(string("../../"))
     while !done 
         v = false
         while v == false
@@ -88,7 +88,10 @@ let
                 station_data = @view readdlm(string("station_", depth))[2:end, :]
                 t = @view station_data[ : , 1]
                 V = @view station_data[ : , 3]
-                iplot(t, V)
+                τ = @view station_data[ : , 4]
+                
+                #plot(t, V)
+                plot(t, τ)
 
             ### single cycle options
             elseif flag[1] == 5
