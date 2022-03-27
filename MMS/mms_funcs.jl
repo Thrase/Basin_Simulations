@@ -118,17 +118,6 @@ function S_ch(fx, fy, t, fnum, R, B_p, MMS)
     return Z .* v .+ τ .- R .* (Z .* v .- τ)
 end
 
-function S_rsdh(fx, fy, b, t, B_p, RS, MMS)
-    
-    ψ = ψe_hd(fx, fy, t, B_p, RS, MMS)
-    V = 2*he_t(fx, fy, t, MMS)
-    G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(V) / RS.V0)
-    ψ_t = ψe_thd(fx, fy, t, B_p, RS, MMS)
-    return  ψ_t .- G
-
-end
-
-
 function ψe_hd(x, y, t, B_p, RS, MMS)
     
     τe = τhe(x, y, t, 1, B_p, MMS)
@@ -143,11 +132,21 @@ function ψe_thd(x, y, t, B_p, RS, MMS)
     τe = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 * he_t(x, y, t, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
-    τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
+    τe_t = -μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
     ψ_t = τe_t .* coth.(τe ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
 
     return ψ_t
+
+end
+
+function S_rsdh(fx, fy, b, t, B_p, RS, MMS)
+    
+    ψ = ψe_hd(fx, fy, t, B_p, RS, MMS)
+    V = 2*he_t(fx, fy, t, MMS)
+    G = (b .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ) ./ b) .- abs.(V) / RS.V0)
+    ψ_t = ψe_thd(fx, fy, t, B_p, RS, MMS)
+    return  ψ_t .- G
 
 end
 
@@ -164,7 +163,7 @@ function ψe_h(x, y, t, B_p, RS, MMS)
     τ = τhe(x, y, t, 1, B_p, MMS)
     Ve = 2 .* he_t(x, y, t, MMS)
 
-    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τ .- η(y, B_p) .* Ve) ./ (RS.a .* RS.σn)))
+    return RS.a .* log.((2 * RS.V0 ./ Ve) .* sinh.((-τ #=.- η(y, B_p) .* Ve=#) ./ (RS.a .* RS.σn)))
     
 end
 
@@ -176,7 +175,7 @@ function ψe_th(x, y, t, B_p, RS, MMS)
     Ve_t = 2 * he_tt(x, y, t, MMS)
     τe_t = - μ(x, y, B_p) .* he_xt(x, y, t, MMS)
 
-    ψ_t = (-τe_t .- η(y, B_p) .* Ve_t) .* coth.((-τ .- η(y, B_p) .* Ve) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
+    ψ_t = #=(=#-τe_t #=.- η(y, B_p) .* Ve_t)=# .* coth.((-τ #=.- η(y, B_p) .* Ve=#) ./ (RS.a * RS.σn)) ./ RS.σn .- RS.a .* Ve_t ./ Ve
 
     return ψ_t[1]
 

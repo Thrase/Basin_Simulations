@@ -124,6 +124,97 @@ function Q_STATIC_MMS!(p)
 
 end
 
+function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
+
+
+
+    @printf "\r\t%f" t/31556952
+
+    reject_step = p.reject_step
+    if reject_step[1]
+        return
+    end
+
+    nn = p.nn
+    Δτ = p.Δτ
+    u = p.u
+    ge = p.ge
+    vf = p.vf
+    M = p.ops.M̃
+    K = p.ops.K
+    H̃ = p.ops.H̃
+    JH = p.ops.JH
+    RS = p.RS
+    MMS = p.MMS
+    B_p = p.B_p
+    metrics = p.metrics
+    ops = p.ops
+    η = metrics.η
+    b = p.b
+    f1_source = p.f1_source
+    
+
+    xf1 = metrics.facecoord[1][1]
+    yf1 = metrics.facecoord[2][1] 
+
+    
+    ψ  = @view ψδ[1:nn]
+    δ =  @view ψδ[nn + 1 : 2nn]
+    dψ = @view dψδ[1:nn]
+    V = @view dψδ[nn + 1 : 2nn]
+
+    mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
+
+    u[:] = M \ ge
+
+    HI = ops.HI[1]
+    G = ops.G[1]
+    Γ = ops.Γ[1]
+    L = ops.L[1]
+    sJ = metrics.sJ[1]
+   
+    #V .= 2 .* he_t(xf1, yf1, t, MMS)
+    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
+    Δτ .= - (HI * G * u + Γ * (δ ./ 2- L * u)) ./ sJ
+    
+    for n in 1:nn
+        
+        ψn = ψ[n]
+        bn = b[n]
+        τn = Δτ[n]
+        ηn = η[n]
+
+        Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
+
+        if !isfinite(Vn)
+            reject_step[1] = true
+            return
+        end
+
+        V[n] = Vn
+
+        
+        if bn != 0
+            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(V[n]) / RS.V0)
+            #dψ[n] = ψe_thd(xf1[n], yf1[n], t, B_p, RS, MMS)[1]
+            dψ[n] += S_rsh(xf1[n], yf1[n], t, bn, B_p, RS, MMS)[1]
+        else
+            dψ[n] = 0
+        end
+        
+        if !isfinite(dψ[n])
+            dψ .= 0
+            reject_step[1] = true
+            return
+        end
+        
+    end
+    
+    nothing
+    
+end
+
+
 function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
 

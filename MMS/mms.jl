@@ -236,7 +236,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     end
                     =#
 
-                  x = metrics.coord[1]
+                    x = metrics.coord[1]
                     y = metrics.coord[2]
                     
                     u_end4 = @view q4[1:Nn]
@@ -257,7 +257,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 1.0 * year_seconds/365
+            t_final = 10.0 * year_seconds#/365
             t_begin = 0.0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -281,7 +281,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                        t_begin,
                        MMS)
 
-            ψ = ψe_h(xf1,
+            ψ = ψe_hd(xf1,
                      yf1,
                      t_begin,
                      B_p,
@@ -300,13 +300,14 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             timestep!(ψδ, Q_DYNAMIC_MMS!, params, dt, t_span)
             =#
 
-            prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
+            prob = ODEProblem(Q_DYNAMIC_MMS_NOROOT!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
             sol = solve(prob, Tsit5();
                         isoutofdomain=stepcheck,
                         atol = 1e-14,
                         rtol = 1e-14,
-                        internalnorm=(x,_)->norm(x, Inf))
+                        internalnorm=(x,_)->norm(x, Inf),
+                        callback=plotter)
 
             
             diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
@@ -357,6 +358,6 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
         end
     end
 
-    plot_convergence(errD, errI, ns)
+    #plot_convergence(errD, errI, ns)
     
 end
