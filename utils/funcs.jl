@@ -1,6 +1,25 @@
 using Printf
 using DelimitedFiles
-using PyPlot
+using Plots
+
+### open filenames and retrun list of files, and list of arrays with strings of data
+function open_files(filenames...; begin_index=2, final_index=nothing)
+    files = []
+    plot_data = []
+    for filename in filenames
+        file = open(filename, "r")
+        push!(files, file)
+        temp_data = collect(eachline(file))
+        temp_data = temp_data[2:end, :]
+        if final_index == nothing            
+            final_index = size(temp_data)[1]
+        end
+        data = @view temp_data[begin_index:final_index, :]
+        push!(plot_data, data)
+    end
+    return files, plot_data
+end
+
 
 ### parse line of 2D array of strings data into 1D array of Float64s
 get_line(data, i) = map(x -> parse(Float64, x), split.(data[i]))
@@ -66,7 +85,23 @@ function plot_slip(slip_data, y, nn, title)
     end
 
     return plt
+end
 
+### Create fault animations, with data gotten from open_files. Assumes all data is of the same length.
+function fault_animations(plot_data, y)
+
+    an_length = size(plot_data[1])[1]
+    
+    for i in 1:an_length
+        plots = []
+        for data in plot_data
+            line = get_line(data, i)[3:end]
+            plt = plot(line, y, yflip=true, legend=false)
+            push!(plots, plt)
+        end
+        plot(plots..., layout = (length(plots), 1))
+        gui()
+    end
 end
 
 ### convert begin_cycle, and final_cycle to there corrisponding indices in slip_data

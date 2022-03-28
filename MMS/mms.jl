@@ -164,6 +164,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             #@printf "Estimated Gigabytes allocating to the GPU %f\n" GS
 
             #quit()
+            
             ot = @elapsed begin
                 #=
                 GPU_operators = (nn = nn,
@@ -184,7 +185,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                 =#
             end
             #@printf "Got Operators: %s s\n" ot
-
+            
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
             

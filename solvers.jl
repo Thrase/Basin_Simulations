@@ -152,7 +152,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     η = metrics.η
     b = p.b
     f1_source = p.f1_source
-    
+    h = p.ops.hmin
 
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
@@ -175,13 +175,17 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
    
     #V .= 2 .* he_t(xf1, yf1, t, MMS)
     #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
-    Δτ .= - (HI * G * u + Γ * (δ ./ 2- L * u)) ./ sJ
+    #dim = floor(Int, sqrt(length(u)))
+    #ur = reshape(u, (dim, dim))
+
+    Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L*u)) ./ sJ
+    #Δτ[nn-10:nn] .= -τhe(xf1[nn-10 : nn], yf1[nn-10 : nn], t, 1, B_p, MMS)
     
     for n in 1:nn
         
         ψn = ψ[n]
         bn = b[n]
-        τn = Δτ[n]
+        τn = Δτ[n] #B_p.μ_out * (-3 * ur[1, n] + 4*ur[2, n] - ur[3, n])/h
         ηn = η[n]
 
         Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
@@ -192,7 +196,6 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
         end
 
         V[n] = Vn
-
         
         if bn != 0
             dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(V[n]) / RS.V0)
