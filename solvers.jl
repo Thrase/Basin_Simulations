@@ -25,6 +25,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     K = p.ops.K
     H̃ = p.ops.H̃
     JI = p.ops.JI
+    Crr = p.ops.Crr
     RS = p.RS
     metrics = p.metrics
     ops = p.ops
@@ -51,7 +52,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
     
-    Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L * u)) ./ sJ
+    Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2 - L * u)) ./ sJ
 
     for n in 1:nn
         
@@ -141,6 +142,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     K = p.ops.K
     H̃ = p.ops.H̃
     JH = p.ops.JH
+    Crr = p.ops.Crr
     RS = p.RS
     MMS = p.MMS
     B_p = p.B_p
@@ -175,7 +177,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     #dim = floor(Int, sqrt(length(u)))
     #ur = reshape(u, (dim, dim))
 
-    Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L*u)) ./ sJ
+    Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2 - L*u)) ./ sJ
     #Δτ[nn-15:nn] .= -τhe(xf1[nn-15 : nn], yf1[nn-15 : nn], t, 1, B_p, MMS)
     
     for n in 1:nn
@@ -235,6 +237,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     K = p.ops.K
     H̃ = p.ops.H̃
     JH = p.ops.JH
+    Crr = p.ops.Crr
     RS = p.RS
     MMS = p.MMS
     B_p = p.B_p
@@ -268,7 +271,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     #V .= 2 .* he_t(xf1, yf1, t, MMS)
      
     #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
-    Δτ .= - (HI * G * u + Γ * (δ ./ 2- L * u)) ./ sJ
+    Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2- L * u)) ./ sJ
 
     for n in 1:nn
         
@@ -411,27 +414,30 @@ function STOPFUN_Q(ψδ,t,i)
         V = @view dψV[nn .+ (1:nn)]
         Vmax = maximum(abs.(V))
         
-        if pf[1] % 10 == 0
+        #if pf[1] % 10 == 0
 
-            #=    
+                
             plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
             legend=false)
-            
-            
+            plot(plt1)
+            gui()
+
+            #=
             plt2 = plot(τ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             plot(plt1, plt2, layout=2)
             gui()
-            =#
+
             
             plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
             legend=false)
             gui()
-            
+            =#
 
+            #=
             write_out(δ, V, τ, ψ, t,
                   fault_coord,
                   Lw,
@@ -443,7 +449,8 @@ function STOPFUN_Q(ψδ,t,i)
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-        end
+            =#
+        #end
 
         
         year_count = t/year_seconds

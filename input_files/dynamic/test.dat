@@ -1,7 +1,7 @@
 # Parameter input file for Basin Simulations
 #
 #
-P=6
+P=2
 Total_time=5000.0
 Number_nodes=300
 Domain_length=24
@@ -11,11 +11,11 @@ b_depth=4
 dynamic_flag=1
 d_to_s=.005
 dt=.5
-initial_con=../input_files/initial_cons/test_initial
-inital_t=../input_files/initial_cons/test_initial_t
+initial_con=None
+inital_t=None
 Dc=.032
-B_on=1
-dir_name=test_restart
-volume_plots=1
-cycle_flag=0
+B_on=0
+dir_name=test_oscillations
+volume_plots=0
+cycle_flag=1
 num_cycles=1

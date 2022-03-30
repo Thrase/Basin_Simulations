@@ -306,19 +306,19 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
             sol = solve(prob, Tsit5();
                         isoutofdomain=stepcheck,
-                        atol = 1e-9,
-                        rtol = 1e-9,
-                        gamma = .6,
-                        dtmax = 1e3,
-                        internalnorm=(x,_)->norm(x, Inf),
-                        callback=plotter)
+                        atol = 1e-12,
+                        rtol = 1e-12,
+                        gamma = .3,
+                        #dtmax = 1e3,
+                        internalnorm=(x,_)->norm(x, Inf))
+                        #callback=plotter)
 
             
             diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             errI[np, iter] = sqrt(diff' * d_ops.JH * diff)
             
-            
+            #=
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(params.u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                             title = "error", fill=true, yflip=true)
@@ -335,7 +335,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-            
+            =#
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,

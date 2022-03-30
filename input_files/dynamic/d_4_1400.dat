@@ -17,3 +17,5 @@ Dc=.008
 B_on=1
 dir_name=d_4_1400
 volume_plots=0
+cycle_flag=0
+num_cycles=1

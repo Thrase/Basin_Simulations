@@ -3,6 +3,7 @@ using LinearAlgebra
 using CUDA
 using CUDA.CUSPARSE
 using Printf
+using MatrixMarket
 
 include("DiagonalSBP.jl")
 
@@ -392,7 +393,8 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         
     end
 
-    
+    #MatrixMarket.mmwrite("M1600.mtx", M̃)
+
     Λ_t = @elapsed begin
         dv_u = -Ã
         
@@ -448,6 +450,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
      M̃ = cholesky(Symmetric(M̃)),
      K = (K1, K2, K3, K4),
      G = G,
+     Crr = Crr1,
      Γ = Γ,
      HI = HI,
      P̃I = P̃inv,
