@@ -189,7 +189,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
             
-            
+            #=
             t_begin = 35 * year_seconds 
             t_final = 35 * year_seconds + .1
 
@@ -252,13 +252,14 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     flush(stdout)
                 end
             end
+            =#
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
             
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 10.0 * year_seconds#/365
+            t_final = 10.0 * year_seconds #/365
             t_begin = 0.0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -301,12 +302,14 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             timestep!(ψδ, Q_DYNAMIC_MMS!, params, dt, t_span)
             =#
 
-            prob = ODEProblem(Q_DYNAMIC_MMS_NOROOT!, ψδ, t_span, params)
+            prob = ODEProblem(Q_DYNAMIC_MMS!, ψδ, t_span, params)
             plotter = DiscreteCallback(PLOTFACE, terminate!)
             sol = solve(prob, Tsit5();
                         isoutofdomain=stepcheck,
-                        atol = 1e-14,
-                        rtol = 1e-14,
+                        atol = 1e-9,
+                        rtol = 1e-9,
+                        gamma = .6,
+                        dtmax = 1e3,
                         internalnorm=(x,_)->norm(x, Inf),
                         callback=plotter)
 
@@ -314,9 +317,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             diff = params.u[:] .- he(x[:], y[:], t_span[2], MMS)
 
             errI[np, iter] = sqrt(diff' * d_ops.JH * diff)
-
             
-            #=
+            
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(params.u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                             title = "error", fill=true, yflip=true)
@@ -333,7 +335,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-            =#
+            
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,

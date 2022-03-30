@@ -202,9 +202,14 @@ let
         inter_time = @elapsed begin
             # integrate
             prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
-            sol = solve(prob, Tsit5(); isoutofdomain=stepcheck, dt=dts[2],
-                        atol = 1e-12, rtol = 1e-12, save_everystep=true,
-                        internalnorm=(x, _)->norm(x, Inf), callback=stopper)
+            sol = solve(prob, Tsit5(); isoutofdomain=stepcheck,
+                        dt=dts[2],
+                        atol = 1e-12,
+                        rtol = 1e-12,
+                        save_everystep=true,
+                        internalnorm=(x, _)->norm(x, Inf),
+                        saveat = year_seconds,
+                        callback=stopper)
             end
             
         @printf "Finished Interseismic\n"

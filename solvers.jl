@@ -69,8 +69,6 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
                                  atolx = 1e-14, rtolx = 1e-14)
 
         if !isfinite(Vn)
-            #@printf "Reject V\n"
-            flush(stdout)
             reject_step[1] = true
             return
         end
@@ -84,7 +82,6 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         end
         
         if !isfinite(dψ[n])
-            #@printf "\nReject dψ\n"
             dψ .= 0
             reject_step[1] = true
             return
@@ -179,7 +176,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     #ur = reshape(u, (dim, dim))
 
     Δτ .= - (HI * G * u + Γ * (δ ./ 2 - L*u)) ./ sJ
-    #Δτ[nn-10:nn] .= -τhe(xf1[nn-10 : nn], yf1[nn-10 : nn], t, 1, B_p, MMS)
+    #Δτ[nn-15:nn] .= -τhe(xf1[nn-15 : nn], yf1[nn-15 : nn], t, 1, B_p, MMS)
     
     for n in 1:nn
         
@@ -223,12 +220,12 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
     #@printf "%f\n" t
     @printf "\r\t%f" t/31556952
-    #=
+    
     reject_step = p.reject_step
     if reject_step[1]
         return
     end
-    =#
+    
     nn = p.nn
     Δτ = p.Δτ
     u = p.u
@@ -287,15 +284,12 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
         (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
                                  atolx = 1e-14, rtolx = 1e-14)
-        #=
+        
         if !isfinite(Vn)
-            @printf "Reject V\n"
-            @show Vn
-            flush(stdout)
             reject_step[1] = true
             return
         end
-        =#
+        
         V[n] = Vn
         
 
@@ -307,14 +301,12 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
             dψ[n] = 0
         end
         
-        #=
+        
         if !isfinite(dψ[n])
-            @printf "\nReject dψ\n"
             dψ .= 0
             reject_step[1] = true
             return
         end
-        =#
 
     end
     
@@ -381,9 +373,11 @@ function PLOTFACE(ψδ,t,i)
         B_p = i.p.B_p
         nn = i.p.nn
         dψV = i.fsallast
+        u = i.p.u
+        L = i.p.ops.L[2]
         V = @view dψV[nn .+ (1:nn)]
         plot(V, yf1, legend=false, color =:blue, yflip=true)
-        plot!(2 * he_t(xf1, yf1, t, MMS), yf1, legend=false, color =:red, yflip=true)
+        plot!(2*he_t(xf1, yf1, t, MMS), yf1, legend=false, color =:red, yflip=true)
         gui()
     end
 
@@ -471,7 +465,7 @@ end
 
 function MMS_WAVEPROP_CPU!(dq, q, p, t)
 
-    @printf "\r\t%f" t
+    #@printf "\r\t%f" t
     
     nn = p.nn
     fc = p.fc
