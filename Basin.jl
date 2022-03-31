@@ -206,11 +206,10 @@ let
                         dt=dts[2],
                         atol = 1e-12,
                         rtol = 1e-12,
-                        dtmax = year_seconds/2,
-                        #gamma = .6,
+                        gamma = .3,
                         save_everystep=true,
                         internalnorm=(x, _)->norm(x, Inf),
-                        saveat = year_seconds,
+                        #saveat = year_seconds,
                         callback=stopper)
             end
             

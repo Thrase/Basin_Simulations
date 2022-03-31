@@ -15,10 +15,10 @@ let
     
     # mesh refinement
 
-    ns = 2 .^ (4:9)
+    ns = 2 .^ (4:7)
     
     # order of operators
-    p = [4]
+    p = [4,6]
 
     # Basin Params
     B_p = (μ_out = 24.0,
@@ -28,7 +28,7 @@ let
            c = (W/2)/D,
            r̄ = (W/2)^2,
            r_w = .1,
-           on = 0)
+           on = 1)
 
     # Rate-and-State Friction Params`
     RS = (σn = 50.0,
@@ -48,8 +48,8 @@ let
     # MMS params
     
     MMS = (Lw = Lw,
-           t̄ = 35*year_seconds,
-           t_w = 10,
+           t̄ = 15*year_seconds,
+           t_w = year_seconds/4,
            t_f = 70*year_seconds,
            τ∞ = 31.73,
            Vp = 1e-9,

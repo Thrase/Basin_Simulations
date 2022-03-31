@@ -61,14 +61,17 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
         τn = Δτ[n]
         ηn = η[n]
 
-        
+        Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
+
+        # rootfinding with radiation damping ηV
+        #=
         VR = abs(τn / ηn)
         VL = -VR
         Vn = V[n]
         obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
         (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
                                  atolx = 1e-14, rtolx = 1e-14)
-
+        =#
         if !isfinite(Vn)
             reject_step[1] = true
             return
@@ -414,15 +417,15 @@ function STOPFUN_Q(ψδ,t,i)
         V = @view dψV[nn .+ (1:nn)]
         Vmax = maximum(abs.(V))
         
-        #if pf[1] % 10 == 0
+        if pf[1] % 10 == 0
 
-                
+        #=  
             plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
             legend=false)
             plot(plt1)
             gui()
-
+        =#
             #=
             plt2 = plot(τ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
             xlabel="Slip", linecolor=:blue, linewidth=.1,
@@ -437,7 +440,7 @@ function STOPFUN_Q(ψδ,t,i)
             gui()
             =#
 
-            #=
+            
             write_out(δ, V, τ, ψ, t,
                   fault_coord,
                   Lw,
@@ -449,8 +452,8 @@ function STOPFUN_Q(ψδ,t,i)
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-            =#
-        #end
+            
+        end
 
         
         year_count = t/year_seconds
@@ -878,7 +881,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     io = p.io
     v̂ = p.v̂
     d_to_s = p.d_to_s
-    RS = p.RS_cpu
     vf = @view q[nn^2 + 1: nn : 2nn^2]
     v = @view q[nn^2 + 1 : 2nn^2]
     u = @view q[1 : nn^2]
@@ -929,8 +931,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             Δq .*= RKA[s % length(RKA) + 1]
         end
         
-       
-
         if step == ceil(Int, pf[1]/dt)
             
             v̂_cpu = Array(v̂)
@@ -962,12 +962,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-            
-            plot!(δ, fc, yflip = true, ylabel="Depth",
+            #=
+            plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
                   xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
                   legend=false)
             gui()
-            
+            =#
 
             if io.vp == 1
                 write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
