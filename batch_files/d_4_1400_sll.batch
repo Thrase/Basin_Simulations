@@ -11,4 +11,4 @@
 #SBATCH --ntasks-per-node=1  		   ### number of tasks to launch per node
 #SBATCH --cpus-per-task=8    		   ### number of cores for each task
  
-julia -t8 ../Basin.jl ../input_files/d_4_1400_sll.dat
+julia -t8 ../Basin.jl ../input_files/dynamic/d_4_1400_sll.dat

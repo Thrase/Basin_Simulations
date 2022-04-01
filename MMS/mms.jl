@@ -85,7 +85,7 @@ function plot_convergence(I_error, D_error, ns)
                )
 
 
-    pgfsave("../../Basin_paper/figures/converge_plot.tex", con_plot)
+    pgfsave("converge_plot.tex", con_plot)
     #pgfsave("../../Basin_paper/figures/I_converge.tex", I_plot)
 
  end
@@ -98,8 +98,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     # expand to (0,Lw) × (0, Lw)
     (x1, x2, x3, x4) = (0, Lw, 0, Lw)
     (y1, y2, y3, y4) = (0, 0, Lw, Lw)
-    xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
-    #xt, yt = transforms_e(Lw, .75, .05)
+    #xt, yt = transfinite(x1, x2, x3, x4, y1, y2, y3, y4)
+    xt, yt = transforms_e(Lw, .2, .2)
 
     errI = Array{Float64, 2}(undef, (length(ps), length(ns)))
     errD = Array{Float64, 2}(undef, (length(ps), length(ns)))
@@ -189,7 +189,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             xf1 = metrics.facecoord[1][1]
             yf1 = metrics.facecoord[2][1]
             
-            #=
+            
             t_begin = 35 * year_seconds 
             t_final = 35 * year_seconds + .1
 
@@ -252,14 +252,14 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                     flush(stdout)
                 end
             end
-            =#
+            
             #@printf "L2 error displacements between CPU and GPU: %e\n\n" norm(u_end5 - u_end3)
             
             u = zeros(nn^2)
             ge = zeros(nn^2)
             vf = zeros(nn)
 
-            t_final = 30.0 * year_seconds #/365
+            t_final = 70 * year_seconds 
             t_begin = 0.0 * year_seconds
             params = (t_final = t_final,
                       year_seconds = year_seconds,
@@ -318,7 +318,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             errI[np, iter] = sqrt(diff' * d_ops.JH * diff)
             
-            #=
+            
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(params.u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                             title = "error", fill=true, yflip=true)
@@ -335,7 +335,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-            =#
+            
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,
@@ -361,6 +361,6 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
         end
     end
 
-    #plot_convergence(errD, errI, ns)
+    plot_convergence(errD, errI, ns)
     
 end

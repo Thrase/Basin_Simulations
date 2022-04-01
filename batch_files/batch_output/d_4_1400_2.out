@@ -1,0 +1,13 @@
+got grid in 4.227628 seconds
+set-up io
+Got operators in 321.538312 seconds
+Got initial conditions
+Approximately 0.015717 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 14800.000584506 seconds. 
+Simulation time is now 125.94601772526524 years. 
+
+Begining Co-seismic period...

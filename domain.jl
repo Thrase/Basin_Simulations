@@ -3,7 +3,7 @@
 
 function transforms_e(Lw, r̂, l)
     
-
+    
     A = (Lw - Lw*r̂ - Lw)/(2*tanh((r̂-1)/l) + tanh(-2/l)*(r̂ - 1))
     b = (A*tanh(-2/l) + Lw)/2
     c = Lw - b
@@ -13,13 +13,24 @@ function transforms_e(Lw, r̂, l)
     yt = (r,s) -> (A .* tanh.((s .- 1) ./ l) .+ b.*s .+ c,
                    zeros(size(r)),
                    ((A .* sech.((s .- 1) ./ l).^2) ./ l) .+ b)
-
+    
+    #=
+    a = (Lw*r̂ + Lw - r̂ - 1)/(2 * (r̂*tanh(1/l) - tanh(r̂/l)))
+    b = (Lw - 2*a*tanh(1/l))/2
+    c = b - a*tanh(-1/l)
+    xt = (r,s) -> (a .* tanh.((r) ./ l) .+ b .* r .+ c,
+                   ((a .* sech.((r) ./ l).^2) ./ l) .+ b,
+                   zeros(size(s)))
+    yt = (r,s) -> (a .* tanh.((s) ./ l) .+ b.* s .+ c,
+                   zeros(size(r)),
+                   ((a .* sech.((s) ./ l).^2) ./ l) .+ b)
+    =#
     #=
     r = -1:.01:1
     s = -1:.01:1
 
    
-    scatter(r, xt(r,s))
+    scatter(r, xt(r,s), legend=false)
     gui()
 
     cont = readline()
