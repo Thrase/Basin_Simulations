@@ -129,7 +129,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
 
 
 
-    @printf "\r\t%f" t/31556952
+    #@printf "\r\t%f" t/31556952
 
     reject_step = p.reject_step
     if reject_step[1]
@@ -521,7 +521,7 @@ end
 
 function MMS_FAULT_CPU!(dq, q, p, t)
 
-    @printf "\r\t%f" t
+    #@printf "\r\t%f" t
     
     nn = p.nn
     R = p.R

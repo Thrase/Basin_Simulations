@@ -104,6 +104,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
     errI = Array{Float64, 2}(undef, (length(ps), length(ns)))
     errD = Array{Float64, 2}(undef, (length(ps), length(ns)))
     
+    for γ in .2:.2#.3:-.05:.1
+        @printf "gamma: %f\n\n\n" γ
     for (np, p) in enumerate(ps)
 
         @printf "Operator order: %d\n\n" p
@@ -113,6 +115,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             nn = N + 1
 
             @printf "\tNodes per Dimension: %d\n\n" nn
+            flush(stdout)
             
             Nn = nn^2
             mt = @elapsed begin
@@ -190,8 +193,8 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
             yf1 = metrics.facecoord[2][1]
             
             
-            t_begin = 35 * year_seconds 
-            t_final = 35 * year_seconds + .1
+            t_begin = 35 * year_seconds - .5
+            t_final = 35 * year_seconds + .5
 
             
             u0 = he(x[:], y[:], t_begin, MMS)
@@ -308,7 +311,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                         isoutofdomain=stepcheck,
                         atol = 1e-12,
                         rtol = 1e-12,
-                        gamma = .3,
+                        gamma = γ,
                         #dtmax = 1e3,
                         internalnorm=(x,_)->norm(x, Inf))
                         #callback=plotter)
@@ -318,7 +321,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
             errI[np, iter] = sqrt(diff' * d_ops.JH * diff)
             
-            
+            #=
             plt1 = contour(x[:, 1], y[1, :],
                            (reshape(params.u, (nn, nn)) .- he(x, y, t_span[2], MMS))',
                             title = "error", fill=true, yflip=true)
@@ -335,7 +338,7 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
                            fill=true, yflip=true, title = "numerical")
             plot(plt1, plt2, plt3, plt4, layout=4)
             gui()
-            
+            =#
             
             #=
             plt5 = plot((d_ops.L[1] * u - he(xf1, yf1, sol.t[end], MMS)), yf1,
@@ -358,9 +361,10 @@ function refine(ps, ns, Lw, D, B_p, RS, R, MMS)
 
 
             @printf "\t___________________________________\n\n"
+            flush(stdout)
         end
     end
-
+    end
     plot_convergence(errD, errI, ns)
     
 end

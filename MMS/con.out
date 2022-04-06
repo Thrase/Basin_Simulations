@@ -1,0 +1,183 @@
+gamma: 0.200000
+
+
+Operator order: 2
+
+	Nodes per Dimension: 17
+
+
+		dynamic error with MS: 6.576059e-01
+
+		quasi-dynamic error with MS: 1.914125e+01
+	___________________________________
+
+	Nodes per Dimension: 33
+
+
+		dynamic error with MS: 2.106687e-01
+		dynamic rate: 1.642247
+
+		quasi-dynamic error with MS: 4.470473e+00
+		quasi-dynamic rate: 2.098185
+	___________________________________
+
+	Nodes per Dimension: 65
+
+
+		dynamic error with MS: 6.433138e-02
+		dynamic rate: 1.711381
+
+		quasi-dynamic error with MS: 1.108228e+00
+		quasi-dynamic rate: 2.012173
+	___________________________________
+
+	Nodes per Dimension: 129
+
+
+		dynamic error with MS: 1.393801e-02
+		dynamic rate: 2.206498
+
+		quasi-dynamic error with MS: 2.763847e-01
+		quasi-dynamic rate: 2.003505
+	___________________________________
+
+	Nodes per Dimension: 257
+
+
+		dynamic error with MS: 3.343559e-03
+		dynamic rate: 2.059568
+
+		quasi-dynamic error with MS: 6.904388e-02
+		quasi-dynamic rate: 2.001092
+	___________________________________
+
+	Nodes per Dimension: 513
+
+
+		dynamic error with MS: 8.325463e-04
+		dynamic rate: 2.005782
+
+		quasi-dynamic error with MS: 1.725648e-02
+		quasi-dynamic rate: 2.000375
+	___________________________________
+
+Operator order: 4
+
+	Nodes per Dimension: 17
+
+
+		dynamic error with MS: 6.886138e-01
+
+		quasi-dynamic error with MS: 5.752080e+00
+	___________________________________
+
+	Nodes per Dimension: 33
+
+
+		dynamic error with MS: 9.344362e-02
+		dynamic rate: 2.881527
+
+		quasi-dynamic error with MS: 3.254201e-01
+		quasi-dynamic rate: 4.143708
+	___________________________________
+
+	Nodes per Dimension: 65
+
+
+		dynamic error with MS: 1.089363e-02
+		dynamic rate: 3.100611
+
+		quasi-dynamic error with MS: 2.037830e-02
+		quasi-dynamic rate: 3.997198
+	___________________________________
+
+	Nodes per Dimension: 129
+
+
+		dynamic error with MS: 2.303436e-04
+		dynamic rate: 5.563554
+
+		quasi-dynamic error with MS: 1.141190e-03
+		quasi-dynamic rate: 4.158423
+	___________________________________
+
+	Nodes per Dimension: 257
+
+
+		dynamic error with MS: 1.000001e-05
+		dynamic rate: 4.525714
+
+		quasi-dynamic error with MS: 6.750634e-05
+		quasi-dynamic rate: 4.079372
+	___________________________________
+
+	Nodes per Dimension: 513
+
+
+		dynamic error with MS: 5.311630e-07
+		dynamic rate: 4.234703
+
+		quasi-dynamic error with MS: 4.126542e-06
+		quasi-dynamic rate: 4.032018
+	___________________________________
+
+Operator order: 6
+
+	Nodes per Dimension: 17
+
+
+		dynamic error with MS: 4.036892e+02
+
+		quasi-dynamic error with MS: 7.036597e+02
+	___________________________________
+
+	Nodes per Dimension: 33
+
+
+		dynamic error with MS: 3.473485e-01
+		dynamic rate: 10.182645
+
+		quasi-dynamic error with MS: 3.284629e-01
+		quasi-dynamic rate: 11.064932
+	___________________________________
+
+	Nodes per Dimension: 65
+
+
+		dynamic error with MS: 2.070132e-02
+		dynamic rate: 4.068589
+
+		quasi-dynamic error with MS: 1.384981e-02
+		quasi-dynamic rate: 4.567793
+	___________________________________
+
+	Nodes per Dimension: 129
+
+
+		dynamic error with MS: 3.391668e-04
+		dynamic rate: 5.931584
+
+		quasi-dynamic error with MS: 2.710573e-04
+		quasi-dynamic rate: 5.675124
+	___________________________________
+
+	Nodes per Dimension: 257
+
+
+		dynamic error with MS: 6.227422e-06
+		dynamic rate: 5.767216
+
+		quasi-dynamic error with MS: 5.863039e-06
+		quasi-dynamic rate: 5.530805
+	___________________________________
+
+	Nodes per Dimension: 513
+
+
+		dynamic error with MS: 1.394666e-07
+		dynamic rate: 5.480644
+
+		quasi-dynamic error with MS: 1.701024e-07
+		quasi-dynamic rate: 5.107173
+	___________________________________
+

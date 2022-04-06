@@ -8,7 +8,7 @@ let
     year_seconds = 31556952
     ### getting directory for simulation data
     done = false
-    cd(string("../../"))
+    cd(string("../../erickson/output_files"))
     while !done 
         v = false
         while v == false

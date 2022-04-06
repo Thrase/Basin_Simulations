@@ -1,0 +1,91 @@
+\RequirePackage{luatex85}
+\documentclass[tikz]{standalone}
+% Default preamble
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary{polar}
+\usepgfplotslibrary{smithchart}
+\usepgfplotslibrary{statistics}
+\usepgfplotslibrary{dateplot}
+\usepgfplotslibrary{ternary}
+% Custom preamble from global variable:
+\usepackage{amsmath}
+\begin{document}
+\begin{tikzpicture}
+\begin{loglogaxis}[width={7cm}, height={5cm}, xlabel={$N$}, ylabel={$||\Delta\boldsymbol{u} ||_{\boldsymbol{H}}$}, legend pos={outer north east}, legend entries={Interseismic $p=2$ ,Interseismic $p=4$,Interseismic $p=6$,Coseismic $p=2$,Coseismic $p=4$,Coseismic $p=6$}]
+    \addplot[color={red}, mark={oplus}]
+        table[row sep={\\}]
+        {
+            \\
+            16.0  0.6576058725545408  \\
+            32.0  0.21066868699730076  \\
+            64.0  0.06433138049258126  \\
+            128.0  0.013938008032760147  \\
+            256.0  0.0033435593767259263  \\
+            512.0  0.0008325463185955131  \\
+        }
+        ;
+    \addplot[color={blue}, mark={oplus}]
+        table[row sep={\\}]
+        {
+            \\
+            16.0  0.6886137947399498  \\
+            32.0  0.09344362192316856  \\
+            64.0  0.010893632207702208  \\
+            128.0  0.00023034355566842006  \\
+            256.0  1.0000007237691292e-5  \\
+            512.0  5.311630162397276e-7  \\
+        }
+        ;
+    \addplot[color={green}, mark={oplus}]
+        table[row sep={\\}]
+        {
+            \\
+            16.0  403.6891714439252  \\
+            32.0  0.34734846456507235  \\
+            64.0  0.020701316398570604  \\
+            128.0  0.0003391667503908042  \\
+            256.0  6.227421582719438e-6  \\
+            512.0  1.394665698408632e-7  \\
+        }
+        ;
+    \addplot[color={red}, mark={asterisk}]
+        table[row sep={\\}]
+        {
+            \\
+            16.0  19.14124534809414  \\
+            32.0  4.470472516976763  \\
+            64.0  1.1082280221990524  \\
+            128.0  0.27638465025871556  \\
+            256.0  0.06904387888079266  \\
+            512.0  0.017256477752191735  \\
+        }
+        ;
+    \addplot[color={blue}, mark={asterisk}]
+        table[row sep={\\}]
+        {
+            \\
+            16.0  5.752080410468133  \\
+            32.0  0.32542013867515696  \\
+            64.0  0.020378297811481285  \\
+            128.0  0.0011411897627236261  \\
+            256.0  6.750634219121968e-5  \\
+            512.0  4.126541894848035e-6  \\
+        }
+        ;
+    \addplot[color={green}, mark={asterisk}]
+        table[row sep={\\}]
+        {
+            \\
+            16.0  703.6597081044652  \\
+            32.0  0.3284628995359916  \\
+            64.0  0.013849807489068475  \\
+            128.0  0.00027105729005602787  \\
+            256.0  5.863039151649351e-6  \\
+            512.0  1.701023923732175e-7  \\
+        }
+        ;
+\end{loglogaxis}
+\end{tikzpicture}
+\end{document}
