@@ -174,20 +174,14 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     Γ = ops.Γ[1]
     L = ops.L[1]
     sJ = metrics.sJ[1]
-   
-    #V .= 2 .* he_t(xf1, yf1, t, MMS)
-    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
-    #dim = floor(Int, sqrt(length(u)))
-    #ur = reshape(u, (dim, dim))
 
     Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2 - L*u)) ./ sJ
-    #Δτ[nn-15:nn] .= -τhe(xf1[nn-15 : nn], yf1[nn-15 : nn], t, 1, B_p, MMS)
-    
+
     for n in 1:nn
         
         ψn = ψ[n]
         bn = b[n]
-        τn = Δτ[n] #B_p.μ_out * (-3 * ur[1, n] + 4*ur[2, n] - ur[3, n])/h
+        τn = Δτ[n]
         ηn = η[n]
 
         Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
@@ -201,7 +195,6 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
         
         if bn != 0
             dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(V[n]) / RS.V0)
-            #dψ[n] = ψe_thd(xf1[n], yf1[n], t, B_p, RS, MMS)[1]
             dψ[n] += S_rsh(xf1[n], yf1[n], t, bn, B_p, RS, MMS)[1]
         else
             dψ[n] = 0
@@ -270,10 +263,6 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-   
-    #V .= 2 .* he_t(xf1, yf1, t, MMS)
-     
-    #Δτ .= - τhe(xf1, yf1, t, 1, B_p, MMS)
     Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2- L * u)) ./ sJ
 
     for n in 1:nn
@@ -301,7 +290,6 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
 
         if bn != 0
             dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
-            #dψ[n] = ψe_th(xf1[n], yf1[n], t, B_p, RS, MMS)
             dψ[n] += S_rsh(xf1[n], yf1[n], t, bn, B_p, RS, MMS)
         else
             dψ[n] = 0
@@ -404,7 +392,7 @@ function STOPFUN_Q(ψδ,t,i)
         year_seconds = i.p.year_seconds
         u_prev = i.p.vars.u_prev
         u = i.p.vars.u
-        fault_coord = i.p.metrics.facecoord[2][1]
+        fc = i.p.metrics.facecoord[2][1]
         Lw = i.p.Lw
         io = i.p.io
         pf = i.p.io.pf
@@ -417,7 +405,7 @@ function STOPFUN_Q(ψδ,t,i)
         V = @view dψV[nn .+ (1:nn)]
         Vmax = maximum(abs.(V))
         
-        if pf[1] % 10 == 0
+        if pf[1] % 40 == 0
 
         #=  
             plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
@@ -432,17 +420,19 @@ function STOPFUN_Q(ψδ,t,i)
             legend=false)
             plot(plt1, plt2, layout=2)
             gui()
-
-            
-            plot!(δ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-            xlabel="Slip", linecolor=:blue, linewidth=.1,
-            legend=false)
-            gui()
             =#
+            
+              
+            if io.slip_plot[1] != nothing
+                io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
+                v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
+                plot(io.slip_plot[1], v_plot, layout = (1,2))
+                gui()
+            end
 
             
             write_out(δ, V, τ, ψ, t,
-                  fault_coord,
+                  fc,
                   Lw,
                   io.station_names,
                   η)
@@ -962,12 +952,13 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                          io.stress_file,
                          io.slip_rate_file,
                          io.state_file)
-            #=
-            plot(2v̂_cpu, fc, yflip = true, ylabel="Depth",
-                  xlabel="Slip-Rate", linecolor=:red, linewidth=.1,
-                  legend=false)
-            gui()
-            =#
+            
+            if io.slip_plot[1] != nothing
+                io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:red, linewidth=.1)
+                v_plot = plot(2v̂_cpu, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
+                plot(io.slip_plot[1], v_plot, layout = (1,2))
+                gui()
+            end
 
             if io.vp == 1
                 write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)

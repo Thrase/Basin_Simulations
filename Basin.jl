@@ -32,7 +32,8 @@ let
     dir_out,
     volume_plots,
     cycle_flag,
-    num_cycles = read_params(ARGS[1])
+    num_cycles,
+    intime_plotting = read_params(ARGS[1])
     dir_out = string("../../erickson/output_files/", dir_out)
 
     nn = N + 1
@@ -119,6 +120,13 @@ let
     @printf "Got initial conditions\n"
     flush(stdout)
     
+    # make plot opject for slip plot if plotting while running
+    if intime_plotting == 1
+        slip_plot = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
+    else
+        slip_plot == nothing
+    end
+    
     ### parameter orginzation
     io = (dir_name = dir_out,
           slip_file = slip_file,
@@ -129,7 +137,8 @@ let
           pf = [0, 0.0, 0.0],
           u_file = u_file,
           v_file = v_file,
-          vp = volume_plots)
+          vp = volume_plots,
+          slip_plot = [slip_plot])
     
     vars = (u_prev = zeros(nn^2),
             t_prev = [0.0, 0.0],
