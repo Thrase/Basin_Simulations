@@ -5,7 +5,7 @@ using InteractiveViz
 using IterTools
 let 
     
-    year_seconds = 31556952
+    
     ### getting directory for simulation data
     done = false
     cd(string("../../erickson/output_files"))

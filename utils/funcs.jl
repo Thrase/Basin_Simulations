@@ -2,6 +2,8 @@ using Printf
 using DelimitedFiles
 using Plots
 
+const year_seconds = 31556952
+
 ### open filenames and retrun list of files, and list of arrays with strings of data
 function open_files(filenames...; begin_index=2, final_index=nothing)
     files = []
@@ -62,9 +64,12 @@ function plot_slip(slip_data, y, nn, title)
     plt = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)", title=title)
 
     δ = zeros(nn)
+    line = zeros(nn+2)
     break_count = 0
-    δ_off = get_line(slip_data, 1)[3:end]
-
+    off_line = get_line(slip_data, 1)
+    t = off_line[1]
+    δ_off = off_line[3:end]
+    @printf "begining time: %f\n" t/year_seconds
     final_index = size(slip_data)[1]
     for index in 1:final_index
 
@@ -74,15 +79,20 @@ function plot_slip(slip_data, y, nn, title)
             break_count += 1
         else
              if break_count % 2 == 0
-                δ .= get_line(slip_data, index)[3:end]
-                plt = plot!(δ-δ_off, y, linecolor=:blue, linewidth = .2)
-            elseif break_count % 2 == 1 && index % 3 == 1 
-                δ .= get_line(slip_data, index)[3:end]
-                plt = plot!(δ-δ_off, y, linecolor=:red, linewidth = .2)
+                 line .= get_line(slip_data, index)
+                 δ .= line[3:end]
+                 t = line[1]
+                 plt = plot!(δ-δ_off, y, linecolor=:blue, linewidth = .2)
+             elseif break_count % 2 == 1 && index % 3 == 1 
+                 δ .= get_line(slip_data, index)[3:end]
+                 t = line[1]
+                 plt = plot!(δ-δ_off, y, linecolor=:red, linewidth = .2)
             end 
         end
         
     end
+    
+    @printf "\nfinal time: %f\n" t/year_seconds
 
     return plt
 end
@@ -108,7 +118,6 @@ end
 function get_plot_indices(begin_cycle, final_cycle, break_indices)
 
     index_offset = break_indices[2*begin_cycle - 1]
-    @show length(break_indices)
     if 2*final_cycle + 1 <= length(break_indices)
         final_index = break_indices[2*final_cycle + 1] - 2
     elseif 2*final_cycle + 1 > length(break_indices)

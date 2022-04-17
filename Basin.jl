@@ -3,7 +3,7 @@ include("solvers.jl")
 include("physical_params.jl")
 include("read_in.jl")
 include("domain.jl")
-include("write_out.jl")
+#include("write_out.jl")
 
 using DelimitedFiles
 using Printf
@@ -11,6 +11,7 @@ using OrdinaryDiffEq
 using CUDA
 using CUDA.CUSPARSE
 using Plots
+using SEASCyclePlots
 
 let
 
@@ -71,7 +72,7 @@ let
     flush(stdout)
 
     ### get fault params
-    fc = metrics.facecoord[2][1]
+    fc = Array(metrics.facecoord[2][1])
     (x, y) = metrics.coord
     #for i in 2:length(fc)
     #    @show fc[i], fc[i] - fc[i-1]
@@ -85,12 +86,12 @@ let
     RS = fault_params(fc, Dc)
 
     ### setup io
-    slip_file,
-    slip_rate_file,
-    stress_file,
-    state_file = make_ss(dir_out, fc, δNp, ARGS[1])
-    station_names = make_stations(dir_out)
-    u_file, v_file = make_uv_files(dir_out, x[1:2:nn, 1], y[1, 1:2:nn])
+    stations = collect(0.0:2.0:22.0)
+
+    fault_name,
+    station_name,
+    volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
+
     @printf "set-up io\n"
     flush(stdout)
 
@@ -102,7 +103,13 @@ let
     end
     @printf "Got operators in %f seconds\n" opt_t
     flush(stdout)
-
+    
+    # make plot opject for slip plot if plotting while running
+    if intime_plotting == 1
+        slip_plot = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
+    else
+        slip_plot == nothing
+    end
 
     ### get initial condtions
     if ic_file != "None"
@@ -119,24 +126,14 @@ let
 
     @printf "Got initial conditions\n"
     flush(stdout)
-    
-    # make plot opject for slip plot if plotting while running
-    if intime_plotting == 1
-        slip_plot = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
-    else
-        slip_plot == nothing
-    end
-    
+
     ### parameter orginzation
     io = (dir_name = dir_out,
-          slip_file = slip_file,
-          slip_rate_file = slip_rate_file,
-          stress_file = stress_file,
-          state_file = state_file,
-          station_names = station_names,
+          fault_name = fault_name,
+          station_name = station_name,
+          volume_name = volume_name,
+          stations = stations,
           pf = [0, 0.0, 0.0],
-          u_file = u_file,
-          v_file = v_file,
           vp = volume_plots,
           slip_plot = [slip_plot])
     
@@ -246,7 +243,7 @@ let
         q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
         
         ### write break to output file
-        write_breaks(io)
+        #write_breaks(io)
 
         @printf "Begining Co-seismic period...\n"
         flush(stdout)

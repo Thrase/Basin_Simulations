@@ -431,18 +431,14 @@ function STOPFUN_Q(ψδ,t,i)
             end
 
             
-            write_out(δ, V, τ, ψ, t,
-                  fc,
-                  Lw,
-                  io.station_names,
-                  η)
+            write_out_stations(io.station_name,
+                               io.stations,
+                               fc,
+                               (δ, V, τ, ψ),
+                               t)
             
-            write_out_ss(δ, V, τ, ψ, t,
-                         io.slip_file,
-                         io.stress_file,
-                         io.slip_rate_file,
-                         io.state_file)
-            
+            write_out_fault(io.fault_name, (δ, V, τ, ψ), t)
+
         end
 
         
@@ -934,24 +930,16 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                 exit()
             end
         
-            write_out(δ,
-                      2v̂_cpu,
-                      τ̂,
-                      ψ_cpu,
-                      t,
-                      fc,
-                      Lw,
-                      io.station_names)
+            write_out_stations(io.station_name,
+                               io.stations,
+                               fc,
+                               (δ, 2v̂_cpu, τ̂, ψ_cpu),
+                               t)
 
-            write_out_ss(δ,
-                         2v̂_cpu,
-                         τ̂,
-                         ψ_cpu,
-                         t,
-                         io.slip_file,
-                         io.stress_file,
-                         io.slip_rate_file,
-                         io.state_file)
+            write_out_fault_data(io.fault_name,
+                                 (δ, 2v̂_cpu, τ̂, ψ_cpu),
+                                 t)
+
             
             if io.slip_plot[1] != nothing
                 io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:red, linewidth=.1)
@@ -961,7 +949,11 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             end
 
             if io.vp == 1
-                write_out_uv(Array(u), Array(v), nn, nn, io.u_file, io.v_file)
+                u = Array(u)
+                v = Array(v)
+                u_out = @view u[1:2:end]
+                v_out = @view v[1:2:end]
+                write_out_volume(io.volume_name, (u_out, v_out), t)
             end
 
             pf[1] +=.1

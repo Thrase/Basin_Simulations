@@ -1,0 +1,18 @@
+typeof(t_now) = Float64
+got grid in 4.409637 seconds
+set-up io
+Got operators in 360.160544 seconds
+Got initial conditions
+Approximately 0.015717 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 15800.379519701 seconds. 
+Simulation time is now 1606.8985229885072 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 20140.24074024 seconds. 
+Simulation time is now 1606.8985253851165 years. 
+
