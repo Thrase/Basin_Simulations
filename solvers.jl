@@ -328,33 +328,6 @@ function break_con(t_now, sim_seconds, cycle_flag, cycles, num_cycles)
 
 end
 
-function write_breaks(io)
-    
-    temp_io = open(io.slip_file, "a")
-    writedlm(temp_io, ["BREAK"])
-    close(temp_io)
-    temp_io = open(io.slip_rate_file, "a")
-    writedlm(temp_io, ["BREAK"])
-    close(temp_io)
-    temp_io = open(io.stress_file, "a")
-    writedlm(temp_io, ["BREAK"])
-    close(temp_io)
-    temp_io = open(io.state_file, "a")
-    writedlm(temp_io, ["BREAK"])
-    close(temp_io)
-    temp_io = open(io.u_file, "a")
-    writedlm(temp_io, ["BREAK"])
-    close(temp_io)
-    temp_io = open(io.v_file, "a")
-    writedlm(temp_io, ["BREAK"])
-    close(temp_io)
-    
-    for file_name in io.station_names
-        temp_io = open(file_name, "a")
-        writedlm(temp_io, ["BREAK"])
-        close(temp_io)
-    end
-end
 
 
 function PLOTFACE(ψδ,t,i)
@@ -392,7 +365,7 @@ function STOPFUN_Q(ψδ,t,i)
         year_seconds = i.p.year_seconds
         u_prev = i.p.vars.u_prev
         u = i.p.vars.u
-        fc = i.p.metrics.facecoord[2][1]
+        fc = i.p.fc
         Lw = i.p.Lw
         io = i.p.io
         pf = i.p.io.pf
@@ -437,7 +410,7 @@ function STOPFUN_Q(ψδ,t,i)
                                (δ, V, τ, ψ),
                                t)
             
-            write_out_fault(io.fault_name, (δ, V, τ, ψ), t)
+            write_out_fault_data(io.fault_name, (δ, V, τ, ψ), t)
 
         end
 
@@ -951,9 +924,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             if io.vp == 1
                 u = Array(u)
                 v = Array(v)
-                u_out = @view u[1:2:end]
-                v_out = @view v[1:2:end]
-                write_out_volume(io.volume_name, (u_out, v_out), t)
+                write_out_volume(io.volume_name, (u, v), 2v̂_cpu, nn, t)
             end
 
             pf[1] +=.1

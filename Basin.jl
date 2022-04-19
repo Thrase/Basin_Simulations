@@ -51,7 +51,7 @@ let
         t_span = (0.0, sim_seconds)
     end
 
-    ### basin Params
+    ### basin params
     B_p = (μ_out = 36.0,
            ρ_out = 2.8,
            μ_in = 8.0,
@@ -87,7 +87,7 @@ let
 
     ### setup io
     stations = collect(0.0:2.0:22.0)
-
+    @show size(x[1:2:nn, 1])
     fault_name,
     station_name,
     volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
@@ -108,7 +108,7 @@ let
     if intime_plotting == 1
         slip_plot = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
     else
-        slip_plot == nothing
+        slip_plot = nothing
     end
 
     ### get initial condtions
@@ -152,6 +152,7 @@ let
                      vars = vars,
                      ops = ops,
                      metrics = metrics,
+                     fc = Array(metrics.facecoord[2][1]),
                      io = io,
                      RS = RS,
                      vf = zeros(nn),
@@ -178,7 +179,7 @@ let
                       v̂ = CuArray(zeros(nn)),
                       source2 = CuArray(zeros(nn)),
                       source3 = CuArray(zeros(nn)),
-                      fc = metrics.facecoord[2][1],
+                      fc = Array(metrics.facecoord[2][1]),
                       Lw = Lw,
                       io = io,
                       d_to_s = d_to_s,
@@ -278,8 +279,6 @@ let
             static_params.vars.t_prev[2] = t_now/year_seconds
             t_span = (t_now, sim_seconds)
             
-            ### write breaks to output file
-            write_breaks(io)
             
             @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
             static_params.io.pf[1] = 0
