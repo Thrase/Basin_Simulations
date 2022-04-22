@@ -1,0 +1,15 @@
+ERROR: LoadError: MethodError: no method matching isless(::Nothing, ::Float64)
+Closest candidates are:
+  isless(!Matched::Missing, ::Any) at missing.jl:87
+  isless(!Matched::Float64, ::Float64) at float.jl:465
+  isless(!Matched::AbstractFloat, ::AbstractFloat) at operators.jl:165
+  ...
+Stacktrace:
+ [1] <(::Nothing, ::Float64) at ./operators.jl:277
+ [2] break_con(::Nothing, ::Float64, ::Int64, ::Int64, ::Int64) at /gpfs/home/tharvey2/Basin_Simulations/solvers.jl:336
+ [3] top-level scope at /gpfs/home/tharvey2/Basin_Simulations/Basin.jl:190
+ [4] include(::Function, ::Module, ::String) at ./Base.jl:380
+ [5] include(::Module, ::String) at ./Base.jl:368
+ [6] exec_options(::Base.JLOptions) at ./client.jl:296
+ [7] _start() at ./client.jl:506
+in expression starting at /gpfs/home/tharvey2/Basin_Simulations/Basin.jl:15

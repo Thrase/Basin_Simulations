@@ -3,7 +3,7 @@ include("solvers.jl")
 include("physical_params.jl")
 include("read_in.jl")
 include("domain.jl")
-#include("write_out.jl")
+include("write_out.jl")
 
 using DelimitedFiles
 using Printf
@@ -11,7 +11,7 @@ using OrdinaryDiffEq
 using CUDA
 using CUDA.CUSPARSE
 using Plots
-using SEASCyclePlots
+
 
 let
 
@@ -87,7 +87,6 @@ let
 
     ### setup io
     stations = collect(0.0:2.0:22.0)
-    @show size(x[1:2:nn, 1])
     fault_name,
     station_name,
     volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
