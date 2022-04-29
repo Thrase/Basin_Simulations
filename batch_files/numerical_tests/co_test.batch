@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --account=erickson		   
+#SBATCH --partition=longgpu  		   
+#SBATCH --job-name=c_50           	   
+#SBATCH --output=batch_output/c_50.out
+#SBATCH --error=batch_output/c_50.err
+#SBATCH --time=14-00:00:00   		   
+#SBATCH --mem=64G            		   
+#SBATCH --nodes=1    
+#SBATCH --gres=gpu:1       		   
+#SBATCH --ntasks-per-node=1  		   
+#SBATCH --cpus-per-task=8    		   
+ 
+julia -t8 ../Basin.jl ../input_files/dynamic/cohesive_tests/50n.dat

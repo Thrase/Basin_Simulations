@@ -875,7 +875,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     dt = (t1 - t0) / nstep
 
     pf[1] = .1
-    pf[2] = .5
+    pf[2] = .01
     
 
     fill!(Δq, 0)
@@ -903,11 +903,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                 exit()
             end
         
-            write_out_stations(io.station_name,
-                               io.stations,
-                               fc,
-                               (δ, 2v̂_cpu, τ̂, ψ_cpu),
-                               t)
+           
 
             write_out_fault_data(io.fault_name,
                                  (δ, 2v̂_cpu, τ̂, ψ_cpu),
@@ -929,6 +925,25 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
             pf[1] +=.1
         end
+
+        #if step == ceil(Int, pf[2]/dt)
+
+              
+        v̂_cpu = Array(v̂)
+        δ = Array(2ûf)
+        τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+        ψ_cpu = Array(ψ)
+            
+        write_out_stations(io.station_name,
+                           io.stations,
+                           fc,
+                           (δ, 2v̂_cpu, τ̂, ψ_cpu),
+                           t)
+            
+        #pf[2] = .01
+        #end
+
+
     
         if (2 * maximum(v̂)) < d_to_s
             return t

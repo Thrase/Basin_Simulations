@@ -2,7 +2,7 @@
 #
 #
 P=4
-Total_time=5000.0
+Total_time=20000.0
 Number_nodes=1400
 Domain_length=24
 r_hat=.75
@@ -11,11 +11,12 @@ b_depth=4
 dynamic_flag=1
 d_to_s=.0005
 dt=.5
-initial_con=
-inital_t=
+initial_con=../input_files/initial_cons/d_4_1400_cont
+inital_t=../input_files/initial_cons/d_4_1400_cont_t
 Dc=.008
 B_on=1
-dir_name=d_4_1400_2_cont
+dir_name=d_4_1400_2_cont/
 volume_plots=0
 cycle_flag=0
 num_cycles=1
+intime_plotting=0

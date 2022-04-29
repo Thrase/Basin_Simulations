@@ -34,8 +34,9 @@ let
     volume_plots,
     cycle_flag,
     num_cycles,
-    intime_plotting = read_params(ARGS[1])
-    dir_out = string("../../erickson/output_files/", dir_out)
+    intime_plotting,
+    μ_in= read_params(ARGS[1])
+    dir_out = string("../../../erickson/output_files/", dir_out)
 
     nn = N + 1
 
@@ -54,7 +55,7 @@ let
     ### basin params
     B_p = (μ_out = 36.0,
            ρ_out = 2.8,
-           μ_in = 8.0,
+           μ_in = μ_in,
            ρ_in = 2.0,
            c = (Lw/2)/D,
            r̄ = (Lw/2)^2,
@@ -64,7 +65,7 @@ let
     
     ### get grid
     grid_t = @elapsed begin
-        xt, yt = transforms_e(Lw, r̂, l)
+        xt, yt = transforms_n(Lw)
         metrics = create_metrics(N, N, B_p, μ, ρ, xt, yt)
     end
 

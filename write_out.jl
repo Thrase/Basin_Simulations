@@ -46,6 +46,7 @@ function init_station_data(filename::String, stations::AbstractVector)
     defDim(ds, "time index", Inf)
     
     defVar(ds, "time", Float64, ("time index",))
+    defVar(ds, "maximum V", Float64, ("time index",))
     defVar(ds, "stations", Float64, ("station index",))
     defVar(ds, "δ", Float64, ("time index", "station index"))
     defVar(ds, "V", Float64, ("time index", "station index"))
@@ -94,7 +95,7 @@ function new_dir(new_dir::String, input_file::String, stations::Array{Float64, 1
     if !isdir(new_dir)
         mkdir(new_dir)
     else
-        #error("new directory already exists.")
+        error("new directory already exists.")
     end
 
     nn = length(depth)
@@ -149,6 +150,7 @@ function write_out_stations(station_file::String, stations::Array{Float64,1}, de
     file = NCDataset(station_file, "a")
     t_ind = size(file["time"])[1] + 1
     file["time"][t_ind] = t
+    file["maximum V"][t_ind] = maximum(vars[2])
 
     for (i, var) in enumerate(vars)
         interp = interpolate((depth,), var, Gridded(Linear()))
