@@ -371,7 +371,9 @@ function STOPFUN_Q(ψδ,t,i)
         pf = i.p.io.pf
         η = i.p.metrics.η
         cycles = i.p.cycles[1]
-        
+        HI = i.p.ops.HI[1]
+        G = i.p.ops.G[1]
+
         dψV = i.fsallast
         ψ = @view ψδ[(1:nn)]
         δ = @view ψδ[nn .+ (1:nn)]
@@ -403,11 +405,12 @@ function STOPFUN_Q(ψδ,t,i)
                 gui()
             end
 
+            τ2 = HI * G * u
             
             write_out_stations(io.station_name,
                                io.stations,
                                fc,
-                               (δ, V, τ, ψ),
+                               (δ, V, τ, τ2, ψ),
                                t)
             
             write_out_fault_data(io.fault_name, (δ, V, τ, ψ), t)
@@ -839,7 +842,13 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     Z̃f = p. Z̃f1
     io = p.io
     v̂ = p.v̂
+    δ = p.δ
+    v̂_cpu = p.v̂_cpu
+    τ̂_cpu = p.τ̂_cpu
+    τ̃_cpu = p.τ̃_cpu
+    ψ_cpu = p.ψ_cpu
     d_to_s = p.d_to_s
+    HIG = p.HIG
     vf = @view q[nn^2 + 1: nn : 2nn^2]
     v = @view q[nn^2 + 1 : 2nn^2]
     u = @view q[1 : nn^2]
@@ -892,10 +901,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         
         if step == ceil(Int, pf[1]/dt)
             
-            v̂_cpu = Array(v̂)
-            δ = Array(2ûf)
-            τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-            ψ_cpu = Array(ψ)
+            v̂_cpu .= Array(v̂)
+            δ .= Array(2ûf)
+            τ̃_cpu .= Array(HIG * u)
+            τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+            #τ̃_cpu .= Array(-τ̃f ./ sJ)
+            ψ_cpu .= Array(ψ)
             
 
             if any(isnan, v̂_cpu)
@@ -903,10 +914,9 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                 exit()
             end
         
-           
 
             write_out_fault_data(io.fault_name,
-                                 (δ, 2v̂_cpu, τ̂, ψ_cpu),
+                                 (δ, 2v̂_cpu, τ̂_cpu, τ̃_cpu, ψ_cpu),
                                  t)
 
             
@@ -918,9 +928,9 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             end
 
             if io.vp == 1
-                u = Array(u)
-                v = Array(v)
-                write_out_volume(io.volume_name, (u, v), 2v̂_cpu, nn, t)
+                u_out = Array(u)
+                v_out = Array(v)
+                write_out_volume(io.volume_name, (u_out, v_out), 2v̂_cpu, nn, t)
             end
 
             pf[1] +=.1
@@ -930,14 +940,16 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
               
         v̂_cpu = Array(v̂)
-        δ = Array(2ûf)
-        τ̂ = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-        ψ_cpu = Array(ψ)
+        δ .= Array(2ûf)
+        τ̃_cpu .= Array(HIG * u)
+        τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+        #τ̃_cpu .= Array( -τ̃f ./ sJ)
+        ψ_cpu .= Array(ψ)
             
         write_out_stations(io.station_name,
                            io.stations,
                            fc,
-                           (δ, 2v̂_cpu, τ̂, ψ_cpu),
+                           (δ, 2v̂_cpu, τ̂_cpu, τ̃_cpu, ψ_cpu),
                            t)
             
         #pf[2] = .01
@@ -945,7 +957,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
 
     
-        if (2 * maximum(v̂)) < d_to_s
+        if (2maximum(Array(v̂))) < d_to_s
             return t
         end
 

@@ -173,6 +173,7 @@ let
                       JIHP = CuSparseMatrixCSC(ops.JIHP),
                       nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
                       HIGΓL1 = CuSparseMatrixCSC(ops.HIGΓL1),
+                      HIG = CuSparseMatrixCSC(ops.HI[1] * ops.G[1]),
                       RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, nn]),
                       b = CuArray(RS.b),
                       τ̃f = CuArray(zeros(nn)),
@@ -183,7 +184,12 @@ let
                       Lw = Lw,
                       io = io,
                       d_to_s = d_to_s,
-                      RS_cpu = RS)
+                      RS_cpu = RS,
+                      δ = zeros(nn),
+                      v̂_cpu = zeros(nn),
+                      τ̂_cpu = zeros(nn),
+                      τ̃_cpu = zeros(nn),
+                      ψ_cpu = zeros(nn))
     
     @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)

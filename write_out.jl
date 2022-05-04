@@ -2,7 +2,7 @@ using DelimitedFiles
 using NCDatasets
 using Interpolations
 
-const vars_name = ("δ", "V", "τ", "ψ")
+const vars_name = ("δ", "V", "τ̂", "τ̃", "ψ")
 
 """
     init_fault_data(filename::String, var::String, nn::Integer)
@@ -50,7 +50,8 @@ function init_station_data(filename::String, stations::AbstractVector)
     defVar(ds, "stations", Float64, ("station index",))
     defVar(ds, "δ", Float64, ("time index", "station index"))
     defVar(ds, "V", Float64, ("time index", "station index"))
-    defVar(ds, "τ", Float64, ("time index", "station index"))
+    defVar(ds, "τ̂", Float64, ("time index", "station index"))
+    defVar(ds, "τ̃", Float64, ("time index", "station index"))
     defVar(ds, "ψ", Float64, ("time index", "station index"))
            
     ds["stations"][:] .= stations
