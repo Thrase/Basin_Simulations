@@ -17,7 +17,7 @@ CUDA.allowscalar(false)
 ⊗(A,B) = kron(A, B)
 
 
-function mod_data!(δ, ge, K, vf, RS, metrics, Lw, t)
+function mod_data!(δ, uf2, ge, K, vf, RS, metrics, Lw, t)
 
     
     (xf, yf) = metrics.facecoord
@@ -32,7 +32,7 @@ function mod_data!(δ, ge, K, vf, RS, metrics, Lw, t)
             vf .=  δ ./ 2
         elseif i == 2
             # dirichlet h
-            vf .= f2_data(RS, μf2, Lw, t)
+            vf .= (uf2 .+ (RS.Vp/2 * t))
         elseif i == 3
             # neumann h
             vf .= 0
@@ -109,12 +109,6 @@ function mod_data_mms!(δ, ge, K, H̃, JH, vf, MMS, B_p, RS, metrics, t)
     ge .+= JH * Forcing_h(coord[1][:], coord[2][:], t, B_p, MMS)
     
 end
-
-
-function f2_data(RS, μf2, Lw, t)
-    return (RS.Vp/2 * t .+ (RS.τ_inf * Lw) ./ μf2)
-end
-
 
 function traction(ops, metrics, f, u, û)
 

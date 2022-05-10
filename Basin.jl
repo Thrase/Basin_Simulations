@@ -90,6 +90,7 @@ let
     stations = collect(0.0:2.0:22.0)
     fault_name,
     station_name,
+    station_r_name,
     volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
 
     @printf "set-up io\n"
@@ -131,6 +132,7 @@ let
     io = (dir_name = dir_out,
           fault_name = fault_name,
           station_name = station_name,
+          station_r_name = station_r_name,
           volume_name = volume_name,
           stations = stations,
           pf = [0, 0.0, 0.0],
@@ -142,8 +144,11 @@ let
             Δτ = zeros(nn),
             vf = zeros(nn),
             u = zeros(nn^2),
+            uf2 = zeros(nn),
             ge = zeros(nn^2))
 
+    vars.uf2 .= (RS.τ_inf * Lw) ./ metrics.μf2
+    
     static_params = (year_seconds,
                      reject_step = [false],
                      Lw = Lw,
@@ -249,9 +254,6 @@ let
         
         q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
         
-        ### write break to output file
-        #write_breaks(io)
-
         @printf "Begining Co-seismic period...\n"
         flush(stdout)
 
@@ -261,7 +263,7 @@ let
             dynamic_params.source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
                 ops.L[2] * q[nn^2 + 1 : 2nn^2] +
                 traction(ops, metrics, 2, q[1:nn^2],
-                         f2_data(RS, metrics.μf2, Lw, t_now))))
+                         ops.L[2] * q[1:nn^2])))
 
             dynamic_params.source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
             ops.L[3] * q[nn^2 + 1 : 2nn^2] +
@@ -282,7 +284,8 @@ let
 
             ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
             ψδ[nn + 1: 2nn] .= Array(2 * q[2nn^2 + 1 : 2nn^2 + nn])
-            static_params.vars.t_prev[2] = t_now/year_seconds
+            static_params.vars.t_prev[2] = t_now
+            static_params.vars.uf2 .= Array(dynamic_params.L2 * q[1:nn^2])
             t_span = (t_now, sim_seconds)
             
             

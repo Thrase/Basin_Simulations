@@ -31,7 +31,8 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     ops = p.ops
     η = metrics.η
     b = p.RS.b
-    
+    uf2 = p.vars.uf2
+    t_begin = p.vars.t_prev[2]
 
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
@@ -42,7 +43,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     dψ = @view dψδ[1:nn]
     V = @view dψδ[nn + 1 : 2nn]
 
-    mod_data!(δ, ge, K, vf, RS, metrics, Lw, t)
+    mod_data!(δ, uf2, ge, K, vf, RS, metrics, Lw, t-t_begin)
 
     u[:] = M \ ge
 
@@ -155,6 +156,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     b = p.b
     f1_source = p.f1_source
     h = p.ops.hmin
+    
 
     xf1 = metrics.facecoord[1][1]
     yf1 = metrics.facecoord[2][1] 
@@ -370,6 +372,7 @@ function STOPFUN_Q(ψδ,t,i)
         io = i.p.io
         pf = i.p.io.pf
         η = i.p.metrics.η
+        sJ = i.p.metrics.sJ[1]
         cycles = i.p.cycles[1]
         HI = i.p.ops.HI[1]
         G = i.p.ops.G[1]
@@ -405,12 +408,18 @@ function STOPFUN_Q(ψδ,t,i)
                 gui()
             end
 
-            τ2 = HI * G * u
+            τ2 = - (HI * G * u) ./ sJ
             
             write_out_stations(io.station_name,
                                io.stations,
                                fc,
                                (δ, V, τ, τ2, ψ),
+                               t)
+
+            write_out_stations(io.station_r_name,
+                               io.stations,
+                               fc,
+                               (i.p.ops.L[2] * u, zeros(nn)),
                                t)
             
             write_out_fault_data(io.fault_name, (δ, V, τ, ψ), t)
@@ -903,7 +912,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             
             v̂_cpu .= Array(v̂)
             δ .= Array(2ûf)
-            τ̃_cpu .= Array(HIG * u)
+            τ̃_cpu .= Array(-(HIG * u) ./ sJ)
             τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
             #τ̃_cpu .= Array(-τ̃f ./ sJ)
             ψ_cpu .= Array(ψ)
@@ -941,7 +950,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
               
         v̂_cpu = Array(v̂)
         δ .= Array(2ûf)
-        τ̃_cpu .= Array(HIG * u)
+        τ̃_cpu .= Array(- (HIG * u) ./ sJ)
         τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
         #τ̃_cpu .= Array( -τ̃f ./ sJ)
         ψ_cpu .= Array(ψ)
@@ -950,6 +959,12 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                            io.stations,
                            fc,
                            (δ, 2v̂_cpu, τ̂_cpu, τ̃_cpu, ψ_cpu),
+                           t)
+
+        write_out_stations(io.station_r_name,
+                           io.stations,
+                           fc,
+                           (Array(p.L2 * u), zeros(nn)),
                            t)
             
         #pf[2] = .01
