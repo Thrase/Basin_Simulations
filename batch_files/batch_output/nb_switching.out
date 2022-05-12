@@ -6,3 +6,300 @@ Approximately 0.000020 Gib to GPU
 
 On cycle 1
 Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 301.12841552 seconds. 
+Simulation time is now 258.80337045819203 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 646.107576421 seconds. 
+Simulation time is now 258.8033721085193 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 235.21160261 seconds. 
+Simulation time is now 354.8181281607606 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 564.030106679 seconds. 
+Simulation time is now 354.818129683061 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 236.413738245 seconds. 
+Simulation time is now 456.57980566655726 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 558.036656801 seconds. 
+Simulation time is now 456.57980720093565 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 234.959180337 seconds. 
+Simulation time is now 558.4964101212834 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 567.005076877 seconds. 
+Simulation time is now 558.4964116650884 years. 
+
+On cycle 5
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 237.580898987 seconds. 
+Simulation time is now 660.3656112588882 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 579.74822097 seconds. 
+Simulation time is now 660.3656127999832 years. 
+
+got grid in 1.939397 seconds
+set-up io
+Got operators in 10.892412 seconds
+Got initial conditions
+Approximately 0.000020 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 311.253945337 seconds. 
+Simulation time is now 258.80337045819203 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1672.915347738 seconds. 
+Simulation time is now 258.8033748096332 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 240.149521647 seconds. 
+Simulation time is now 351.928326592662 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1572.080634118 seconds. 
+Simulation time is now 351.9283307291147 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 234.358171323 seconds. 
+Simulation time is now 451.4235771982204 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1525.466368816 seconds. 
+Simulation time is now 451.4235813803338 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 229.863973325 seconds. 
+Simulation time is now 550.7816127767016 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1502.459196657 seconds. 
+Simulation time is now 550.7816169585794 years. 
+
+On cycle 5
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 229.161874662 seconds. 
+Simulation time is now 650.0686584825356 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1500.581561073 seconds. 
+Simulation time is now 650.0686626663577 years. 
+
+got grid in 1.745994 seconds
+set-up io
+Got operators in 9.886640 seconds
+Got initial conditions
+Approximately 0.000020 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 302.819509111 seconds. 
+Simulation time is now 258.80337045819203 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2086.131170773 seconds. 
+Simulation time is now 258.8033762052618 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 234.117583532 seconds. 
+Simulation time is now 351.58260698687195 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1971.356620009 seconds. 
+Simulation time is now 351.5826124715249 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 232.693012255 seconds. 
+Simulation time is now 450.8349625077073 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2026.2559288 seconds. 
+Simulation time is now 450.83496803059745 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 233.388539907 seconds. 
+Simulation time is now 549.9447442388539 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1961.176695969 seconds. 
+Simulation time is now 549.9447497658093 years. 
+
+On cycle 5
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 233.647887509 seconds. 
+Simulation time is now 648.9707686661163 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 1958.154335504 seconds. 
+Simulation time is now 648.9707741944269 years. 
+
+got grid in 1.769716 seconds
+set-up io
+Got operators in 9.824706 seconds
+Got initial conditions
+Approximately 0.000020 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 305.939744467 seconds. 
+Simulation time is now 258.80337045819203 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2706.422808904 seconds. 
+Simulation time is now 258.80337807316994 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 236.345223872 seconds. 
+Simulation time is now 351.26191298685063 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2560.879627105 seconds. 
+Simulation time is now 351.26192025404083 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 233.983566881 seconds. 
+Simulation time is now 450.33594381190863 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2570.250390269 seconds. 
+Simulation time is now 450.3359511122102 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 234.245814978 seconds. 
+Simulation time is now 549.2457211958869 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2664.707706283 seconds. 
+Simulation time is now 549.2457285120961 years. 
+
+On cycle 5
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 235.068443826 seconds. 
+Simulation time is now 648.0110105079478 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 2612.418493611 seconds. 
+Simulation time is now 648.0110178209754 years. 
+
+got grid in 1.868528 seconds
+set-up io
+Got operators in 10.141490 seconds
+Got initial conditions
+Approximately 0.000020 Gib to GPU
+
+On cycle 1
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 305.273332319 seconds. 
+Simulation time is now 258.80337045819203 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 13029.92059601 seconds. 
+Simulation time is now 258.8034070697573 years. 
+
+On cycle 2
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 230.01360856 seconds. 
+Simulation time is now 349.60569137382777 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 11979.757900598 seconds. 
+Simulation time is now 349.6057247880202 years. 
+
+On cycle 3
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 221.280780767 seconds. 
+Simulation time is now 447.7103710877032 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 12712.080056936 seconds. 
+Simulation time is now 447.7104043992032 years. 
+
+On cycle 4
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 230.520635951 seconds. 
+Simulation time is now 545.4685406416654 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 12651.289094996 seconds. 
+Simulation time is now 545.4685740106096 years. 
+
+On cycle 5
+Begining Inter-seismic period...
+Finished Interseismic
+Interseismic period took 231.595845904 seconds. 
+Simulation time is now 643.0643264389358 years. 
+
+Begining Co-seismic period...
+Finised Co-seismic period
+Coseismic period took 12812.229093717 seconds. 
+Simulation time is now 643.0643598173656 years. 
+

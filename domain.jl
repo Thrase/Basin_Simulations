@@ -25,20 +25,14 @@ function transforms_e(Lw, r̂, l)
                    zeros(size(r)),
                    ((a .* sech.((s) ./ l).^2) ./ l) .+ b)
     =#
+
     #=
     r = -1:.01:1
     s = -1:.01:1
-
-   
     scatter(r, xt(r,s), legend=false)
     gui()
-
-    cont = readline()
-
-    if cont == "n"
-        quit()
-    end
     =#
+    
         
         
     return xt, yt

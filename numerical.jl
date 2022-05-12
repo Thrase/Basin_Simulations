@@ -29,18 +29,18 @@ function mod_data!(δ, uf2, ge, K, vf, RS, metrics, Lw, t)
     
     for i in 1:4
         if i == 1
+            # fault data
             vf .=  δ ./ 2
         elseif i == 2
-            # dirichlet h
-            vf .= (uf2 .+ (RS.Vp/2 * t))
+            # face 2 data
+            vf .= 0 #(uf2 .+ (RS.Vp/2 * t))
         elseif i == 3
-            # neumann h
+            # face 3 data
             vf .= 0
         elseif i == 4
-            # neumann h
+            # face 4 data
             vf .= 0
         end
-        
         ge .+= K[i] * vf
     end
 
@@ -365,19 +365,21 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
 
     static_t = @elapsed begin
 
+        # boundary data operators for quasi-static displacement conditions
         K1 = L[1]' * H[1] * Cf[1][1] * Γ[1] - G[1]'
-        K2 = L[2]' * H[2] * Cf[2][1] * Γ[2] - G[2]'
+        #K2 = L[2]' * H[2] * Cf[2][1] * Γ[2] - G[2]'
         #K3 = L[3]' * H[3] * Γ[3] - G[3]'
         #K4 = L[4]' * H[4] * Γ[4] - G[4]'
         
+        # boundary data operator for quasi-static traction-free conditions
         #K1 = L[1]' * H2]
-        #K2 = L[2]' * H[2]
+        K2 = L[2]' * H[2]
         K3 = L[3]' * H[3]
         K4 = L[4]' * H[4]
 
+        # modification of second derivative operator for displacement conditions
         M̃ = copy(Ã)
-        
-        for f in 1:2
+        for f in 1:1
             M̃ -= L[f]' * G[f]
             M̃ += L[f]' * H[f] * Cf[f][1] * Γ[f] * L[f]
             M̃ -= G[f]' * L[f]

@@ -65,7 +65,7 @@ let
     
     ### get grid
     grid_t = @elapsed begin
-        xt, yt = transforms_n(Lw)
+        xt, yt = transforms_e(Lw, r̂, l)
         metrics = create_metrics(N, N, B_p, μ, ρ, xt, yt)
     end
 
@@ -75,10 +75,11 @@ let
     ### get fault params
     fc = Array(metrics.facecoord[2][1])
     (x, y) = metrics.coord
-    #for i in 2:length(fc)
-    #    @show fc[i], fc[i] - fc[i-1]
-    #end
-    
+    for i in 2:length(fc)
+        @show fc[i], fc[i] - fc[i-1]
+    end
+    #error("exit")
+
     η = metrics.η
 
     δNp, 
@@ -153,6 +154,7 @@ let
                      reject_step = [false],
                      Lw = Lw,
                      nn = nn,
+                     δNp = δNp,
                      d_to_s = d_to_s,
                      vars = vars,
                      ops = ops,
@@ -165,6 +167,7 @@ let
 
     threads = 512
     dynamic_params = (nn = nn,
+                      δNp = δNp,
                       threads = threads,
                       blocks = cld(nn, threads),
                       Λ = CuSparseMatrixCSC(ops.Λ),
@@ -179,7 +182,7 @@ let
                       nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
                       HIGΓL1 = CuSparseMatrixCSC(ops.HIGΓL1),
                       HIG = CuSparseMatrixCSC(ops.HI[1] * ops.G[1]),
-                      RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, nn]),
+                      RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, RS.Vp, nn, δNp]),
                       b = CuArray(RS.b),
                       τ̃f = CuArray(zeros(nn)),
                       v̂ = CuArray(zeros(nn)),

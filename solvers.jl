@@ -16,6 +16,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     end
     
     nn = p.nn
+    δNp = p.δNp
     Lw = p.Lw
     Δτ = p.vars.Δτ
     u = p.vars.u
@@ -57,39 +58,44 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
     for n in 1:nn
         
-        ψn = ψ[n]
-        bn = b[n]
-        τn = Δτ[n]
-        ηn = η[n]
+        if n <= δNp
 
-        Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
+            ψn = ψ[n]
+            bn = b[n]
+            τn = Δτ[n]
+            ηn = η[n]
 
-        # rootfinding with radiation damping ηV
-        #=
-        VR = abs(τn / ηn)
-        VL = -VR
-        Vn = V[n]
-        obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
-        (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
-                                 atolx = 1e-14, rtolx = 1e-14)
-        =#
-        if !isfinite(Vn)
-            reject_step[1] = true
-            return
-        end
+            Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
 
-        V[n] = Vn
-        
-        if bn != 0
-            dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            # rootfinding with radiation damping ηV
+            #=
+            VR = abs(τn / ηn)
+            VL = -VR
+            Vn = V[n]
+            obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
+            (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
+            atolx = 1e-14, rtolx = 1e-14)
+            =#
+            if !isfinite(Vn)
+                reject_step[1] = true
+                return
+            end
+
+            V[n] = Vn
+            
+            if bn != 0
+                dψ[n] = (bn * RS.V0 / RS.Dc) * (exp((RS.f0 - ψn) / bn) - abs(Vn) / RS.V0)
+            else
+                dψ[n] = 0
+            end
+            
+            if !isfinite(dψ[n])
+                dψ .= 0
+                reject_step[1] = true
+                return
+            end
         else
-            dψ[n] = 0
-        end
-        
-        if !isfinite(dψ[n])
-            dψ .= 0
-            reject_step[1] = true
-            return
+            V[n] = RS.Vp
         end
 
     end
@@ -361,6 +367,7 @@ function STOPFUN_Q(ψδ,t,i)
     if isdefined(i,:fsallast)
 
         nn = i.p.nn
+        δNp = i.p.δNp
         RS = i.p.RS
         τ = i.p.vars.Δτ
         t_prev = i.p.vars.t_prev
@@ -400,14 +407,7 @@ function STOPFUN_Q(ψδ,t,i)
             gui()
             =#
             
-              
-            if io.slip_plot[1] != nothing
-                io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
-                v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
-                plot(io.slip_plot[1], v_plot, layout = (1,2))
-                gui()
-            end
-
+       
             τ2 = - (HI * G * u) ./ sJ
             
             write_out_stations(io.station_name,
@@ -419,14 +419,23 @@ function STOPFUN_Q(ψδ,t,i)
             write_out_stations(io.station_r_name,
                                io.stations,
                                fc,
-                               (i.p.ops.L[2] * u, zeros(nn)),
+                               (i.p.ops.L[2] * u, V),
                                t)
             
             write_out_fault_data(io.fault_name, (δ, V, τ, ψ), t)
 
         end
 
+               
+        if io.slip_plot[1] != nothing && pf[1] % 120 == 0
+            io.slip_plot[1] = plot!(io.slip_plot[1], δ[1:δNp], fc[1:δNp], linecolor=:blue, linewidth=.1)
+            v_plot = plot(V[1:δNp], fc[1:δNp], legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
+            plot(io.slip_plot[1], v_plot, layout = (1,2))
+            gui()
+        end
         
+
+
         year_count = t/year_seconds
         
         if Vmax >= 1e-2 
@@ -657,6 +666,7 @@ function FAULT_GPU!(dq, q, p, t)
     #@printf "\r\t%f" t
 
     nn = p.nn
+    δNp = p.δNp
     RS = p.RS
     b = p.b
     Λ = p.Λ
@@ -692,8 +702,7 @@ function FAULT_GPU!(dq, q, p, t)
 
     # compute numerical traction on face 1
     τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
-    
-    
+      
     @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f1, H, sJ, ψ, dψ, b, RS)
 
     dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source2 ./ (2*Z̃f2)
@@ -714,61 +723,73 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
     V0 = RS[3]
     Dc = RS[4]
     f0 = RS[5]
-    nn = RS[6]
+    Vp = RS[6]
+    nn = RS[7]
+    δNp = RS[8]
 
     n = blockDim().x * (blockIdx().x - 1) + threadIdx().x  
-    #@cuprintln("hello")
+    
     if n <= nn
-        
-        vn = vf[n]
-        Z̃n = Z̃f[n]
-        sJn = sJ[n]
-        ψn = ψ[n]
-        τ̃n = τ̃f[n]
-        bn = b[n]
-        Hn = H[n]
-        v̂nL = vn - τ̃n/Z̃n
-        v̂nR = -v̂nL
 
-        (fL, _) = rateandstateD_GPU(v̂nL, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
-        (fR, _) = rateandstateD_GPU(v̂nR, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
-        (f, df) = rateandstateD_GPU(vn, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+        if n <= δNp
 
-        dv̂nlr = v̂nR - v̂nL
+            vn = vf[n]
+            Z̃n = Z̃f[n]
+            sJn = sJ[n]
+            ψn = ψ[n]
+            τ̃n = τ̃f[n]
+            bn = b[n]
+            Hn = H[n]
+            v̂nL = vn - τ̃n/Z̃n
+            v̂nR = -v̂nL
 
-        v̂n = vn
-        
-        count = 0
-        for iter in 1:500
+            (fL, _) = rateandstateD_GPU(v̂nL, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+            (fR, _) = rateandstateD_GPU(v̂nR, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+            (f, df) = rateandstateD_GPU(vn, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
 
-            dv̂n = -f / df
-            v̂n  = v̂n + dv̂n
-
-            if v̂n < v̂nL || v̂n > v̂nR || abs(dv̂n) / dv̂nlr < 0
-                v̂n = (v̂nR + v̂nL) / 2
-                dv̂n = (v̂nR - v̂nL) / 2
-            end
-            
-            (f, df) = rateandstateD_GPU(v̂n, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
-
-            if f * fL > 0
-                (fL, v̂nL) = (f, v̂n)
-            else
-                (fR, v̂nR) = (f, v̂n)
-            end
             dv̂nlr = v̂nR - v̂nL
 
-            if abs(f) < 1e-12 && abs(dv̂n) < 1e-12 + 1e-12 * (abs(dv̂n) + abs(v̂n))
-                break
+            v̂n = vn
+            
+            count = 0
+            for iter in 1:500
+
+                dv̂n = -f / df
+                v̂n  = v̂n + dv̂n
+
+                if v̂n < v̂nL || v̂n > v̂nR || abs(dv̂n) / dv̂nlr < 0
+                    v̂n = (v̂nR + v̂nL) / 2
+                    dv̂n = (v̂nR - v̂nL) / 2
+                end
+                
+                (f, df) = rateandstateD_GPU(v̂n, Z̃n, vn, sJn, ψn, a, τ̃n, σn, V0)
+
+                if f * fL > 0
+                    (fL, v̂nL) = (f, v̂n)
+                else
+                    (fR, v̂nR) = (f, v̂n)
+                end
+                dv̂nlr = v̂nR - v̂nL
+
+                if abs(f) < 1e-12 && abs(dv̂n) < 1e-12 + 1e-12 * (abs(dv̂n) + abs(v̂n))
+                    break
+                end
+                count += 1
             end
-            count += 1
+            
+            dû1[n] = v̂n
+            dvf[n] += Hn * (Z̃n * v̂n)
+            dψ[n] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .- abs.(2 .* v̂n) ./ V0)
+            
+        else
+            
+            Hn = H[n]
+            τ̃n = τ̃f[n]
+
+            dû1[n] = Vp/2
+            dvf[n] += Hn * τ̃n
         end
-        
-        dû1[n] = v̂n
 
-        dvf[n] += Hn * (Z̃n * v̂n)
-
-        dψ[n] = (bn .* V0 ./ Dc) .* (exp.((f0 .- ψn) ./ bn) .- abs.(2 .* v̂n) ./ V0)
     end
     
     nothing
@@ -843,6 +864,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     T = eltype(q)
     
     nn = p.nn
+    δNp = p.δNp
     Lw = p.Lw
     fc = p.fc
     pf = p.io.pf
@@ -893,7 +915,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     dt = (t1 - t0) / nstep
 
     pf[1] = .1
-    pf[2] = .01
+    pf[2] = .5
     
 
     fill!(Δq, 0)
@@ -928,13 +950,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                                  (δ, 2v̂_cpu, τ̂_cpu, τ̃_cpu, ψ_cpu),
                                  t)
 
-            
-            if io.slip_plot[1] != nothing
-                io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:red, linewidth=.1)
-                v_plot = plot(2v̂_cpu, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
-                plot(io.slip_plot[1], v_plot, layout = (1,2))
-                gui()
-            end
+  
 
             if io.vp == 1
                 u_out = Array(u)
@@ -945,9 +961,15 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             pf[1] +=.1
         end
 
-        #if step == ceil(Int, pf[2]/dt)
-
-              
+        if step == ceil(Int, pf[2]/dt)
+            if io.slip_plot[1] != nothing
+                io.slip_plot[1] = plot!(io.slip_plot[1], δ[1:δNp], fc[1:δNp], linecolor=:red, linewidth=.1)
+                v_plot = plot(2v̂_cpu[1:δNp], fc[1:δNp], legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
+                plot(io.slip_plot[1], v_plot, layout = (1,2))
+                gui()
+            end
+            pf[2] += .5
+        end
         v̂_cpu = Array(v̂)
         δ .= Array(2ûf)
         τ̃_cpu .= Array(- (HIG * u) ./ sJ)
@@ -964,11 +986,10 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         write_out_stations(io.station_r_name,
                            io.stations,
                            fc,
-                           (Array(p.L2 * u), zeros(nn)),
+                           (Array(p.L2 * u), 2v̂_cpu),
                            t)
             
-        #pf[2] = .01
-        #end
+      
 
 
     
