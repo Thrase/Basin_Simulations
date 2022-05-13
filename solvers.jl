@@ -369,7 +369,7 @@ function STOPFUN_Q(ψδ,t,i)
         nn = i.p.nn
         δNp = i.p.δNp
         RS = i.p.RS
-        τ = i.p.vars.Δτ
+        τ = i.p.vars.Δτ[1:δNp]
         t_prev = i.p.vars.t_prev
         year_seconds = i.p.year_seconds
         u_prev = i.p.vars.u_prev
@@ -385,9 +385,9 @@ function STOPFUN_Q(ψδ,t,i)
         G = i.p.ops.G[1]
 
         dψV = i.fsallast
-        ψ = @view ψδ[(1:nn)]
-        δ = @view ψδ[nn .+ (1:nn)]
-        V = @view dψV[nn .+ (1:nn)]
+        ψ = @view ψδ[(1:δNp)]
+        δ = @view ψδ[nn .+ (1:δNp)]
+        V = @view dψV[nn .+ (1:δNp)]
         Vmax = maximum(abs.(V))
         
         if pf[1] % 40 == 0
@@ -428,8 +428,8 @@ function STOPFUN_Q(ψδ,t,i)
 
                
         if io.slip_plot[1] != nothing && pf[1] % 120 == 0
-            io.slip_plot[1] = plot!(io.slip_plot[1], δ[1:δNp], fc[1:δNp], linecolor=:blue, linewidth=.1)
-            v_plot = plot(V[1:δNp], fc[1:δNp], legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
+            io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
+            v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
             plot(io.slip_plot[1], v_plot, layout = (1,2))
             gui()
         end
@@ -947,7 +947,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         
 
             write_out_fault_data(io.fault_name,
-                                 (δ, 2v̂_cpu, τ̂_cpu, τ̃_cpu, ψ_cpu),
+                                 (δ[1:δNp], 2v̂_cpu[1:δNp], τ̂_cpu[1:δNp], τ̃_cpu[1:δNp], ψ_cpu[1:δNp]),
                                  t)
 
   
