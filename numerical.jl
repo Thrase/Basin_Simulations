@@ -33,7 +33,7 @@ function mod_data!(δ, uf2, ge, K, vf, RS, metrics, Lw, t)
             vf .=  δ ./ 2
         elseif i == 2
             # face 2 data
-            vf .= 0 #(uf2 .+ (RS.Vp/2 * t))
+            vf .= (uf2 .+ (RS.Vp/2 * t))
         elseif i == 3
             # face 3 data
             vf .= 0
@@ -367,19 +367,19 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
 
         # boundary data operators for quasi-static displacement conditions
         K1 = L[1]' * H[1] * Cf[1][1] * Γ[1] - G[1]'
-        #K2 = L[2]' * H[2] * Cf[2][1] * Γ[2] - G[2]'
+        K2 = L[2]' * H[2] * Cf[2][1] * Γ[2] - G[2]'
         #K3 = L[3]' * H[3] * Γ[3] - G[3]'
         #K4 = L[4]' * H[4] * Γ[4] - G[4]'
         
         # boundary data operator for quasi-static traction-free conditions
         #K1 = L[1]' * H2]
-        K2 = L[2]' * H[2]
+        #K2 = L[2]' * H[2]
         K3 = L[3]' * H[3]
         K4 = L[4]' * H[4]
 
         # modification of second derivative operator for displacement conditions
         M̃ = copy(Ã)
-        for f in 1:1
+        for f in 1:2
             M̃ -= L[f]' * G[f]
             M̃ += L[f]' * H[f] * Cf[f][1] * Γ[f] * L[f]
             M̃ -= G[f]' * L[f]
@@ -389,28 +389,28 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         
     end
 
-    #MatrixMarket.mmwrite("M1600.mtx", M̃)
+    
 
     Λ_t = @elapsed begin
+        faces = [1,2,4]
         dv_u = -Ã
         
-        for i in 1:4
+        for i in faces
             dv_u .+= (L[i]' * H[i] * ((1 - R[i])/2 .* (nl[i] * (B[i][1] + B[i][2]) - Cf[i][1] * Γ[i] * L[i]))) +
                 nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
             
         end
         
         dv_v = spzeros(Nn, Nn)
-        for i in 1:4
-            dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])
-            
+        for i in faces
+            dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])   
         end
 
         dv_û = spzeros(Nn, 4nn)
         dû_u = spzeros(4nn, Nn)
         dû_v = spzeros(4nn, Nn)
 
-        for i in 1:4
+        for i in faces
             dv_û[ : , (i-1) * nn + 1 : i * nn] .=
                 (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
                 nl[i] * (B[i][1]' + B[i][2]') * H[i]
@@ -423,7 +423,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         end
 
         dû_û = spzeros(4nn, 4nn)
-        for i in 1:4
+        for i in faces
             dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
         end
 

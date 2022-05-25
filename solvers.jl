@@ -65,17 +65,16 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
             τn = Δτ[n]
             ηn = η[n]
 
-            Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
+            #Vn = (2 * RS.V0 * sinh(τn / (RS.σn * RS.a))) / (exp(ψn/RS.a))
 
             # rootfinding with radiation damping ηV
-            #=
             VR = abs(τn / ηn)
             VL = -VR
             Vn = V[n]
             obj_rs(V) = rateandstateQ(V, ψn, RS.σn, τn, ηn, RS.a, RS.V0)
             (Vn, _, iter) = newtbndv(obj_rs, VL, VR, Vn; ftol = 1e-14,
             atolx = 1e-14, rtolx = 1e-14)
-            =#
+
             if !isfinite(Vn)
                 reject_step[1] = true
                 return
@@ -378,7 +377,7 @@ function STOPFUN_Q(ψδ,t,i)
         Lw = i.p.Lw
         io = i.p.io
         pf = i.p.io.pf
-        η = i.p.metrics.η
+        η = i.p.metrics.η[1:δNp]
         sJ = i.p.metrics.sJ[1]
         cycles = i.p.cycles[1]
         HI = i.p.ops.HI[1]
@@ -392,37 +391,21 @@ function STOPFUN_Q(ψδ,t,i)
         
         if pf[1] % 40 == 0
 
-        #=  
-            plt1 = plot(V[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-            xlabel="Slip-Rate", linecolor=:blue, linewidth=.1,
-            legend=false)
-            plot(plt1)
-            gui()
-        =#
-            #=
-            plt2 = plot(τ[1:nn], fault_coord[1:nn], yflip = true, ylabel="Depth",
-            xlabel="Slip", linecolor=:blue, linewidth=.1,
-            legend=false)
-            plot(plt1, plt2, layout=2)
-            gui()
-            =#
-            
-       
-            τ2 = - (HI * G * u) ./ sJ
-            
             write_out_stations(io.station_name,
                                io.stations,
                                fc,
-                               (δ, V, τ, τ2, ψ),
+                               (δ, V, τ .- η .* V, ψ),
+                               maximum((η .* V) ./ (τ .+ η .* V)),
                                t)
 
             write_out_stations(io.station_r_name,
                                io.stations,
                                fc,
                                (i.p.ops.L[2] * u, V),
+                               0.0,
                                t)
             
-            write_out_fault_data(io.fault_name, (δ, V, τ, ψ), t)
+            write_out_fault_data(io.fault_name, (δ, V, τ .- η .* V, ψ), 0.0, t)
 
         end
 
@@ -661,6 +644,7 @@ function FAULT_CPU!(dq, q, p, t)
 end
 
 
+
 function FAULT_GPU!(dq, q, p, t)
     
     #@printf "\r\t%f" t
@@ -788,6 +772,7 @@ function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
 
             dû1[n] = Vp/2
             dvf[n] += Hn * τ̃n
+
         end
 
     end
@@ -878,6 +863,7 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     τ̂_cpu = p.τ̂_cpu
     τ̃_cpu = p.τ̃_cpu
     ψ_cpu = p.ψ_cpu
+    η = p.η
     d_to_s = p.d_to_s
     HIG = p.HIG
     vf = @view q[nn^2 + 1: nn : 2nn^2]
@@ -915,8 +901,8 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     dt = (t1 - t0) / nstep
 
     pf[1] = .1
-    pf[2] = .5
-    
+    pf[2] = .01
+    pf[3] = 1.0
 
     fill!(Δq, 0)
     fill!(Δq2, 0)
@@ -930,28 +916,27 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             Δq .*= RKA[s % length(RKA) + 1]
         end
         
+        
+        v̂_cpu .= Array(v̂)
+        
         if step == ceil(Int, pf[1]/dt)
             
-            v̂_cpu .= Array(v̂)
+            
             δ .= Array(2ûf)
-            τ̃_cpu .= Array(-(HIG * u) ./ sJ)
             τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-            #τ̃_cpu .= Array(-τ̃f ./ sJ)
             ψ_cpu .= Array(ψ)
             
-
             if any(isnan, v̂_cpu)
-                @printf "nan from dynamic rootfinder"
-                exit()
+                error("nan from dynamic rootfinder")
             end
         
 
             write_out_fault_data(io.fault_name,
-                                 (δ[1:δNp], 2v̂_cpu[1:δNp], τ̂_cpu[1:δNp], τ̃_cpu[1:δNp], ψ_cpu[1:δNp]),
+                                 (δ[1:δNp], 2v̂_cpu[1:δNp], τ̂_cpu[1:δNp], ψ_cpu[1:δNp]), 
+                                 0.0,#v_max,
                                  t)
 
   
-
             if io.vp == 1
                 u_out = Array(u)
                 v_out = Array(v)
@@ -961,44 +946,48 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             pf[1] +=.1
         end
 
-        if step == ceil(Int, pf[2]/dt)
-            if io.slip_plot[1] != nothing
+        #if step == ceil(Int, pf[2]/dt)
+         
+
+            
+            δ .= Array(2ûf)
+            τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+            ψ_cpu .= Array(ψ)
+
+            #@printf "\rmaximum particle velocity: %f" v_max
+ 
+            write_out_stations(io.station_name,
+                               io.stations,
+                               fc,
+                               (δ, 2v̂_cpu, τ̂_cpu, ψ_cpu[1:δNp]),
+                               maximum((η[1:δNp] .* 2v̂_cpu[1:δNp]) ./ τ̂_cpu[1:δNp]),
+                               t)
+            
+            write_out_stations(io.station_r_name,
+                               io.stations,
+                               fc,
+                               (Array(p.L2 * u), 2v̂_cpu),
+                               0.0,
+                               t)
+        #pf[2] += .01
+        #end
+
+        if step == ceil(Int, pf[3]/dt)
+           if io.slip_plot[1] != nothing
                 io.slip_plot[1] = plot!(io.slip_plot[1], δ[1:δNp], fc[1:δNp], linecolor=:red, linewidth=.1)
                 v_plot = plot(2v̂_cpu[1:δNp], fc[1:δNp], legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
                 plot(io.slip_plot[1], v_plot, layout = (1,2))
                 gui()
             end
-            pf[2] += .5
+            pf[3] += 1.0
         end
-        v̂_cpu = Array(v̂)
-        δ .= Array(2ûf)
-        τ̃_cpu .= Array(- (HIG * u) ./ sJ)
-        τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-        #τ̃_cpu .= Array( -τ̃f ./ sJ)
-        ψ_cpu .= Array(ψ)
-            
-        write_out_stations(io.station_name,
-                           io.stations,
-                           fc,
-                           (δ, 2v̂_cpu, τ̂_cpu, τ̃_cpu, ψ_cpu),
-                           t)
-
-        write_out_stations(io.station_r_name,
-                           io.stations,
-                           fc,
-                           (Array(p.L2 * u), 2v̂_cpu),
-                           t)
-            
-      
-
-
-    
-        if (2maximum(Array(v̂))) < d_to_s
+        
+        if maximum(v̂_cpu) < d_to_s/2
             return t
         end
-
+        
     end
-
+    
     nothing
 
 end

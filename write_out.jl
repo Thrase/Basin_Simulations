@@ -2,7 +2,8 @@ using DelimitedFiles
 using NCDatasets
 using Interpolations
 
-const vars_name = ("δ", "V", "τ̂", "τ̃", "ψ")
+const fvars_name = ("δ", "V", "τ̂", "ψ")
+const svars_name = ("δ", "V", "τ̂", "ψ")
 
 """
     init_fault_data(filename::String, var::String, nn::Integer)
@@ -20,8 +21,9 @@ function init_fault_data(filename::String, nn::Integer, depth::Array{Float64, 1}
     defVar(ds, "time", Float64, ("time index",))
     defVar(ds, "depth", Float64, ("depth index",))
     defVar(ds, "maximum V", Float64, ("time index",))
-    
-    for var in vars_name
+    defVar(ds, "maximum v", Float64, ("time index",))
+
+    for var in fvars_name
         defVar(ds, var, Float64, ("depth index", "time index"))
     end
     
@@ -47,13 +49,14 @@ function init_station_data(filename::String, stations::AbstractVector)
     
     defVar(ds, "time", Float64, ("time index",))
     defVar(ds, "maximum V", Float64, ("time index",))
+    defVar(ds, "maxR", Float64, ("time index",))
     defVar(ds, "stations", Float64, ("station index",))
     defVar(ds, "δ", Float64, ("time index", "station index"))
     defVar(ds, "V", Float64, ("time index", "station index"))
     defVar(ds, "τ̂", Float64, ("time index", "station index"))
-    defVar(ds, "τ̃", Float64, ("time index", "station index"))
     defVar(ds, "ψ", Float64, ("time index", "station index"))
-           
+    
+
     ds["stations"][:] .= stations
 
     close(ds)
@@ -125,7 +128,7 @@ end
 writes out `vars` fault varibles at time `t` to NetCDF `filenames`.
 
 """
-function write_out_fault_data(filename::String, vars::Tuple, t::Float64)
+function write_out_fault_data(filename::String, vars::Tuple, maxv::Float64, t::Float64)
 
     file = NCDataset(filename, "a")
     max_V = maximum(vars[2])
@@ -134,9 +137,9 @@ function write_out_fault_data(filename::String, vars::Tuple, t::Float64)
     t_ind = size(file["time"])[1] + 1
     file["time"][t_ind] = t
     file["maximum V"][t_ind] = max_V
-
+    file["maximum v"][t_ind] = maxv
     for i in 1:length(vars)
-        file[vars_name[i]][:, t_ind] .= vars[i]
+        file[fvars_name[i]][:, t_ind] .= vars[i]
     end
     
     close(file)
@@ -149,17 +152,18 @@ end
 writes out interpolated station data `vars` at `stations` using grid spacing `depth` at time `t` to netCDF file `station_file`.
 
 """
-function write_out_stations(station_file::String, stations::Array{Float64,1}, depth::Array{Float64,1}, vars::Tuple, t::Float64)
+function write_out_stations(station_file::String, stations::Array{Float64,1}, depth::Array{Float64,1}, vars::Tuple, maxR::Float64, t::Float64)
 
     file = NCDataset(station_file, "a")
     t_ind = size(file["time"])[1] + 1
     file["time"][t_ind] = t
     file["maximum V"][t_ind] = maximum(vars[2])
-
+    file["maxR"][t_ind] = maxR
+    #file["maximum v"][t_ind] = maximum(maxv)
     for (i, var) in enumerate(vars)
         interp = interpolate((depth,), var, Gridded(Linear()))
         var_stations = interp(stations)
-        file[vars_name[i]][t_ind, :] .= var_stations
+        file[svars_name[i]][t_ind, :] .= var_stations
     end
     
     close(file)

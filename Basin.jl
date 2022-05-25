@@ -36,6 +36,8 @@ let
     num_cycles,
     intime_plotting,
     μ_in= read_params(ARGS[1])
+    
+    #
     dir_out = string("../../../erickson/output_files/", dir_out)
 
     nn = N + 1
@@ -65,7 +67,7 @@ let
     
     ### get grid
     grid_t = @elapsed begin
-        xt, yt = transforms_e(Lw, r̂, l)
+        xt, yt = transforms_n(Lw) #transforms_e(Lw, r̂, l)
         metrics = create_metrics(N, N, B_p, μ, ρ, xt, yt)
     end
 
@@ -84,7 +86,7 @@ let
 
     δNp, 
     gNp, 
-    VWp, 
+    VWp,
     RS = fault_params(fc, Dc)
 
     ### setup io
@@ -98,7 +100,6 @@ let
     flush(stdout)
 
     ### get discrete operators
-    faces = [0 2 3 4]
     R = [-1 0 1 0]
     opt_t = @elapsed begin
         ops = operators(p, N, N, μ, ρ, R, B_p, metrics)
@@ -136,7 +137,7 @@ let
           station_r_name = station_r_name,
           volume_name = volume_name,
           stations = stations,
-          pf = [0, 0.0, 0.0],
+          pf = [0.0, 0.0, 0.0],
           vp = volume_plots,
           slip_plot = [slip_plot])
     
@@ -193,6 +194,7 @@ let
                       io = io,
                       d_to_s = d_to_s,
                       RS_cpu = RS,
+                      η = metrics.η,
                       δ = zeros(nn),
                       v̂_cpu = zeros(nn),
                       τ̂_cpu = zeros(nn),
@@ -278,7 +280,7 @@ let
             ### run inter-seismic solver
             t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
         end
-        @printf "Finised Co-seismic period\n"
+        @printf "\nFinised Co-seismic period\n"
         @printf "Coseismic period took %s seconds. \n" co_time
         flush(stdout)
 
