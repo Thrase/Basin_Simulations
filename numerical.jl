@@ -1,7 +1,7 @@
 using SparseArrays
 using LinearAlgebra
-using CUDA
-using CUDA.CUSPARSE
+#using CUDA
+#using CUDA.CUSPARSE
 using Printf
 using MatrixMarket
 
@@ -12,7 +12,7 @@ const BC_NEUMANN = 2
 const BC_LOCKED_INTERFACE = 0
 const BC_JUMP_INTERFACE   = 7
 
-CUDA.allowscalar(false)
+#CUDA.allowscalar(false)
 
 ⊗(A,B) = kron(A, B)
 

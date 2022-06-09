@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=erickson		   
 #SBATCH --partition=cisds  		   
-#SBATCH --job-name=8_sw          	   
-#SBATCH --output=../batch_output/switching_8.out
-#SBATCH --error=../batch_output/switching_8.err
+#SBATCH --job-name=8_sw2       	
+#SBATCH --output=../batch_output/switching_82.out
+#SBATCH --error=../batch_output/switching_82.err
 #SBATCH --time=14-00:00:00   		   
 #SBATCH --mem=64G            		   
 #SBATCH --nodes=1    

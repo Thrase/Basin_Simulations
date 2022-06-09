@@ -6,6 +6,7 @@ function read_params(f_name)
         s = readline(f)
         if s[1] != '#'
             push!(params, split(s, '=')[2])
+            flush(stdout)
         end
     end
     close(f)

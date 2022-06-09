@@ -1,4 +1,4 @@
-# Parameter input file for Basin Simulations
+#Parameter input file for Basin Simulations
 #
 #
 P=4
@@ -11,13 +11,13 @@ b_depth=4
 dynamic_flag=1
 d_to_s=.001
 dt=.5
-initial_con=None
-inital_t=None
+initial_con=../../input_files/initial_cons/switch_init_con
+inital_t=../../input_files/initial_cons/switch_t
 Dc=.032
 B_on=1
 dir_name=s2/
 volume_plots=1
 cycle_flag=1
-num_cycles=5
+num_cycles=2
 intime_plotting=0
 mu_in=8.0

@@ -1,0 +1,2 @@
+/cm/local/apps/slurm/var/spool/job20867072/slurm_script: line 15:  4032 Killed                  julia -t8 ../../Basin.jl ../../input_files/dynamic/large_simulations/d_4_1400.dat
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=20867072.batch. Some of your processes may have been killed by the cgroup out-of-memory handler.

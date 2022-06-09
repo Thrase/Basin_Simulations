@@ -1,10 +1,10 @@
 using Plots
-using CUDA
-using CUDA.CUSPARSE
+#using CUDA
+#using CUDA.CUSPARSE
 using Printf
 
 
-CUDA.allowscalar(false)
+#CUDA.allowscalar(false)
 
 function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
@@ -54,7 +54,7 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
     
-    Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2 - L * u)) ./ sJ
+    Δτ[:] = - (HI * G * u + Crr * Γ * (δ ./ 2 - L * u)) ./ sJ
 
     for n in 1:nn
         
@@ -182,7 +182,7 @@ function Q_DYNAMIC_MMS_NOROOT!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-    Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2 - L*u)) ./ sJ
+    Δτ[:] = - (HI * G * u + Crr * Γ * (δ ./ 2 - L*u)) ./ sJ
 
     for n in 1:nn
         
@@ -270,7 +270,7 @@ function Q_DYNAMIC_MMS!(dψδ, ψδ, p, t)
     L = ops.L[1]
     sJ = metrics.sJ[1]
 
-    Δτ .= - (HI * G * u + Crr * Γ * (δ ./ 2- L * u)) ./ sJ
+    Δτ[:] = - (HI * G * u + Crr * Γ * (δ ./ 2- L * u)) ./ sJ
 
     for n in 1:nn
         
@@ -365,6 +365,7 @@ function STOPFUN_Q(ψδ,t,i)
     
     if isdefined(i,:fsallast)
 
+        dynamic_flag = i.p.dynamic_flag
         nn = i.p.nn
         δNp = i.p.δNp
         RS = i.p.RS
@@ -391,25 +392,26 @@ function STOPFUN_Q(ψδ,t,i)
         
         if pf[1] % 40 == 0
 
-            write_out_stations(io.station_name,
-                               io.stations,
-                               fc,
-                               (δ, V, τ .- η .* V, ψ),
-                               maximum((η .* V) ./ (τ .+ η .* V)),
-                               t)
-
-            write_out_stations(io.station_r_name,
-                               io.stations,
-                               fc,
-                               (i.p.ops.L[2] * u, V),
-                               0.0,
-                               t)
+            write_out_fault_data(io.remote_name,
+                                 (i.p.ops.L[2] * u, zeros(nn)),
+                                 0.0,
+                                 t)
             
             write_out_fault_data(io.fault_name, (δ, V, τ .- η .* V, ψ), 0.0, t)
 
         end
 
-               
+        if pf[1] % 10 == 0
+
+        write_out_stations(io.station_name,
+                           io.stations,
+                           fc,
+                           (δ, V, τ .- η .* V, ψ),
+                           maximum((η .* V) ./ (τ .- η .* V)),
+                           t)
+
+        end
+        
         if io.slip_plot[1] != nothing && pf[1] % 120 == 0
             io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
             v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
@@ -417,16 +419,14 @@ function STOPFUN_Q(ψδ,t,i)
             gui()
         end
         
-
-
         year_count = t/year_seconds
         
-        if Vmax >= 1e-2 
+        if Vmax >= 1e-2  && dynamic_flag > 0
             return true
         end
         
         pf[1] += 1
-        u_prev .= u
+        u_prev[:] = u
         t_prev[1] = t
         
     end
@@ -459,17 +459,17 @@ function MMS_WAVEPROP_CPU!(dq, q, p, t)
     u = q[1:nn^2]
 
     # compute all temporal derivatives
-    dq .= Λ * q
+    dq[:] = Λ * q
 
     for i in 1:4
         fx = fc[1][i]
         fy = fc[2][i]
         S̃_c = sJ[i] .* CHAR_SOURCE(fx, fy, t, i, R[i], B_p, MMS)
         dq[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .+= S̃_c ./ (2*Z̃f[i])
-        dq[nn^2 + 1:2nn^2] .+= L[i]' * H[i] * S̃_c ./ 2
+        dq[nn^2 + 1:2nn^2] += L[i]' * H[i] * S̃_c ./ 2
     end
-    dq[nn^2 + 1 : 2nn^2] .= JIHP * dq[nn^2 + 1 : 2nn^2]
-    dq[nn^2 + 1:2nn^2] .+= P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
+    dq[nn^2 + 1 : 2nn^2] = JIHP * dq[nn^2 + 1 : 2nn^2]
+    dq[nn^2 + 1:2nn^2] += P̃I * FORCE(coord[1][:], coord[2][:], t, B_p, MMS)
 end
 
 
@@ -477,8 +477,8 @@ function WAVEPROP!(dq, q, p, t)
     nn = p.nn
     Λ = p.d_ops.Λ
     JIHP = p.JIHP
-    dq .= Λ * q
-    dq[nn^2 + 1 : 2nn^2] .= JIHP * dq[nn^2 + 1 : 2nn^2]
+    dq[:] = Λ * q
+    dq[nn^2 + 1 : 2nn^2] = JIHP * dq[nn^2 + 1 : 2nn^2]
 end
 
 
@@ -515,11 +515,11 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     dψ = @view dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn]
 
     # compute all temporal derivatives
-    dq .= Λ * q
+    dq[:] = Λ * q
     
     # compute numerical traction on face 1
     #τ̃f .= sJ[1] .* τhe(fc[1][1], fc[2][1], t, 1, B_p, MMS)
-    τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
+    τ̃f[:] = HIGΓL1 * u + nCnΓ1 * û1
     #ψ .= ψe_d(fc[1][1], fc[2][1], t, B_p, RS, MMS)
     
     # Root find for RS friction
@@ -571,8 +571,8 @@ function MMS_FAULT_CPU!(dq, q, p, t)
     dψ .+= S_rsdh(fc[1][1], fc[2][1], b, t, B_p, RS, MMS)
 
 
-    dq[nn^2 + 1:2nn^2] .= JIHP * dq[nn^2 + 1:2nn^2]
-    dq[nn^2 + 1:2nn^2] .+= P̃I * Forcing_hd(coord[1][:], coord[2][:], t, B_p, MMS)
+    dq[nn^2 + 1:2nn^2] = JIHP * dq[nn^2 + 1:2nn^2]
+    dq[nn^2 + 1:2nn^2] += P̃I * Forcing_hd(coord[1][:], coord[2][:], t, B_p, MMS)
 
 
 end
@@ -600,9 +600,9 @@ function FAULT_CPU!(dq, q, p, t)
     dû1 = @view dq[2nn^2 + 1 : 2nn^2 + nn]
     dψ = @view dq[2nn^2 + 4nn + 1 : 2nn^2 + 5nn]
 
-    dq .= Λ * q
+    dq[:] = Λ * q
     # compute numerical traction on face 1
-    τ̃f .= nBBCΓL1 * u + nCnΓ1 * û1
+    τ̃f[:] = nBBCΓL1 * u + nCnΓ1 * û1
 
     # Root find for RS friction
     for n in 1:nn
@@ -639,12 +639,12 @@ function FAULT_CPU!(dq, q, p, t)
         dψ[n] = (b[n] .* RS.V0 ./ RS.Dc) .* (exp.((RS.f0 .- ψ[n]) ./ b[n]) .- abs.(2 .* v̂n) ./ RS.V0)
     end
          
-    dv .= JIHP * dq[nn^2 + 1:2nn^2]
+    dv[:] = JIHP * dq[nn^2 + 1:2nn^2]
 
 end
 
 
-
+#=
 function FAULT_GPU!(dq, q, p, t)
     
     #@printf "\r\t%f" t
@@ -682,23 +682,23 @@ function FAULT_GPU!(dq, q, p, t)
     dvf = @view dq[nn^2 + 1: nn : 2nn^2]
 
    
-    dq .= Λ * q
+    dq[:] = Λ * q
 
     # compute numerical traction on face 1
-    τ̃f .= HIGΓL1 * u + nCnΓ1 * û1
+    τ̃f[:] = HIGΓL1 * u + nCnΓ1 * û1
       
     @cuda blocks=blocks threads=threads FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f1, H, sJ, ψ, dψ, b, RS)
 
-    dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] .+= source2 ./ (2*Z̃f2)
-    dq[nn^2 + 1:2nn^2] .+= L2' * (H .* source2 ./ 2)
+    dq[2nn^2 + nn + 1 : 2nn^2 + 2nn] += source2 ./ (2*Z̃f2)
+    dq[nn^2 + 1:2nn^2] += L2' * (H .* source2 ./ 2)
 
-    dq[2nn^2 + 2nn + 1 : 2nn^2 + 3nn] .+= source3 ./ (2*Z̃f3)
-    dq[nn^2 + 1:2nn^2] .+= L3' * (H .* source3 ./ 2)
+    dq[2nn^2 + 2nn + 1 : 2nn^2 + 3nn] += source3 ./ (2*Z̃f3)
+    dq[nn^2 + 1:2nn^2] += L3' * (H .* source3 ./ 2)
 
-    dv .= JIHP * dq[nn^2 + 1:2nn^2]
+    dv[:] = JIHP * dq[nn^2 + 1:2nn^2]
 
 end
-
+=#
 
 function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
 
@@ -910,21 +910,21 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         t = t0 + (step - 1) * dt
         for s in 1:length(RKA)
             f!(Δq2, q, p, t + RKC[s] * dt)
-            v̂ .= Δq2[2nn^2 + 1 : 2nn^2 + nn]
+            v̂[:] = Δq2[2nn^2 + 1 : 2nn^2 + nn]
             Δq .+= Δq2
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
         
         
-        v̂_cpu .= Array(v̂)
+        v̂_cpu[:] = Array(v̂)
         
         if step == ceil(Int, pf[1]/dt)
             
             
-            δ .= Array(2ûf)
-            τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-            ψ_cpu .= Array(ψ)
+            δ[:] = Array(2ûf)
+            τ̂_cpu[:] = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+            ψ_cpu[:] = Array(ψ)
             
             if any(isnan, v̂_cpu)
                 error("nan from dynamic rootfinder")
@@ -933,10 +933,14 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
 
             write_out_fault_data(io.fault_name,
                                  (δ[1:δNp], 2v̂_cpu[1:δNp], τ̂_cpu[1:δNp], ψ_cpu[1:δNp]), 
-                                 0.0,#v_max,
+                                 0.0,
                                  t)
 
-  
+            write_out_fault_data(io.remote_name,
+                                 (Array(p.L2 * u), zeros(nn)),
+                                 0.0,
+                                 t)
+
             if io.vp == 1
                 u_out = Array(u)
                 v_out = Array(v)
@@ -946,15 +950,14 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             pf[1] +=.1
         end
 
-        #if step == ceil(Int, pf[2]/dt)
+        if step == ceil(Int, pf[2]/dt)
          
 
             
-            δ .= Array(2ûf)
-            τ̂_cpu .= Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
-            ψ_cpu .= Array(ψ)
+            δ[:] = Array(2ûf)
+            τ̂_cpu[:] = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
+            ψ_cpu[:] = Array(ψ)
 
-            #@printf "\rmaximum particle velocity: %f" v_max
  
             write_out_stations(io.station_name,
                                io.stations,
@@ -963,14 +966,10 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                                maximum((η[1:δNp] .* 2v̂_cpu[1:δNp]) ./ τ̂_cpu[1:δNp]),
                                t)
             
-            write_out_stations(io.station_r_name,
-                               io.stations,
-                               fc,
-                               (Array(p.L2 * u), 2v̂_cpu),
-                               0.0,
-                               t)
-        #pf[2] += .01
-        #end
+        pf[2] += .01
+        end
+
+        
 
         if step == ceil(Int, pf[3]/dt)
            if io.slip_plot[1] != nothing

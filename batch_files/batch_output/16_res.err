@@ -1,3 +1,0 @@
-┌ Warning: Your Tesla K80 GPU does not meet the minimal required compute capability (3.7.0 < 5.0).
-│ Some functionality might not work. For a fully-supported set-up, please use an older version of CUDA.jl
-└ @ CUDA ~/.julia/packages/CUDA/mbPFj/src/state.jl:251

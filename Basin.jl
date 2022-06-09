@@ -8,8 +8,8 @@ include("write_out.jl")
 using DelimitedFiles
 using Printf
 using OrdinaryDiffEq
-using CUDA
-using CUDA.CUSPARSE
+#using CUDA
+#using CUDA.CUSPARSE
 using Plots
 
 
@@ -67,7 +67,7 @@ let
     
     ### get grid
     grid_t = @elapsed begin
-        xt, yt = transforms_n(Lw) #transforms_e(Lw, r̂, l)
+        xt, yt = transforms_e(Lw, r̂, l)
         metrics = create_metrics(N, N, B_p, μ, ρ, xt, yt)
     end
 
@@ -93,7 +93,7 @@ let
     stations = collect(0.0:2.0:22.0)
     fault_name,
     station_name,
-    station_r_name,
+    remote_name,
     volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
 
     @printf "set-up io\n"
@@ -134,7 +134,7 @@ let
     io = (dir_name = dir_out,
           fault_name = fault_name,
           station_name = station_name,
-          station_r_name = station_r_name,
+          remote_name = remote_name,
           volume_name = volume_name,
           stations = stations,
           pf = [0.0, 0.0, 0.0],
@@ -153,6 +153,7 @@ let
     
     static_params = (year_seconds,
                      reject_step = [false],
+                     dynamic_flag = dynamic_flag,
                      Lw = Lw,
                      nn = nn,
                      δNp = δNp,
@@ -167,6 +168,7 @@ let
                      cycles = [0])
 
     threads = 512
+    #=
     dynamic_params = (nn = nn,
                       δNp = δNp,
                       threads = threads,
@@ -200,8 +202,8 @@ let
                       τ̂_cpu = zeros(nn),
                       τ̃_cpu = zeros(nn),
                       ψ_cpu = zeros(nn))
-    
-    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
+    =#
+#    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
 
     ### set dynamic timestep
@@ -224,7 +226,16 @@ let
         
         inter_time = @elapsed begin
             # integrate
+            #=
+            if cycles == 1 
+                inter_timestep = 5 * year_seconds
+            else
+                inter_timestep = dts[2]
+                t_span = (t_now, t_now + 30)
+            end
+            =#
             prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
+         
             sol = solve(prob, Tsit5(); isoutofdomain=stepcheck,
                         dt=dts[2],
                         atol = 1e-12,
@@ -239,6 +250,10 @@ let
         @printf "Finished Interseismic\n"
         @printf "Interseismic period took %s seconds. \n" inter_time
         flush(stdout)
+        
+        #if cycles == 2
+        #    error("finished")
+        #end
         
         ### get dynamic inital conditions
         t_now = sol.t[end]

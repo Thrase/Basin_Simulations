@@ -106,19 +106,20 @@ function new_dir(new_dir::String, input_file::String, stations::Array{Float64, 1
 
     fault_name = string(new_dir, "fault.nc")
     stations_name = string(new_dir, "stations.nc")
-    stations_r_name = string(new_dir, "remote_stations.nc")
+    remote_name = string(new_dir, "remote.nc")
     volume_name = string(new_dir, "volume.nc")
     
     init_fault_data(fault_name, nn, depth)
+    init_fault_data(remote_name, nn, depth)
     init_station_data(stations_name, stations)
-    init_station_data(stations_r_name, stations)
+    
 
     init_volume_data(volume_name, x, y)
 
     cp(input_file, string(new_dir, "input_file.dat"))
     write_depth_grid(string(new_dir, "depth_grid.dat"), depth)
 
-    return fault_name, stations_name, stations_r_name, volume_name
+    return fault_name, stations_name, remote_name, volume_name
 
 end
 
