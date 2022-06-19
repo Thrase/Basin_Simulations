@@ -1,4 +1,4 @@
-got grid in 4.997577 seconds
+got grid in 4.308291 seconds
 (fc[i], fc[i] - fc[i - 1]) = (0.009795155921690224, 0.009795155921690224)
 (fc[i], fc[i] - fc[i - 1]) = (0.019590311843376895, 0.009795155921686671)
 (fc[i], fc[i] - fc[i - 1]) = (0.02938546776506712, 0.009795155921690224)
@@ -1400,33 +1400,33 @@ got grid in 4.997577 seconds
 (fc[i], fc[i] - fc[i - 1]) = (23.69637674410521, 0.30314418836173473)
 (fc[i], fc[i] - fc[i - 1]) = (24.0, 0.30362325589479155)
 set-up io
-Got operators in 289.871045 seconds
+Got operators in 284.583017 seconds
 Got initial conditions
 Approximately 0.000093 Gib to GPU
 
 On cycle 1
 Begining Inter-seismic period...
 Finished Interseismic
-Interseismic period took 15171.013798056 seconds. 
-Simulation time is now 125.94601832145317 years. 
+Interseismic period took 14693.185694408 seconds. 
+Simulation time is now 125.94601832136823 years. 
 
 Begining Co-seismic period...
 
 Finised Co-seismic period
-Coseismic period took 28183.503739746 seconds. 
-Simulation time is now 125.94602183600203 years. 
+Coseismic period took 10763.246803089 seconds. 
+Simulation time is now 125.94602183599285 years. 
 
 On cycle 2
 Begining Inter-seismic period...
 Finished Interseismic
-Interseismic period took 19379.463344002 seconds. 
-Simulation time is now 219.40027395775292 years. 
+Interseismic period took 18586.400147699 seconds. 
+Simulation time is now 219.40259756571228 years. 
 
 Begining Co-seismic period...
 
 Finised Co-seismic period
-Coseismic period took 26964.838076992 seconds. 
-Simulation time is now 219.40027750234952 years. 
+Coseismic period took 12981.845407318 seconds. 
+Simulation time is now 219.40260111090225 years. 
 
 On cycle 3
 Begining Inter-seismic period...

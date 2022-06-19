@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --account=erickson		   ### change this to the actual account
+#SBATCH --partition=longfat  		   ### queue to submit to
+#SBATCH --job-name=14s             	   ### job name
+#SBATCH --output=../batch_output/d_4_1400s.out    ### file in which to store job stdout
+#SBATCH --error=../batch_output/d_4_1400s.err     ### file in which to store job stderr
+#SBATCH --time=14-00:00:00   		   ### wall-clock time limit, in minutes
+#SBATCH --mem=256G            		   ### memory limit per node, in MB
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1  		   ### number of tasks to launch per node
+#SBATCH --cpus-per-task=8    		   ### number of cores for each task
+
+
+julia -t8 ../../Basin.jl ../../input_files/dynamic/large_simulations/d_4_1400s.dat

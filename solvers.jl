@@ -1,10 +1,10 @@
 using Plots
-#using CUDA
-#using CUDA.CUSPARSE
+using CUDA
+using CUDA.CUSPARSE
 using Printf
 
 
-#CUDA.allowscalar(false)
+CUDA.allowscalar(false)
 
 function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
@@ -48,13 +48,11 @@ function Q_DYNAMIC!(dψδ, ψδ, p, t)
 
     u[:] = M \ ge
 
-    HI = ops.HI[1]
-    G = ops.G[1]
-    Γ = ops.Γ[1]
-    L = ops.L[1]
+    nCnΓ1 = ops.nCnΓ1
+    HIGΓL1 = ops.HIGΓL1
     sJ = metrics.sJ[1]
     
-    Δτ[:] = - (HI * G * u + Crr * Γ * (δ ./ 2 - L * u)) ./ sJ
+    Δτ[:] = - (HIGΓL1 * u +  nCnΓ1 * (δ ./ 2)) ./ sJ
 
     for n in 1:nn
         
@@ -374,6 +372,9 @@ function STOPFUN_Q(ψδ,t,i)
         year_seconds = i.p.year_seconds
         u_prev = i.p.vars.u_prev
         u = i.p.vars.u
+        t_end = i.p.vars.t_end
+        δ_end = i.p.vars.δ_end
+        ψ_end = i.p.vars.ψ_end
         fc = i.p.fc
         Lw = i.p.Lw
         io = i.p.io
@@ -422,6 +423,9 @@ function STOPFUN_Q(ψδ,t,i)
         year_count = t/year_seconds
         
         if Vmax >= 1e-2  && dynamic_flag > 0
+            δ_end[:] = δ
+            ψ_end[:] = ψ
+            t_end[1] = t
             return true
         end
         
@@ -644,7 +648,7 @@ function FAULT_CPU!(dq, q, p, t)
 end
 
 
-#=
+
 function FAULT_GPU!(dq, q, p, t)
     
     #@printf "\r\t%f" t
@@ -698,7 +702,7 @@ function FAULT_GPU!(dq, q, p, t)
     dv[:] = JIHP * dq[nn^2 + 1:2nn^2]
 
 end
-=#
+
 
 function FAULT_PROBLEM!(dû1, dvf, vf, τ̃f, Z̃f, H, sJ, ψ, dψ, b, RS)
 

@@ -1,4 +1,5 @@
-got grid in 4.956819 seconds
+typeof(t_now) = Float64
+got grid in 7.812618 seconds
 (fc[i], fc[i] - fc[i - 1]) = (0.009795155921690224, 0.009795155921690224)
 (fc[i], fc[i] - fc[i - 1]) = (0.019590311843376895, 0.009795155921686671)
 (fc[i], fc[i] - fc[i - 1]) = (0.02938546776506712, 0.009795155921690224)
@@ -1400,9 +1401,7 @@ got grid in 4.956819 seconds
 (fc[i], fc[i] - fc[i - 1]) = (23.69637674410521, 0.30314418836173473)
 (fc[i], fc[i] - fc[i - 1]) = (24.0, 0.30362325589479155)
 set-up io
-Got operators in 313.989625 seconds
+Got operators in 466.010509 seconds
 Got initial conditions
-Approximately 0.000093 Gib to GPU
-
 On cycle 1
 Begining Inter-seismic period...

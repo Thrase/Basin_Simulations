@@ -2,8 +2,8 @@
 #
 #
 P=4
-Total_time=1.0
-Number_nodes=300
+Total_time=20000.0
+Number_nodes=1400
 Domain_length=24
 r_hat=.75
 l=.05
@@ -11,11 +11,11 @@ b_depth=4
 dynamic_flag=0
 d_to_s=.005
 dt=.5
-initial_con=None
-inital_t=None
-Dc=.032
+initial_con=../../input_files/initial_cons/static_con_init_con
+inital_t=../../input_files/initial_cons/static_con_t
+Dc=.008
 B_on=1
-dir_name=s_mem/
+dir_name=d_4_1400s/
 volume_plots=0
 cycle_flag=0
 num_cycles=1

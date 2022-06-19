@@ -1,0 +1,5 @@
+slurmstepd: error: *** JOB 20334506 ON n243 CANCELLED AT 2022-06-11T14:18:48 ***
+slurmstepd: error: error from open of cgroup '/sys/fs/cgroup/memory/slurm/uid_2051/job_20334506/step_batch' : No such file or directory
+slurmstepd: error: xcgroup_lock error: No such file or directory
+slurmstepd: error: problem with oom_pipe[0]
+slurmstepd: fatal: cgroup_v1.c:1312 _oom_event_monitor: pthread_mutex_lock(): Invalid argument

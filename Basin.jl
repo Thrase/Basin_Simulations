@@ -8,8 +8,10 @@ include("write_out.jl")
 using DelimitedFiles
 using Printf
 using OrdinaryDiffEq
-#using CUDA
-#using CUDA.CUSPARSE
+
+using CUDA
+using CUDA.CUSPARSE
+
 using Plots
 
 
@@ -147,7 +149,10 @@ let
             vf = zeros(nn),
             u = zeros(nn^2),
             uf2 = zeros(nn),
-            ge = zeros(nn^2))
+            ge = zeros(nn^2),
+            δ_end = zeros(nn),
+            ψ_end = zeros(nn),
+            t_end = [0.0] )
 
     vars.uf2 .= (RS.τ_inf * Lw) ./ metrics.μf2
     
@@ -168,7 +173,7 @@ let
                      cycles = [0])
 
     threads = 512
-    #=
+    
     dynamic_params = (nn = nn,
                       δNp = δNp,
                       threads = threads,
@@ -202,8 +207,8 @@ let
                       τ̂_cpu = zeros(nn),
                       τ̃_cpu = zeros(nn),
                       ψ_cpu = zeros(nn))
-    =#
-#    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
+    
+    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
 
     ### set dynamic timestep
@@ -241,7 +246,7 @@ let
                         atol = 1e-12,
                         rtol = 1e-12,
                         gamma = .3,
-                        save_everystep=true,
+                        save_everystep=false,
                         internalnorm=(x, _)->norm(x, Inf),
                         #saveat = year_seconds,
                         callback=stopper)
@@ -256,23 +261,23 @@ let
         #end
         
         ### get dynamic inital conditions
-        t_now = sol.t[end]
+        t_now = static_params.vars.t_end[1]
         t_span = (t_now,  sim_seconds)
         @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
         flush(stdout)
         q = Array(q)
-        q[1:nn^2] .= static_params.vars.u[:]
-        q[nn^2 + 1 : 2nn^2] .=
+        q[1:nn^2] = static_params.vars.u[:]
+        q[nn^2 + 1 : 2nn^2] =
             (static_params.vars.u - static_params.vars.u_prev) / 
             (sol.t[end] - static_params.vars.t_prev[1])
         
-        q[2nn^2 + 1 : 2nn^2 + nn] .= sol.u[end][nn+1:2nn]./2
+        q[2nn^2 + 1 : 2nn^2 + nn] = static_params.vars.δ_end./2
         
         for i in 2:4
-            q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
+            q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] = ops.L[i]*static_params.vars.u
         end
         
-        q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
+        q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] = static_params.vars.ψ_end
         
         @printf "Begining Co-seismic period...\n"
         flush(stdout)
@@ -280,12 +285,12 @@ let
         co_time = @elapsed begin
             
             ### getting source terms for non-reflecting boundaries
-            dynamic_params.source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
+            dynamic_params.source2[:] = CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
                 ops.L[2] * q[nn^2 + 1 : 2nn^2] +
                 traction(ops, metrics, 2, q[1:nn^2],
                          ops.L[2] * q[1:nn^2])))
 
-            dynamic_params.source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
+            dynamic_params.source3[:] = CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
             ops.L[3] * q[nn^2 + 1 : 2nn^2] +
             traction(static_params.ops, metrics, 3, q[1:nn^2],
                      ops.L[3] * q[1:nn^2])))
@@ -302,10 +307,10 @@ let
         ### get inter-seismic initial conditions
         if t_now != nothing
 
-            ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
-            ψδ[nn + 1: 2nn] .= Array(2 * q[2nn^2 + 1 : 2nn^2 + nn])
+            ψδ[1:nn] = Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
+            ψδ[nn + 1: 2nn] = Array(2 * q[2nn^2 + 1 : 2nn^2 + nn])
             static_params.vars.t_prev[2] = t_now
-            static_params.vars.uf2 .= Array(dynamic_params.L2 * q[1:nn^2])
+            static_params.vars.uf2[:] = Array(dynamic_params.L2 * q[1:nn^2])
             t_span = (t_now, sim_seconds)
             
             
