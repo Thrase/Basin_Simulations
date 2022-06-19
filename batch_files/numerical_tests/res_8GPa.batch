@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --account=erickson		   
+#SBATCH --partition=cisds  		   
+#SBATCH --job-name=res_8           	   
+#SBATCH --output=../batch_output/res_8.out
+#SBATCH --error=../batch_output/res_8.err
+#SBATCH --time=14-00:00:00   		   
+#SBATCH --mem=128G            		   
+#SBATCH --nodes=1    
+#SBATCH --gres=gpu:1       		   
+#SBATCH --ntasks-per-node=1  		   
+#SBATCH --cpus-per-task=8    
+#SBATCH --nodelist=n243		   
+ 
+julia -t8 res_8GPa.jl

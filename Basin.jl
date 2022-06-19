@@ -8,9 +8,12 @@ include("write_out.jl")
 using DelimitedFiles
 using Printf
 using OrdinaryDiffEq
+
 using CUDA
 using CUDA.CUSPARSE
+
 using Plots
+
 
 let
 
@@ -33,8 +36,11 @@ let
     volume_plots,
     cycle_flag,
     num_cycles,
-    intime_plotting = read_params(ARGS[1])
-    dir_out = string("../../erickson/output_files/", dir_out)
+    intime_plotting,
+    μ_in= read_params(ARGS[1])
+    
+    #
+    dir_out = string("../../../erickson/output_files/", dir_out)
 
     nn = N + 1
 
@@ -50,10 +56,10 @@ let
         t_span = (0.0, sim_seconds)
     end
 
-    ### basin Params
+    ### basin params
     B_p = (μ_out = 36.0,
            ρ_out = 2.8,
-           μ_in = 8.0,
+           μ_in = μ_in,
            ρ_in = 2.0,
            c = (Lw/2)/D,
            r̄ = (Lw/2)^2,
@@ -71,38 +77,44 @@ let
     flush(stdout)
 
     ### get fault params
-    fc = metrics.facecoord[2][1]
+    fc = Array(metrics.facecoord[2][1])
     (x, y) = metrics.coord
-    #for i in 2:length(fc)
-    #    @show fc[i], fc[i] - fc[i-1]
-    #end
-    
+    for i in 2:length(fc)
+        @show fc[i], fc[i] - fc[i-1]
+    end
+    #error("exit")
+
     η = metrics.η
 
     δNp, 
     gNp, 
-    VWp, 
+    VWp,
     RS = fault_params(fc, Dc)
 
     ### setup io
-    slip_file,
-    slip_rate_file,
-    stress_file,
-    state_file = make_ss(dir_out, fc, δNp, ARGS[1])
-    station_names = make_stations(dir_out)
-    u_file, v_file = make_uv_files(dir_out, x[1:2:nn, 1], y[1, 1:2:nn])
+    stations = collect(0.0:2.0:22.0)
+    fault_name,
+    station_name,
+    remote_name,
+    volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
+
     @printf "set-up io\n"
     flush(stdout)
 
     ### get discrete operators
-    faces = [0 2 3 4]
     R = [-1 0 1 0]
     opt_t = @elapsed begin
         ops = operators(p, N, N, μ, ρ, R, B_p, metrics)
     end
     @printf "Got operators in %f seconds\n" opt_t
     flush(stdout)
-
+    
+    # make plot opject for slip plot if plotting while running
+    if intime_plotting == 1
+        slip_plot = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
+    else
+        slip_plot = nothing
+    end
 
     ### get initial condtions
     if ic_file != "None"
@@ -119,24 +131,15 @@ let
 
     @printf "Got initial conditions\n"
     flush(stdout)
-    
-    # make plot opject for slip plot if plotting while running
-    if intime_plotting == 1
-        slip_plot = plot(legend=false, yflip = true, ylabel="Depth(Km)", xlabel="Slip(m)")
-    else
-        slip_plot == nothing
-    end
-    
+
     ### parameter orginzation
     io = (dir_name = dir_out,
-          slip_file = slip_file,
-          slip_rate_file = slip_rate_file,
-          stress_file = stress_file,
-          state_file = state_file,
-          station_names = station_names,
-          pf = [0, 0.0, 0.0],
-          u_file = u_file,
-          v_file = v_file,
+          fault_name = fault_name,
+          station_name = station_name,
+          remote_name = remote_name,
+          volume_name = volume_name,
+          stations = stations,
+          pf = [0.0, 0.0, 0.0],
           vp = volume_plots,
           slip_plot = [slip_plot])
     
@@ -145,23 +148,34 @@ let
             Δτ = zeros(nn),
             vf = zeros(nn),
             u = zeros(nn^2),
-            ge = zeros(nn^2))
+            uf2 = zeros(nn),
+            ge = zeros(nn^2),
+            δ_end = zeros(nn),
+            ψ_end = zeros(nn),
+            t_end = [0.0] )
 
+    vars.uf2 .= (RS.τ_inf * Lw) ./ metrics.μf2
+    
     static_params = (year_seconds,
                      reject_step = [false],
+                     dynamic_flag = dynamic_flag,
                      Lw = Lw,
                      nn = nn,
+                     δNp = δNp,
                      d_to_s = d_to_s,
                      vars = vars,
                      ops = ops,
                      metrics = metrics,
+                     fc = Array(metrics.facecoord[2][1]),
                      io = io,
                      RS = RS,
                      vf = zeros(nn),
                      cycles = [0])
 
     threads = 512
+    
     dynamic_params = (nn = nn,
+                      δNp = δNp,
                       threads = threads,
                       blocks = cld(nn, threads),
                       Λ = CuSparseMatrixCSC(ops.Λ),
@@ -175,17 +189,24 @@ let
                       JIHP = CuSparseMatrixCSC(ops.JIHP),
                       nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
                       HIGΓL1 = CuSparseMatrixCSC(ops.HIGΓL1),
-                      RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, nn]),
+                      HIG = CuSparseMatrixCSC(ops.HI[1] * ops.G[1]),
+                      RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, RS.Vp, nn, δNp]),
                       b = CuArray(RS.b),
                       τ̃f = CuArray(zeros(nn)),
                       v̂ = CuArray(zeros(nn)),
                       source2 = CuArray(zeros(nn)),
                       source3 = CuArray(zeros(nn)),
-                      fc = metrics.facecoord[2][1],
+                      fc = Array(metrics.facecoord[2][1]),
                       Lw = Lw,
                       io = io,
                       d_to_s = d_to_s,
-                      RS_cpu = RS)
+                      RS_cpu = RS,
+                      η = metrics.η,
+                      δ = zeros(nn),
+                      v̂_cpu = zeros(nn),
+                      τ̂_cpu = zeros(nn),
+                      τ̃_cpu = zeros(nn),
+                      ψ_cpu = zeros(nn))
     
     @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
     flush(stdout)
@@ -210,13 +231,22 @@ let
         
         inter_time = @elapsed begin
             # integrate
+            #=
+            if cycles == 1 
+                inter_timestep = 5 * year_seconds
+            else
+                inter_timestep = dts[2]
+                t_span = (t_now, t_now + 30)
+            end
+            =#
             prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
+         
             sol = solve(prob, Tsit5(); isoutofdomain=stepcheck,
                         dt=dts[2],
                         atol = 1e-12,
                         rtol = 1e-12,
                         gamma = .3,
-                        save_everystep=true,
+                        save_everystep=false,
                         internalnorm=(x, _)->norm(x, Inf),
                         #saveat = year_seconds,
                         callback=stopper)
@@ -226,40 +256,41 @@ let
         @printf "Interseismic period took %s seconds. \n" inter_time
         flush(stdout)
         
+        #if cycles == 2
+        #    error("finished")
+        #end
+        
         ### get dynamic inital conditions
-        t_now = sol.t[end]
+        t_now = static_params.vars.t_end[1]
         t_span = (t_now,  sim_seconds)
         @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
         flush(stdout)
         q = Array(q)
-        q[1:nn^2] .= static_params.vars.u[:]
-        q[nn^2 + 1 : 2nn^2] .=
+        q[1:nn^2] = static_params.vars.u[:]
+        q[nn^2 + 1 : 2nn^2] =
             (static_params.vars.u - static_params.vars.u_prev) / 
             (sol.t[end] - static_params.vars.t_prev[1])
         
-        q[2nn^2 + 1 : 2nn^2 + nn] .= sol.u[end][nn+1:2nn]./2
+        q[2nn^2 + 1 : 2nn^2 + nn] = static_params.vars.δ_end./2
         
         for i in 2:4
-            q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] .= ops.L[i]*static_params.vars.u
+            q[2nn^2 + (i-1)*nn + 1 : 2nn^2 + i*nn] = ops.L[i]*static_params.vars.u
         end
         
-        q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] .= sol.u[end][1:nn]
+        q[2nn^2 + 4nn + 1 : 2nn^2 + 5nn] = static_params.vars.ψ_end
         
-        ### write break to output file
-        write_breaks(io)
-
         @printf "Begining Co-seismic period...\n"
         flush(stdout)
 
         co_time = @elapsed begin
             
             ### getting source terms for non-reflecting boundaries
-            dynamic_params.source2 .= CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
+            dynamic_params.source2[:] = CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
                 ops.L[2] * q[nn^2 + 1 : 2nn^2] +
                 traction(ops, metrics, 2, q[1:nn^2],
-                         f2_data(RS, metrics.μf2, Lw, t_now))))
+                         ops.L[2] * q[1:nn^2])))
 
-            dynamic_params.source3 .= CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
+            dynamic_params.source3[:] = CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
             ops.L[3] * q[nn^2 + 1 : 2nn^2] +
             traction(static_params.ops, metrics, 3, q[1:nn^2],
                      ops.L[3] * q[1:nn^2])))
@@ -269,20 +300,19 @@ let
             ### run inter-seismic solver
             t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
         end
-        @printf "Finised Co-seismic period\n"
+        @printf "\nFinised Co-seismic period\n"
         @printf "Coseismic period took %s seconds. \n" co_time
         flush(stdout)
 
         ### get inter-seismic initial conditions
         if t_now != nothing
 
-            ψδ[1:nn] .= Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
-            ψδ[nn + 1: 2nn] .= Array(2 * q[2nn^2 + 1 : 2nn^2 + nn])
-            static_params.vars.t_prev[2] = t_now/year_seconds
+            ψδ[1:nn] = Array(q[2nn^2 + 4*nn + 1 : 2nn^2 + 5*nn])
+            ψδ[nn + 1: 2nn] = Array(2 * q[2nn^2 + 1 : 2nn^2 + nn])
+            static_params.vars.t_prev[2] = t_now
+            static_params.vars.uf2[:] = Array(dynamic_params.L2 * q[1:nn^2])
             t_span = (t_now, sim_seconds)
             
-            ### write breaks to output file
-            write_breaks(io)
             
             @printf "Simulation time is now %s years. \n\n" t_span[1]/year_seconds
             static_params.io.pf[1] = 0

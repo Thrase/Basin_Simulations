@@ -5,7 +5,7 @@ using InteractiveViz
 using IterTools
 let 
     
-    year_seconds = 31556952
+    
     ### getting directory for simulation data
     done = false
     cd(string("../../erickson/output_files"))
@@ -96,6 +96,10 @@ let
                 y_depth, nn, slip_data = get_y_nn(slip_data)
                 break_number, break_indices = get_break_indices(slip_data)
                 
+                begin_index = 0
+                δ = zeros(nn)
+                t1 = 0.0
+                cycle_number = 0
                 done2 = false
                 while !done2
                     @printf "\n%d cycles in this data\n" floor(length(break_indices)/2)
@@ -118,10 +122,10 @@ let
                     display(plt1)
                     # get slip initial slip of this cycle
                     line = get_line(slip_cycle_data, 1)
-                    δ = line[3:end]
+                    δ .= line[3:end]
                     t1 = line[1]
                     # plot the intial slip in green to show start of cycle
-                    #plt1 = plot!(δ-δ_off, y_depth, linecolor=:green, linewidth=3)
+                    plt1 = plot!(δ-δ_off, y_depth, linecolor=:green, linewidth=3)
                     
                     
                     # check if this is the right cycle
@@ -154,16 +158,16 @@ let
                             state_file = open("state.dat", "r")
                             state_data = collect(eachline(state_file))[2:end, :]
                             ### old indexing TO BE GOTTEN RID OF!
-                            state_index = begin_index - 2*(cycle_number - 1)
+                            #state_index = begin_index - 2*(cycle_number - 1)
                             ###
-                            line = get_line(state_data, state_index)
+                            line = get_line(state_data, begin_index)
                             ψ = line[3:end]
                             t2 = line[1]
 
 
                             plt2 = plot(δ, y_depth, yflip = true, legend = false)
                             plt3 = plot(ψ, y_depth, yflip = true, legend = false)
-                            display(plot(plt2,plt3, layout=(3,1)))
+                            display(plot(plt2,plt3, layout=(2,1)))
                             
                             # check that ψ and δ are coming from the same time
                             @assert t1 == t2

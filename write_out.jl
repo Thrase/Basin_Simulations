@@ -1,211 +1,200 @@
 using DelimitedFiles
-using WriteVTK
+using NCDatasets
+using Interpolations
 
-function make_ss(dir_name, fault_coord, δNp, input_file)
+const fvars_name = ("δ", "V", "τ̂", "ψ")
+const svars_name = ("δ", "V", "τ̂", "ψ")
 
-    mkdir(dir_name)
-    cp(input_file, string(dir_name, "/input_file.dat"))
+"""
+    init_fault_data(filename::String, var::String, nn::Integer)
 
-    slip_file = string(dir_name,  "/slip.dat")
-    to_write = copy(fault_coord)
-    pushfirst!(to_write, 0.0, 0.0)
-    io = open(slip_file, "w")
-    writedlm(io, [δNp])
-    writedlm(io, to_write', " ")
-    close(io)
+creates a NetCDF file called `filename` in which fault time series of variable `var` is stored at along a total of `nn` nodes.
 
-    slip_rate_file = string(dir_name,  "/slip_rate.dat")
-    to_write = copy(fault_coord)
-    pushfirst!(to_write, 0.0, 0.0)
-    io = open(slip_rate_file, "w")
-    writedlm(io, to_write', " ")
-    close(io)
+"""
+function init_fault_data(filename::String, nn::Integer, depth::Array{Float64, 1})
 
-    stress_file = string(dir_name,  "/stress.dat")
-    io = open(stress_file, "w")
-    writedlm(io, to_write', " ")
-    close(io)
-
-    state_file = string(dir_name, "/state.dat")
-    io = open(state_file, "w")
-    writedlm(io, to_write', " ")
-    close(io)
+    ds = NCDataset(filename, "c")
     
+    defDim(ds, "time index", Inf)
+    defDim(ds, "depth index", nn)
 
-    return slip_file, slip_rate_file, stress_file, state_file
+    defVar(ds, "time", Float64, ("time index",))
+    defVar(ds, "depth", Float64, ("depth index",))
+    defVar(ds, "maximum V", Float64, ("time index",))
+    defVar(ds, "maximum v", Float64, ("time index",))
 
-end
-
-function write_out_ss(δ, V, τ, ψ, t, slip_file, stress_file, slip_rate_file, state_file)
-    
-    max_V = log(10, maximum(V))
-    to_write = copy(δ)
-    pushfirst!(to_write, t, max_V)
-    io = open(slip_file, "a")
-    writedlm(io, to_write')
-    close(io)
-
-    to_write = copy(V)
-    pushfirst!(to_write, t, max_V)
-    io = open(slip_rate_file, "a")
-    writedlm(io, to_write')
-    close(io)
-    
-    to_write = copy(τ)
-    pushfirst!(to_write, t, max_V)
-    io = open(stress_file, "a")
-    writedlm(io, to_write')
-    close(io)
-    
-    to_write = copy(ψ)
-    pushfirst!(to_write, t, max_V)
-    io = open(state_file, "a")
-    writedlm(io, to_write')
-    close(io)
-        
-end
-
-
-function make_stations(dir_name)
-
-    stat_depth = collect(0.0:2.0:22.0)
-    file_names = [string(dir_name, "/station_", stat_depth[i]) for i in 1:length(stat_depth)]
-        
-    header = "t slip slip_rate shear_stress state\n"
-
-    for file in file_names
-        io = open(file, "w")
-        write(io, header)
-        close(io)
+    for var in fvars_name
+        defVar(ds, var, Float64, ("depth index", "time index"))
     end
     
-    return file_names
+    ds["depth"][:] .= depth
+
+    close(ds)
 
 end
 
 
-function write_out(δ, V, τ, θ, t, fault_coord, Lw, file_names, η=nothing)
+"""
+    init_station_data(filename::String, lendepths::Integer)
+
+ creates a NetCDF file called `filename` in which station time series data is stored in `lendepths` total stations.
+
+"""
+function init_station_data(filename::String, stations::AbstractVector)
+
+    ds = NCDataset(filename, "c")
+
+    defDim(ds, "station index", length(stations))
+    defDim(ds, "time index", Inf)
     
-    stat_depth = collect(0.0:2.0:22.0)
-    @assert stat_depth[end] < Lw
-    for i in 1:length(stat_depth)
-
-        file_name = file_names[i]
-        depth = stat_depth[i]
-        d_ind = 0
-        d_val = Lw
-        for j in 1:length(fault_coord)
-            if abs(depth-fault_coord[j]) < d_val
-                d_ind = j
-                d_val = abs(depth-fault_coord[j])
-            end
-        end
-        
-        @assert d_ind != 0
-
-        x1 = fault_coord[d_ind]
-        δ1 = δ[d_ind]
-        V1 = V[d_ind]
-        τ1 = τ[d_ind]
-        θ1 = θ[d_ind]
-        if η != nothing
-            η1 = η[d_ind]
-        end
-        
-        if fault_coord[d_ind] <= depth
-            x2 = fault_coord[d_ind + 1]
-            δ2 = δ[d_ind + 1]
-            V2 = V[d_ind + 1]
-            τ2 = τ[d_ind + 1]
-            θ2 = θ[d_ind + 1]
-            if η != nothing
-                η2 = η[d_ind + 1]
-            end
-        end
-        
-        if fault_coord[d_ind] > depth
-            x2 = fault_coord[d_ind - 1]
-            δ2 = δ[d_ind - 1]
-            V2 = V[d_ind - 1]
-            τ2 = τ[d_ind - 1]
-            θ2 = θ[d_ind - 1]
-            if η != nothing
-                η2 = η[d_ind - 1]
-            end
-        end
-
-        δw = l_interp(depth, x1, x2, δ1, δ2)
-        Vw = l_interp(depth, x1, x2, V1, V2)
-        if η != nothing
-            ηw = l_interp(depth, x1, x2, η1, η2)
-            τw = l_interp(depth, x1, x2, τ1, τ2) - (Vw * ηw)
-        else
-            τw = l_interp(depth, x1, x2, τ1, τ2)
-        end
-        
-        θw = l_interp(depth, x1, x2, θ1, θ2)
-        
-        if θw < 0
-            @show θw, θ1, θ2, t, depth, d_val, fault_coord[d_ind], fault_coord[d_ind-1], fault_coord[d_ind+1]
-        end
-
-        dat = [t, δw, log(10,abs(Vw)), τw, log(10, θw)]
-        io = open(file_name, "a")
-        writedlm(io, dat', " ")
-        close(io)
-    end 
-end
-
-
-function write_out_vtk(u,v,x,y,step)
+    defVar(ds, "time", Float64, ("time index",))
+    defVar(ds, "maximum V", Float64, ("time index",))
+    defVar(ds, "maxR", Float64, ("time index",))
+    defVar(ds, "stations", Float64, ("station index",))
+    defVar(ds, "δ", Float64, ("time index", "station index"))
+    defVar(ds, "V", Float64, ("time index", "station index"))
+    defVar(ds, "τ̂", Float64, ("time index", "station index"))
+    defVar(ds, "ψ", Float64, ("time index", "station index"))
     
-    vtkfile = vtk_grid(string("vtkfiles/basin_wave_", step, ".vtr"), x, y)
-    vtkfile["u"] = u
-    vtkfile["v"] = v
-    outfiles = vtk_save(vtkfile)
+
+    ds["stations"][:] .= stations
+
+    close(ds)
 
 end
 
 
-function make_uv_files(dir_name, x, y)
-
-    u_file = string(dir_name, "/us.dat")
-    v_file = string(dir_name, "/vs.dat")
-    i1 = open(v_file, "w")
-    i2 = open(u_file, "w")
-    writedlm(i1, x', " ")
-    writedlm(i1, y', " ")
-    writedlm(i2, x', " ")
-    writedlm(i2, y', " ")
-    close(i1)
-    close(i2)
-
-    return u_file,v_file
-end
-
-function write_out_uv(u, v, n, δNp, u_file, v_file)
-
-    u = reshape(u, (n,n))
-    v = reshape(v, (n,n))
-    u = @view u[1:2:δNp, 1:2:δNp]
-    v = @view v[1:2:δNp, 1:2:δNp]
-    u = reshape(u, (length(u)))
-    v = reshape(v, (length(v)))
-
-    i1 = open(u_file, "a")
-    i2 = open(v_file, "a")
-    writedlm(i1, u', " ")
-    writedlm(i2, v', " ")
-
-    close(i1)
-    close(i2)
-
-end
-
-
-function l_interp(x, x1, x2, y1, y2)
-
-    return (y2 - y1)/(x2 - x1) * x - (y2 - y1)/(x2 - x1) * x1 + y1
+function init_volume_data(filename::String, x::Array{Float64, 1}, y::Array{Float64, 1})
     
+    ds = NCDataset(filename, "c")
+
+    defDim(ds, "time index", Inf)
+    defDim(ds, "x index", length(x))
+    defDim(ds, "y index", length(y))
+
+    defVar(ds, "time", Float64, ("time index",))
+    defVar(ds, "x", Float64, ("x index",))
+    defVar(ds, "y", Float64, ("y index",))
+    defVar(ds, "maximum V", Float64, ("time index",))
+    defVar(ds, "u", Float64, ("x index", "y index", "time index"))
+    defVar(ds, "v", Float64, ("x index", "y index", "time index"))
+    defVar(ds, "σ", Float64, ("x index", "y index", "time index"))
+
+    ds["x"][:] .= x
+    ds["y"][:] .= y
+    
+    close(ds)
+
 end
 
+
+"""
+    new_dir(new_dir::String, stations::AbstractVector, nn::Integer)
+
+creates a new directory called `new_dir` to store data from `stations`, volume, and fault variables, for solutions with `nn` nodes per dimension.
+
+"""
+function new_dir(new_dir::String, input_file::String, stations::Array{Float64, 1}, depth::Array{Float64,1}, x::Array{Float64,1}, y::Array{Float64,1})
+
+    if !isdir(new_dir)
+        mkdir(new_dir)
+    else
+        error("new directory already exists.")
+    end
+
+    nn = length(depth)
+
+    fault_name = string(new_dir, "fault.nc")
+    stations_name = string(new_dir, "stations.nc")
+    remote_name = string(new_dir, "remote.nc")
+    volume_name = string(new_dir, "volume.nc")
+    
+    init_fault_data(fault_name, nn, depth)
+    init_fault_data(remote_name, nn, depth)
+    init_station_data(stations_name, stations)
+    
+
+    init_volume_data(volume_name, x, y)
+
+    cp(input_file, string(new_dir, "input_file.dat"))
+    write_depth_grid(string(new_dir, "depth_grid.dat"), depth)
+
+    return fault_name, stations_name, remote_name, volume_name
+
+end
+
+"""
+    write_out_fault_data(filenames::Tuple, vars::Tuple, t::Float64)
+
+writes out `vars` fault varibles at time `t` to NetCDF `filenames`.
+
+"""
+function write_out_fault_data(filename::String, vars::Tuple, maxv::Float64, t::Float64)
+
+    file = NCDataset(filename, "a")
+    max_V = maximum(vars[2])
+    
+    
+    t_ind = size(file["time"])[1] + 1
+    file["time"][t_ind] = t
+    file["maximum V"][t_ind] = max_V
+    file["maximum v"][t_ind] = maxv
+    for i in 1:length(vars)
+        file[fvars_name[i]][:, t_ind] .= vars[i]
+    end
+    
+    close(file)
+
+end
+
+"""
+    write_out_stations(station_file::String, stations::AbstractVector, depth:: Array{Float64,1}, vars::Tuple)
+
+writes out interpolated station data `vars` at `stations` using grid spacing `depth` at time `t` to netCDF file `station_file`.
+
+"""
+function write_out_stations(station_file::String, stations::Array{Float64,1}, depth::Array{Float64,1}, vars::Tuple, maxR::Float64, t::Float64)
+
+    file = NCDataset(station_file, "a")
+    t_ind = size(file["time"])[1] + 1
+    file["time"][t_ind] = t
+    file["maximum V"][t_ind] = maximum(vars[2])
+    file["maxR"][t_ind] = maxR
+    #file["maximum v"][t_ind] = maximum(maxv)
+    for (i, var) in enumerate(vars)
+        interp = interpolate((depth,), var, Gridded(Linear()))
+        var_stations = interp(stations)
+        file[svars_name[i]][t_ind, :] .= var_stations
+    end
+    
+    close(file)
+
+end
+
+function write_out_volume(volume_file::String, volume_vars::Tuple, V::Array{Float64,1}, nn::Integer, t::Float64)
+
+    # this is probably pretty inefficient.....
+    u = reshape(volume_vars[1], (nn,nn))
+    v = reshape(volume_vars[2], (nn,nn))
+
+    file = NCDataset(volume_file, "a")
+    t_ind = size(file["time"])[1] + 1
+    file["time"][t_ind] = t
+    file["maximum V"][t_ind] = maximum(V)
+    file["u"][:, :, t_ind] .= u[1:2:end, 1:2:end]
+    file["v"][:, :, t_ind] .= v[1:2:end, 1:2:end]
+
+end
+
+function write_depth_grid(filename, fc)
+    
+    io = open(filename, "w")
+
+    for i in 2:length(fc)
+        write(io, string(fc[i], ", ", fc[i] - fc[i-1], "\n"))
+    end
+    
+    close(io)
+
+
+end

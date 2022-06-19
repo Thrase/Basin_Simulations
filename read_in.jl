@@ -6,6 +6,7 @@ function read_params(f_name)
         s = readline(f)
         if s[1] != '#'
             push!(params, split(s, '=')[2])
+            flush(stdout)
         end
     end
     close(f)
@@ -28,5 +29,6 @@ function read_params(f_name)
     cycle_flag = parse(Int64, params[17])
     num_cycles = parse(Int64, params[18])
     intime_plotting = parse(Int64, params[19])
-    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, B_on, dir_out, volume_plots, cycle_flag, num_cycles, intime_plotting
+    μ_in = parse(Float64, params[20])
+    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_t_file, Dc, B_on, dir_out, volume_plots, cycle_flag, num_cycles, intime_plotting, μ_in
 end

@@ -1,0 +1,22 @@
+# Parameter input file for Basin Simulations
+#
+#
+P=4
+Total_time=5000.0
+Number_nodes=500
+Domain_length=24
+r_hat=0.0
+l=0.0
+b_depth=4
+dynamic_flag=1
+d_to_s=.001
+dt=.5
+initial_con=None
+inital_t=None
+Dc=.032
+B_on=0
+dir_name=500n/
+volume_plots=1
+cycle_flag=1
+num_cycles=5
+intime_plotting=1

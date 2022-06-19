@@ -1,0 +1,17 @@
+push!(ARGS, "../../input_files/dynamic/basin_switching/8GPa/v_switch1.dat")
+include("../../Basin.jl")
+pop!(ARGS)
+push!(ARGS, "../../input_files/dynamic/basin_switching/8GPa/v_switch2.dat")
+include("../../Basin.jl")
+pop!(ARGS)
+push!(ARGS, "../../input_files/dynamic/basin_switching/8GPa/v_switch3.dat")
+include("../../Basin.jl")
+pop!(ARGS)
+push!(ARGS, "../../input_files/dynamic/basin_switching/8GPa/v_switch4.dat")
+include("../../Basin.jl")
+pop!(ARGS)
+push!(ARGS, "../../input_files/dynamic/basin_switching/8GPa/v_switch5.dat")
+include("../../Basin.jl")
+pop!(ARGS)
+
+
