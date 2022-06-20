@@ -904,9 +904,9 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
     nstep = ceil(Int, (t1 - t0) / dt)
     dt = (t1 - t0) / nstep
 
-    pf[1] = .1
+    pf[1] = .01
     pf[2] = .01
-    pf[3] = 1.0
+    pf[3] = .1
 
     fill!(Δq, 0)
     fill!(Δq2, 0)
@@ -919,7 +919,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
             q .+= (RKB[s] * dt) .* Δq
             Δq .*= RKA[s % length(RKA) + 1]
         end
-        
         
         v̂_cpu[:] = Array(v̂)
         
@@ -934,7 +933,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                 error("nan from dynamic rootfinder")
             end
         
-
             write_out_fault_data(io.fault_name,
                                  (δ[1:δNp], 2v̂_cpu[1:δNp], τ̂_cpu[1:δNp], ψ_cpu[1:δNp]), 
                                  0.0,
@@ -945,19 +943,11 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                                  0.0,
                                  t)
 
-            if io.vp == 1
-                u_out = Array(u)
-                v_out = Array(v)
-                write_out_volume(io.volume_name, (u_out, v_out), 2v̂_cpu, nn, t)
-            end
-
-            pf[1] +=.1
+            pf[1] +=.01
         end
 
         if step == ceil(Int, pf[2]/dt)
          
-
-            
             δ[:] = Array(2ûf)
             τ̂_cpu[:] = Array(-τ̃f ./ sJ .- Z̃f .* (v̂ - vf) ./ sJ)
             ψ_cpu[:] = Array(ψ)
@@ -973,8 +963,6 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
         pf[2] += .01
         end
 
-        
-
         if step == ceil(Int, pf[3]/dt)
            if io.slip_plot[1] != nothing
                 io.slip_plot[1] = plot!(io.slip_plot[1], δ[1:δNp], fc[1:δNp], linecolor=:red, linewidth=.1)
@@ -982,7 +970,13 @@ function timestep_write!(q, f!, p, dt, (t0, t1), Δq = similar(q), Δq2 = simila
                 plot(io.slip_plot[1], v_plot, layout = (1,2))
                 gui()
             end
-            pf[3] += 1.0
+
+            if io.vp == 1
+                u_out = Array(u)
+                v_out = Array(v)
+                write_out_volume(io.volume_name, (u_out, v_out), 2v̂_cpu, nn, t)
+            end
+            pf[3] += .1
         end
         
         if maximum(v̂_cpu) < d_to_s/2

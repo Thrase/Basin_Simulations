@@ -29,6 +29,7 @@ let
     d_to_s,
     dt_scale,
     ic_file,
+    ic_remote,
     ic_t_file,
     Dc,
     B_on,
@@ -154,7 +155,11 @@ let
             ψ_end = zeros(nn),
             t_end = [0.0] )
 
-    vars.uf2 .= (RS.τ_inf * Lw) ./ metrics.μf2
+    if ic_remote == "None"
+        vars.uf2 .= (RS.τ_inf * Lw) ./ metrics.μf2
+    else        
+        vars.uf2[:] = readdlm(ic_remote)
+    end
     
     static_params = (year_seconds,
                      reject_step = [false],
@@ -172,8 +177,8 @@ let
                      vf = zeros(nn),
                      cycles = [0])
 
-    threads = 512
     
+    threads = 512
     dynamic_params = (nn = nn,
                       δNp = δNp,
                       threads = threads,
@@ -230,15 +235,7 @@ let
         prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
         
         inter_time = @elapsed begin
-            # integrate
-            #=
-            if cycles == 1 
-                inter_timestep = 5 * year_seconds
-            else
-                inter_timestep = dts[2]
-                t_span = (t_now, t_now + 30)
-            end
-            =#
+   
             prob = ODEProblem(Q_DYNAMIC!, ψδ, t_span, static_params)
          
             sol = solve(prob, Tsit5(); isoutofdomain=stepcheck,
@@ -255,10 +252,6 @@ let
         @printf "Finished Interseismic\n"
         @printf "Interseismic period took %s seconds. \n" inter_time
         flush(stdout)
-        
-        #if cycles == 2
-        #    error("finished")
-        #end
         
         ### get dynamic inital conditions
         t_now = static_params.vars.t_end[1]
