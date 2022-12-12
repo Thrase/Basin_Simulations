@@ -80,9 +80,6 @@ let
     ### get fault params
     fc = Array(metrics.facecoord[2][1])
     (x, y) = metrics.coord
-    for i in 2:length(fc)
-        @show fc[i], fc[i] - fc[i-1]
-    end
     #error("exit")
 
     η = metrics.η
@@ -90,8 +87,13 @@ let
     δNp, 
     gNp, 
     VWp,
-    RS = fault_params(fc, Dc)
+    RS = fault_params(fc, Dc, Lw)
 
+    Λ₀ = Array((μ(0, fc, B_p) .* Dc)./(RS.b .* RS.σn))
+    for i in 2:length(fc)
+        @show fc[i], fc[i] - fc[i-1], Λ₀[i], Λ₀[i] / (fc[i] - fc[i-1])
+    end
+    #exit("error")
     ### setup io
     stations = collect(0.0:2.0:22.0)
     fault_name,

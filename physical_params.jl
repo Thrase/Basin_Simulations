@@ -163,10 +163,9 @@ function η(y, B_p)
     return μf ./ (2 .* sqrt.(μf ./ ρ(0, y, B_p)))
 end
 
-function fault_params(fc, Dc)
+function fault_params(fc, Dc, Wf)
 
     
-    Wf = 24
     Hvw = 12
     Ht = 6
     δNp = findmin(abs.(Wf .- fc))[2]
