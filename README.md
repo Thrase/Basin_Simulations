@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/407634672.svg)](https://zenodo.org/badge/latestdoi/407634672)
 # Basin Simulations
 
 A SEAS simulator for an anti-plane strike slip fault embedded in a sedimentary basins.
