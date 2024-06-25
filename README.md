@@ -1,7 +1,7 @@
 [![DOI](https://zenodo.org/badge/407634672.svg)](https://zenodo.org/badge/latestdoi/407634672)
 # Basin Simulations
 
-A SEAS simulator for an anti-plane strike slip fault embedded in sedimentary basins.
+A SEAS simulator for an anti-plane strike slip fault embedded in a sedimentary basin.
 
 Simulations appear in:
 - Harvey, T. W., Erickson, B. A., Kozdon, J. E. (2022), A high-order accurate summation-by-parts finite difference method for fully-dynamic earthquake sequence simulations within sedimentary basins, submitted to the Journal of Geophysical Research. [Link](https://eartharxiv.org/repository/view/3505/)
