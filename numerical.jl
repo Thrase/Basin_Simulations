@@ -4,6 +4,7 @@ using CUDA
 using CUDA.CUSPARSE
 using Printf
 using MatrixMarket
+using Logging
 
 include("DiagonalSBP.jl")
 
@@ -121,9 +122,6 @@ function traction(ops, metrics, f, u, û)
     return (HI * G * u + Γ * (û - L * u)) ./ sJ
     
 end
-
-
-
             
 function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics, 
                      τscale = 2,
@@ -205,7 +203,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         Ã = Ãrr + Ãss + Ãrs + Ãsr
     end
 
-    #@printf "Got Ã in %f seconds\n" A_t
+    @printf "Got Ã in %f seconds\n" A_t
 
 
     # volume quadrature
@@ -362,7 +360,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
          H[4] * (B[4][1] + B[4][2]))
 
 
-
+    @printf "Starting to get Λ and friends..."
     static_t = @elapsed begin
 
         # boundary data operators for quasi-static displacement conditions
@@ -371,12 +369,18 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         #K3 = L[3]' * H[3] * Γ[3] - G[3]'
         #K4 = L[4]' * H[4] * Γ[4] - G[4]'
         
+        @show typeof(K1)
+        @show typeof(K2)
+        
         # boundary data operator for quasi-static traction-free conditions
         #K1 = L[1]' * H2]
         #K2 = L[2]' * H[2]
         K3 = L[3]' * H[3]
         K4 = L[4]' * H[4]
 
+        @show typeof(K3)
+        @show typeof(K4)
+        
         # modification of second derivative operator for displacement conditions
         M̃ = copy(Ã)
         for f in 1:2
@@ -384,13 +388,10 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
             M̃ += L[f]' * H[f] * Cf[f][1] * Γ[f] * L[f]
             M̃ -= G[f]' * L[f]
         end
-        
-        
-        
     end
 
+    @show typeof(M̃)
     
-
     Λ_t = @elapsed begin
         faces = [1,2,4]
         dv_u = -Ã
@@ -400,6 +401,8 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
                 nl[i] * (B[i][1]' + B[i][2]') * H[i] * L[i]
             
         end
+
+        @show "part 1"
         
         dv_v = spzeros(Nn, Nn)
         for i in faces
@@ -410,7 +413,9 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         dû_u = spzeros(4nn, Nn)
         dû_v = spzeros(4nn, Nn)
 
+        @show "part 2"
         for i in faces
+
             dv_û[ : , (i-1) * nn + 1 : i * nn] .=
                 (L[i]' * H[i] * ((1 - R[i])/2 .* Cf[i][1] * Γ[i])) -
                 nl[i] * (B[i][1]' + B[i][2]') * H[i]
@@ -420,8 +425,11 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
                 Cf[i][1] * Γ[i] * L[i])./Z̃f[i]
             
             dû_v[(i-1) * nn + 1 : i * nn , : ] .= (1 + R[i])/2 .* L[i]
+
         end
 
+        @show "part 3"
+        
         dû_û = spzeros(4nn, 4nn)
         for i in faces
             dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
@@ -429,6 +437,8 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
 
         dû_ψ = spzeros(4nn, nn)
 
+        @show "part 4"
+        
         Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 5nn)
               dv_u dv_v dv_û spzeros(Nn, nn)
               dû_u dû_v dû_û dû_ψ
@@ -437,9 +447,41 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
 
         nCnΓ1 = Crr1 * Γ[1]
         HIGΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
+
+        @show "part 5"
+        
     end
 
-    #@printf "Got Λ and friends in %f seconds\n" Λ_t
+    @printf "Got Λ and friends in %f seconds\n" Λ_t
+
+    
+    @show typeof(Λ)
+    @show typeof(cholesky(Symmetric(M̃)))
+    @show typeof(K1)
+    @show typeof(K2)
+    @show typeof(K3)
+    @show typeof(K4)
+    @show typeof(G)
+    @show typeof(Crr1)
+    @show typeof(Γ)
+    @show typeof(HI)
+    @show typeof(P̃inv)
+    @show typeof(H̃)
+    @show typeof(H̃inv)
+    @show typeof(JI)
+    @show typeof(JIHP)
+    @show typeof(nCnΓ1)
+    @show typeof(HIGΓL1)
+    @show typeof(hmin)
+    @show typeof(cmax)
+    @show typeof(JH)
+    @show typeof(metrics.sJ)
+    @show typeof(metrics.nx)
+    @show typeof(metrics.ny)
+    @show typeof(L)
+    @show typeof(H)
+    @show typeof(Z̃f)
+
 
     
     (Λ = Λ,

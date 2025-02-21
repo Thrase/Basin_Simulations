@@ -393,6 +393,7 @@ function STOPFUN_Q(ψδ,t,i)
         
         if pf[1] % 40 == 0
 
+            #@printf "current time is %f years\n" t/year_seconds
             write_out_fault_data(io.remote_name,
                                  (i.p.ops.L[2] * u, zeros(nn)),
                                  0.0,
@@ -413,7 +414,7 @@ function STOPFUN_Q(ψδ,t,i)
 
         end
         
-        if io.slip_plot[1] != nothing && pf[1] % 120 == 0
+        if io.slip_plot[1] != nothing && pf[1] % 600 == 0
             io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
             v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
             plot(io.slip_plot[1], v_plot, layout = (1,2))

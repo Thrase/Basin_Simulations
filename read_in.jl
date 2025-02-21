@@ -31,5 +31,6 @@ function read_params(f_name)
     num_cycles = parse(Int64, params[19])
     intime_plotting = parse(Int64, params[20])
     μ_in = parse(Float64, params[21])
-    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_remote, ic_t_file, Dc, B_on, dir_out, volume_plots, cycle_flag, num_cycles, intime_plotting, μ_in
+    use_gpu = parse(Int64, params[22])
+    return p, T, N, Lw, r̂, l, b_depth, dynamic_flag, d_to_s, dt_scale, ic_file, ic_remote, ic_t_file, Dc, B_on, dir_out, volume_plots, cycle_flag, num_cycles, intime_plotting, μ_in, use_gpu
 end

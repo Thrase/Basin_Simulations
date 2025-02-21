@@ -38,10 +38,11 @@ let
     cycle_flag,
     num_cycles,
     intime_plotting,
-    μ_in= read_params(ARGS[1])
+    μ_in,
+    use_gpu = read_params(ARGS[1])
     
     #
-    dir_out = string("../../../erickson/output_files/", dir_out)
+    dir_out = string("./", dir_out)
 
     nn = N + 1
 
@@ -90,17 +91,18 @@ let
     RS = fault_params(fc, Dc, Lw)
 
     Λ₀ = Array((μ(0, fc, B_p) .* Dc)./(RS.b .* RS.σn))
-    for i in 2:length(fc)
-        @show fc[i], fc[i] - fc[i-1], Λ₀[i], Λ₀[i] / (fc[i] - fc[i-1])
-    end
+    
     #exit("error")
     ### setup io
     stations = collect(0.0:2.0:22.0)
+
+    
     fault_name,
     station_name,
     remote_name,
     volume_name = new_dir(dir_out, ARGS[1], stations, fc, x[1:2:nn, 1], y[1, 1:2:nn])
-
+    
+    
     @printf "set-up io\n"
     flush(stdout)
 
@@ -181,41 +183,81 @@ let
 
     
     threads = 512
-    dynamic_params = (nn = nn,
-                      δNp = δNp,
-                      threads = threads,
-                      blocks = cld(nn, threads),
-                      Λ = CuSparseMatrixCSC(ops.Λ),
-                      sJ = CuArray(metrics.sJ[1]),
-                      Z̃f1 = CuArray(ops.Z̃f[1]),
-                      Z̃f2 = CuArray(ops.Z̃f[2]),
-                      Z̃f3 = CuArray(ops.Z̃f[3]),
-                      L2 = CuSparseMatrixCSC(ops.L[2]),
-                      L3 = CuSparseMatrixCSC(ops.L[3]),
-                      H = CuArray(diag(ops.H[1])),
-                      JIHP = CuSparseMatrixCSC(ops.JIHP),
-                      nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
-                      HIGΓL1 = CuSparseMatrixCSC(ops.HIGΓL1),
-                      HIG = CuSparseMatrixCSC(ops.HI[1] * ops.G[1]),
-                      RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, RS.Vp, nn, δNp]),
-                      b = CuArray(RS.b),
-                      τ̃f = CuArray(zeros(nn)),
-                      v̂ = CuArray(zeros(nn)),
-                      source2 = CuArray(zeros(nn)),
-                      source3 = CuArray(zeros(nn)),
-                      fc = Array(metrics.facecoord[2][1]),
-                      Lw = Lw,
-                      io = io,
-                      d_to_s = d_to_s,
-                      RS_cpu = RS,
-                      η = metrics.η,
-                      δ = zeros(nn),
-                      v̂_cpu = zeros(nn),
-                      τ̂_cpu = zeros(nn),
-                      τ̃_cpu = zeros(nn),
-                      ψ_cpu = zeros(nn))
-    
-    @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
+
+    if use_gpu == 1
+        gpu_dynamic_params = (nn = nn,
+                              δNp = δNp,
+                              threads = threads,
+                              blocks = cld(nn, threads),
+                              Λ = CuSparseMatrixCSC(ops.Λ),
+                              sJ = CuArray(metrics.sJ[1]),
+                              Z̃f1 = CuArray(ops.Z̃f[1]),
+                              Z̃f2 = CuArray(ops.Z̃f[2]),
+                              Z̃f3 = CuArray(ops.Z̃f[3]),
+                              L2 = CuSparseMatrixCSC(ops.L[2]),
+                              L3 = CuSparseMatrixCSC(ops.L[3]),
+                              H = CuArray(diag(ops.H[1])),
+                              JIHP = CuSparseMatrixCSC(ops.JIHP),
+                              nCnΓ1 = CuSparseMatrixCSC(ops.nCnΓ1),
+                              HIGΓL1 = CuSparseMatrixCSC(ops.HIGΓL1),
+                              HIG = CuSparseMatrixCSC(ops.HI[1] * ops.G[1]),
+                              RS = CuArray([RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, RS.Vp, nn, δNp]),
+                              b = CuArray(RS.b),
+                              τ̃f = CuArray(zeros(nn)),
+                              v̂ = CuArray(zeros(nn)),
+                              source2 = CuArray(zeros(nn)),
+                              source3 = CuArray(zeros(nn)),
+                              fc = Array(metrics.facecoord[2][1]),
+                              Lw = Lw,
+                              io = io,
+                              d_to_s = d_to_s,
+                              RS_cpu = RS,
+                              η = metrics.η,
+                              δ = zeros(nn),
+                              v̂_cpu = zeros(nn),
+                              τ̂_cpu = zeros(nn),
+                              τ̃_cpu = zeros(nn),
+                              ψ_cpu = zeros(nn))
+
+    else
+        dynamic_params = (nn = nn,
+                          δNp = δNp,
+                          threads = threads,
+                          blocks = cld(nn, threads),
+                          Λ = ops.Λ,
+                          sJ = metrics.sJ[1],
+                          Z̃f1 = ops.Z̃f[1],
+                          Z̃f2 = ops.Z̃f[2],
+                          Z̃f3 = ops.Z̃f[3],
+                          L2 = ops.L[2],
+                          L3 = ops.L[3],
+                          H = diag(ops.H[1]),
+                          JIHP = ops.JIHP,
+                          nCnΓ1 = ops.nCnΓ1,
+                          HIGΓL1 = ops.HIGΓL1,
+                          HIG = ops.HI[1] * ops.G[1],
+                          RS = [RS.a, RS.σn, RS.V0, RS.Dc, RS.f0, RS.Vp, nn, δNp],
+                          b = RS.b,
+                          τ̃f = zeros(nn),
+                          v̂ = zeros(nn),
+                          source2 = zeros(nn),
+                          source3 = zeros(nn),
+                          fc = Array(metrics.facecoord[2][1]),
+                          Lw = Lw,
+                          io = io,
+                          d_to_s = d_to_s,
+                          RS_cpu = RS,
+                          η = metrics.η,
+                          δ = zeros(nn),
+                          v̂_cpu = zeros(nn),
+                          τ̂_cpu = zeros(nn),
+                          τ̃_cpu = zeros(nn),
+                          ψ_cpu = zeros(nn))
+    end
+
+    if use_gpu == 1
+        @printf "Approximately %f Gib to GPU\n\n" Base.summarysize(dynamic_params)/1e9
+    end
     flush(stdout)
 
     ### set dynamic timestep
@@ -242,8 +284,8 @@ let
          
             sol = solve(prob, Tsit5(); isoutofdomain=stepcheck,
                         dt=dts[2],
-                        atol = 1e-12,
-                        rtol = 1e-12,
+                        abstol = 1e-12,
+                        reltol = 1e-12,
                         gamma = .3,
                         save_everystep=false,
                         internalnorm=(x, _)->norm(x, Inf),
@@ -280,20 +322,40 @@ let
         co_time = @elapsed begin
             
             ### getting source terms for non-reflecting boundaries
-            dynamic_params.source2[:] = CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
-                ops.L[2] * q[nn^2 + 1 : 2nn^2] +
-                traction(ops, metrics, 2, q[1:nn^2],
-                         ops.L[2] * q[1:nn^2])))
-
-            dynamic_params.source3[:] = CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
-            ops.L[3] * q[nn^2 + 1 : 2nn^2] +
-            traction(static_params.ops, metrics, 3, q[1:nn^2],
-                     ops.L[3] * q[1:nn^2])))
+            if use_gpu == 1
+                gpu_dynamic_params.source2[:] = CuArray(metrics.sJ[2] .* (ops.Z̃f[2] .*
+                    ops.L[2] * q[nn^2 + 1 : 2nn^2] +
+                    traction(ops, metrics, 2, q[1:nn^2],
+                             ops.L[2] * q[1:nn^2])))
+                
+                gpu_dynamic_params.source3[:] = CuArray(metrics.sJ[3] .* (ops.Z̃f[3] .*
+                    ops.L[3] * q[nn^2 + 1 : 2nn^2] +
+                    traction(static_params.ops, metrics, 3, q[1:nn^2],
+                             ops.L[3] * q[1:nn^2])))
             
-            q = CuArray(q)
+                q = CuArray(q)
 
+            else
+                
+                dynamic_params.source2[:] = metrics.sJ[2] .* (ops.Z̃f[2] .*
+                    ops.L[2] * q[nn^2 + 1 : 2nn^2] +
+                    traction(ops, metrics, 2, q[1:nn^2],
+                             ops.L[2] * q[1:nn^2]))
+
+                dynamic_params.source3[:] = metrics.sJ[3] .* (ops.Z̃f[3] .*
+                    ops.L[3] * q[nn^2 + 1 : 2nn^2] +
+                    traction(static_params.ops, metrics, 3, q[1:nn^2],
+                             ops.L[3] * q[1:nn^2]))
+            
+                q = q
+
+            end
             ### run inter-seismic solver
-            t_now = timestep_write!(q, FAULT_GPU!, dynamic_params, dts[2], t_span)
+            if use_gpu == 1
+                t_now = timestep_write!(q, FAULT_GPU!, gpu_dynamic_params, dts[2], t_span)
+            else
+                t_now = timestep_write!(q, FAULT_CPU!, dynamic_params, dts[2], t_span)
+            end
         end
         @printf "\nFinised Co-seismic period\n"
         @printf "Coseismic period took %s seconds. \n" co_time
