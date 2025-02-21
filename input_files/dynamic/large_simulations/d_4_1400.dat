@@ -3,7 +3,7 @@
 #
 P=4
 Total_time=20000.0
-Number_nodes=1400
+Number_nodes=80
 Domain_length=24
 r_hat=.75
 l=.05
@@ -12,10 +12,11 @@ dynamic_flag=1
 d_to_s=.005
 dt=.5
 initial_con=None
+initial_remote=None
 inital_t=None
 Dc=.008
 B_on=1
-dir_name=d_4_1400/
+dir_name=results/
 volume_plots=0
 cycle_flag=0
 num_cycles=1

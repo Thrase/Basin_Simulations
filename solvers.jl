@@ -414,7 +414,7 @@ function STOPFUN_Q(ψδ,t,i)
 
         end
         
-        if io.slip_plot[1] != nothing && pf[1] % 600 == 0
+        if io.slip_plot[1] != nothing && pf[1] % 1000 == 0
             io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
             v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)
             plot(io.slip_plot[1], v_plot, layout = (1,2))

@@ -286,7 +286,7 @@ let
                         dt=dts[2],
                         abstol = 1e-12,
                         reltol = 1e-12,
-                        gamma = .3,
+                        gamma = .4,
                         save_everystep=false,
                         internalnorm=(x, _)->norm(x, Inf),
                         #saveat = year_seconds,

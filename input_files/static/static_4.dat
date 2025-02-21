@@ -3,7 +3,7 @@
 #
 P=2
 Total_time=80.0
-Number_nodes=80
+Number_nodes=400
 Domain_length=24
 r_hat=.75
 l=.05
@@ -16,7 +16,7 @@ initial_remote=None
 inital_t=None
 Dc=.008
 B_on=1
-dir_name=results/
+dir_name=400node_test/
 volume_plots=0
 cycle_flag=0
 num_cycles=1

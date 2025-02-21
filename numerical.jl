@@ -368,18 +368,12 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         K2 = L[2]' * H[2] * Cf[2][1] * Γ[2] - G[2]'
         #K3 = L[3]' * H[3] * Γ[3] - G[3]'
         #K4 = L[4]' * H[4] * Γ[4] - G[4]'
-        
-        @show typeof(K1)
-        @show typeof(K2)
-        
+                
         # boundary data operator for quasi-static traction-free conditions
         #K1 = L[1]' * H2]
         #K2 = L[2]' * H[2]
         K3 = L[3]' * H[3]
         K4 = L[4]' * H[4]
-
-        @show typeof(K3)
-        @show typeof(K4)
         
         # modification of second derivative operator for displacement conditions
         M̃ = copy(Ã)
@@ -390,8 +384,11 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         end
     end
 
-    @show typeof(M̃)
-    
+    nCnΓ1 = Crr1 * Γ[1]
+    HIGΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
+
+    @show length(M̃.nzval)
+#=
     Λ_t = @elapsed begin
         faces = [1,2,4]
         dv_u = -Ã
@@ -402,18 +399,15 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
             
         end
 
-        @show "part 1"
-        
         dv_v = spzeros(Nn, Nn)
         for i in faces
             dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])   
         end
-
+n
         dv_û = spzeros(Nn, 4nn)
         dû_u = spzeros(4nn, Nn)
         dû_v = spzeros(4nn, Nn)
 
-        @show "part 2"
         for i in faces
 
             dv_û[ : , (i-1) * nn + 1 : i * nn] .=
@@ -428,8 +422,6 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
 
         end
 
-        @show "part 3"
-        
         dû_û = spzeros(4nn, 4nn)
         for i in faces
             dû_û[(i-1) * nn + 1 : i * nn, (i-1) * nn + 1 : i * nn] .= -(1 + R[i])/2 .* (Cf[i][1] * Γ[i])./Z̃f[i]
@@ -437,8 +429,6 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
 
         dû_ψ = spzeros(4nn, nn)
 
-        @show "part 4"
-        
         Λ = [ spzeros(Nn, Nn) sparse(I, Nn, Nn) spzeros(Nn, 5nn)
               dv_u dv_v dv_û spzeros(Nn, nn)
               dû_u dû_v dû_û dû_ψ
@@ -448,43 +438,12 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         nCnΓ1 = Crr1 * Γ[1]
         HIGΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
 
-        @show "part 5"
-        
     end
 
     @printf "Got Λ and friends in %f seconds\n" Λ_t
-
+    =#
     
-    @show typeof(Λ)
-    @show typeof(cholesky(Symmetric(M̃)))
-    @show typeof(K1)
-    @show typeof(K2)
-    @show typeof(K3)
-    @show typeof(K4)
-    @show typeof(G)
-    @show typeof(Crr1)
-    @show typeof(Γ)
-    @show typeof(HI)
-    @show typeof(P̃inv)
-    @show typeof(H̃)
-    @show typeof(H̃inv)
-    @show typeof(JI)
-    @show typeof(JIHP)
-    @show typeof(nCnΓ1)
-    @show typeof(HIGΓL1)
-    @show typeof(hmin)
-    @show typeof(cmax)
-    @show typeof(JH)
-    @show typeof(metrics.sJ)
-    @show typeof(metrics.nx)
-    @show typeof(metrics.ny)
-    @show typeof(L)
-    @show typeof(H)
-    @show typeof(Z̃f)
-
-
-    
-    (Λ = Λ,
+    (Λ = spzeros(1),
      M̃ = cholesky(Symmetric(M̃)),
      K = (K1, K2, K3, K4),
      G = G,
