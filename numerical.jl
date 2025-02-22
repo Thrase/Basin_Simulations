@@ -265,6 +265,11 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
     (_, S0, SN, _, _) = D2(p, Nr, xc=(-1,1))[1:5]
     S0 = sparse(Array(S0[1,:])')
     SN = sparse(Array(SN[end, :])')
+
+    D2r = kron(Is, Dr)
+    D2s = kron(Ds, Ir)
+    display(D2s)
+    
     
     # Boundars Derivatives
     B1r =  Crr1 * kron(Is, S0)
@@ -387,8 +392,6 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
     nCnΓ1 = Crr1 * Γ[1]
     HIGΓL1 = nl[1] * (B[1][1] + B[1][2]) - nCnΓ1 * L[1]
 
-    @show length(M̃.nzval)
-#=
     Λ_t = @elapsed begin
         faces = [1,2,4]
         dv_u = -Ã
@@ -403,7 +406,7 @@ function operators(p, Nr, Ns, μ, ρ, R, B_p, metrics,
         for i in faces
             dv_v .+=  L[i]' * H[i] * (-(1 - R[i])/2 .* Z̃f[i] .* L[i])   
         end
-n
+
         dv_û = spzeros(Nn, 4nn)
         dû_u = spzeros(4nn, Nn)
         dû_v = spzeros(4nn, Nn)
@@ -441,10 +444,11 @@ n
     end
 
     @printf "Got Λ and friends in %f seconds\n" Λ_t
-    =#
     
-    (Λ = spzeros(1),
+    (Λ = Λ,
      M̃ = cholesky(Symmetric(M̃)),
+     D2r = D2r,
+     D2s = D2s,
      K = (K1, K2, K3, K4),
      G = G,
      Crr = Crr1,

@@ -402,10 +402,10 @@ function STOPFUN_Q(ψδ,t,i)
             write_out_fault_data(io.fault_name, (δ, V, τ .- η .* V, ψ), 0.0, t)
 
         end
-
+        #=
         if pf[1] % 10 == 0
 
-        write_out_stations(io.station_name,
+            write_out_stations(io.station_name,
                            io.stations,
                            fc,
                            (δ, V, τ .- η .* V, ψ),
@@ -413,7 +413,11 @@ function STOPFUN_Q(ψδ,t,i)
                            t)
 
         end
-        
+        =#
+	if pf[1] % 1000 == 0
+	   @printf "simulation time is %f\n" t/year_seconds
+	end	
+
         if io.slip_plot[1] != nothing && pf[1] % 1000 == 0
             io.slip_plot[1] = plot!(io.slip_plot[1], δ, fc, linecolor=:blue, linewidth=.1)
             v_plot = plot(V, fc, legend = false, yflip=true, ylabel="Depth(Km)", xlabel="Slip rate (m/s)", color =:black)

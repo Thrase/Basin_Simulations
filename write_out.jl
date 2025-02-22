@@ -116,7 +116,7 @@ function new_dir(new_dir::String, input_file::String, stations::Array{Float64, 1
 
     init_volume_data(volume_name, x, y)
 
-    cp(input_file, string(new_dir, "input_file.dat"))
+    #cp(input_file, string(new_dir, "input_file.dat"))
     write_depth_grid(string(new_dir, "depth_grid.dat"), depth)
 
     return fault_name, stations_name, remote_name, volume_name
